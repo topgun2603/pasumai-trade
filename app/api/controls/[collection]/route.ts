@@ -1,36 +1,18 @@
 import { adminDb } from "@/lib/firebase/admin";
 import { isEditable, validate } from "@/lib/domain/controls";
+import { writeGuard } from "@/lib/api/write-guard";
 
 /**
  * Create a reference-data record.
  *
- * ─────────────────────────────────────────────────────────────────────────
- *  NOT PROTECTED YET. Gated to development because of it.
- *
- *  Security Rules deny every client write, so mutations have to come through
- *  a route handler holding Admin credentials — and the Admin SDK bypasses
- *  rules entirely. Until Firebase Auth and session cookies are wired up there
- *  is no way for this handler to know who is calling, and an unauthenticated
- *  endpoint that writes with Admin credentials is a hole, not a feature.
- *
- *  When auth lands, replace the guard below with:
- *      const session = await verifySession();
- *      if (session.role !== "admin") return forbidden();
- *  and delete the production check.
- * ─────────────────────────────────────────────────────────────────────────
+ * NOT PROTECTED YET — `writeGuard` closes this in production and carries the
+ * full explanation, plus the one place `verifySession()` goes when auth lands.
  */
-function guard(): Response | null {
-  if (process.env.NODE_ENV === "production") {
-    return new Response("Not found", { status: 404 });
-  }
-  return null;
-}
-
 export async function POST(
   request: Request,
   context: RouteContext<"/api/controls/[collection]">,
 ) {
-  const blocked = guard();
+  const blocked = writeGuard();
   if (blocked) return blocked;
 
   const { collection } = await context.params;

@@ -9,19 +9,19 @@ import {
 } from "@/lib/domain/negotiation";
 import { adminDb } from "@/lib/firebase/admin";
 import { shapeNegotiation } from "@/lib/firebase/negotiations-read";
+import { writeGuard } from "@/lib/api/write-guard";
 
 /**
  * Append a message to a bargain.
  *
  * ─────────────────────────────────────────────────────────────────────────
- *  NOT PROTECTED YET. Gated to development, and `author` is taken from the
- *  request body — which means anyone could claim to be the farmer and accept
- *  a price on their behalf. That is precisely why this cannot ship.
+ *  NOT PROTECTED YET — see `writeGuard`, which closes this in production.
  *
- *  When auth lands:
+ *  `author` comes from the request body, so anyone reaching this endpoint can
+ *  claim to be the farmer and accept a price on their behalf. When auth lands:
+ *
  *      const session = await verifySession();
  *      const author = partyFor(session, negotiation);   // never from the body
- *  and delete the production check.
  * ─────────────────────────────────────────────────────────────────────────
  *
  * The guards run **here**, on the server, against the document as it stands in
@@ -30,13 +30,6 @@ import { shapeNegotiation } from "@/lib/firebase/negotiations-read";
  * with, or is simply stale because the other side just countered, must not be
  * able to talk this endpoint into a price nobody agreed to.
  */
-function guard(): Response | null {
-  if (process.env.NODE_ENV === "production") {
-    return new Response("Not found", { status: 404 });
-  }
-  return null;
-}
-
 const KINDS: MessageKind[] = ["note", "proposal", "accept", "withdraw"];
 
 /** Rates arrive as `{ a: 2200, b: 1800, c: 1300 }` in paise. */
@@ -59,7 +52,7 @@ export async function POST(
   request: Request,
   context: RouteContext<"/api/negotiations/[id]/messages">,
 ) {
-  const blocked = guard();
+  const blocked = writeGuard();
   if (blocked) return blocked;
 
   const { id } = await context.params;

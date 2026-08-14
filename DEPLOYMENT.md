@@ -35,6 +35,29 @@ own gate:
 This covers production and previews together. Turn it off when real auth lands,
 not before.
 
+### Why Controls and Bargains reject every save
+
+The pages load, but saving returns a 404 and the console shows a read-only
+banner. That is deliberate: `writeGuard()` closes every write endpoint in
+production, because those handlers hold Admin credentials and cannot yet tell
+who is calling.
+
+Once — and only once — Deployment Protection is on, something *else* is doing
+the authenticating, and the endpoints can be opened for demonstration and
+operations. Add this to the Vercel project's environment variables:
+
+```
+UNSAFE_ALLOW_UNAUTHENTICATED_WRITES = true
+```
+
+It is named that way on purpose. On a publicly reachable deployment it lets
+anyone who finds the URL rewrite the crop catalogue, rename villages and accept
+a price on a farmer's behalf. Validation still applies — the guards and
+refusals all run — but nothing checks *who* is asking.
+
+Do not set it until Deployment Protection is confirmed on, and delete it the
+day `verifySession()` lands.
+
 ---
 
 ## One-time setup

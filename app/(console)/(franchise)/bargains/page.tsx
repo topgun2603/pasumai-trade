@@ -10,6 +10,7 @@ import { CATALOGUE } from "@/lib/mock/catalogue";
 import { GEOGRAPHY } from "@/lib/mock/locations";
 import { negotiations } from "@/lib/mock/negotiations";
 import { DOCUMENT_RULES, PACKS, PHRASES } from "@/lib/mock/reference";
+import { writesEnabled } from "@/lib/api/write-guard";
 
 export const metadata: Metadata = { title: "Bargains · Pasumai Trade" };
 
@@ -38,7 +39,9 @@ export default async function BargainsPage() {
     .filter((p) => p.kind === "quickReply" && p.active)
     .map((p) => ({ id: p.id, text: p.text }));
 
-  const editable = live && process.env.NODE_ENV !== "production";
+  // Asks the guard rather than re-deriving its rule, so the buttons can never
+  // disagree with what the endpoint will actually accept.
+  const editable = live && writesEnabled();
 
   return (
     <div className="flex min-h-svh flex-col">

@@ -19,6 +19,7 @@ import { readControls } from "@/lib/firebase/controls-read";
 import { CATALOGUE } from "@/lib/mock/catalogue";
 import { GEOGRAPHY } from "@/lib/mock/locations";
 import { DOCUMENT_RULES, PACKS, PHRASES } from "@/lib/mock/reference";
+import { writesEnabled } from "@/lib/api/write-guard";
 
 export const metadata: Metadata = { title: "Controls · Admin" };
 
@@ -38,7 +39,9 @@ export default async function ControlsPage() {
   // have come from Firestore, and the write endpoints refuse in production
   // because they are not behind auth yet. Disabled buttons with an explanation
   // beat buttons that fail after the fact.
-  const editable = live && process.env.NODE_ENV !== "production";
+  // Asks the guard rather than re-deriving its rule, so the buttons can never
+  // disagree with what the endpoint will actually accept.
+  const editable = live && writesEnabled();
 
   return (
     <>

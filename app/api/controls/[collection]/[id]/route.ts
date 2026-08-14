@@ -1,4 +1,5 @@
 import { adminDb } from "@/lib/firebase/admin";
+import { writeGuard } from "@/lib/api/write-guard";
 import {
   DEPENDENTS,
   isDeletable,
@@ -9,21 +10,14 @@ import {
 /**
  * Update or delete a reference-data record.
  *
- * Same caveat as the create handler: **not protected yet**, so it is gated to
- * development. Replace the guard with `verifySession()` when auth lands.
+ * Same caveat as the create handler: **not protected yet**. See `writeGuard`,
+ * which closes both in production and is the one place `verifySession()` goes.
  */
-function guard(): Response | null {
-  if (process.env.NODE_ENV === "production") {
-    return new Response("Not found", { status: 404 });
-  }
-  return null;
-}
-
 export async function PATCH(
   request: Request,
   context: RouteContext<"/api/controls/[collection]/[id]">,
 ) {
-  const blocked = guard();
+  const blocked = writeGuard();
   if (blocked) return blocked;
 
   const { collection, id } = await context.params;
@@ -61,7 +55,7 @@ export async function DELETE(
   _request: Request,
   context: RouteContext<"/api/controls/[collection]/[id]">,
 ) {
-  const blocked = guard();
+  const blocked = writeGuard();
   if (blocked) return blocked;
 
   const { collection, id } = await context.params;
