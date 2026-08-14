@@ -76,6 +76,14 @@ Crop names are held per language *as data* for the same reason — the same crop
 genuinely goes by different names across Tamil Nadu, and `regional` overrides
 let a district use the word its farmers actually use.
 
+## Deploying
+
+Every push and pull request runs lint, type check, tests and a build; only if
+all four pass does anything deploy. Pull requests get a preview URL, `main`
+goes to production. See [DEPLOYMENT.md](DEPLOYMENT.md) for setup — **read the
+warning at the top of it before the first production deploy**, because the
+consoles show farmer personal data and nothing authenticates yet.
+
 ## Known gaps
 
 Read these before deploying anything.
