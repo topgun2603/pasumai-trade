@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 560" width="800" height="560" role="img" aria-label="Illustration of terraced farmland with a collection shed and a goods vehicle on the road">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#dbeaf0"/>
+      <stop offset="1" stop-color="#eef3e6"/>
+    </linearGradient>
+    <linearGradient id="near" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8fb99a"/>
+      <stop offset="1" stop-color="#6c9d7b"/>
+    </linearGradient>
+    <clipPath id="frame"><rect width="800" height="560" rx="20"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#frame)">
+    <rect width="800" height="560" fill="url(#sky)"/>
+    <circle cx="648" cy="104" r="46" fill="#f4e3bd"/>
+    <circle cx="648" cy="104" r="30" fill="#f7edd4"/>
+
+    <!-- Far hills -->
+    <path d="M0 236 120 176 236 224 352 168 476 226 592 180 720 232 800 200v90H0z" fill="#b9cfc3"/>
+    <path d="M0 268 138 216 268 262 400 210 528 264 660 218 800 258v60H0z" fill="#a3c0b0"/>
+
+    <!-- Mid fields -->
+    <path d="M0 300h800v76H0z" fill="#9dbb9f"/>
+    <g stroke="#8aab8e" stroke-width="2">
+      <path d="M0 316h800M0 336h800M0 356h800"/>
+    </g>
+
+    <!-- Collection shed -->
+    <g>
+      <path d="M566 246h150v56H566z" fill="#f4f6f1"/>
+      <path d="M556 246 641 210l85 36z" fill="#1c5b3e"/>
+      <path d="M596 268h30v34h-30z" fill="#7a5410"/>
+      <path d="M654 266h40v20h-40z" fill="#c8d6ca"/>
+      <rect x="566" y="246" width="150" height="6" fill="#2b7050"/>
+    </g>
+
+    <!-- Terraced near fields -->
+    <path d="M0 376h800v184H0z" fill="url(#near)"/>
+    <path d="M0 376h800v10H0z" fill="#5f8f6e"/>
+    <path d="M0 434c120-16 240 16 360 4s280-30 440-10v132H0z" fill="#5d9070"/>
+    <path d="M0 486c140-18 250 14 380 2s270-26 420-8v80H0z" fill="#4f8062"/>
+
+    <!-- Crop rows -->
+    <g stroke="#3f6b50" stroke-width="3" stroke-linecap="round" opacity=".55">
+      <path d="M40 560 96 400M150 560 190 400M262 560 288 400M376 560 388 400M490 560 486 400M604 560 588 400M716 560 688 400"/>
+    </g>
+
+    <!-- Bushes -->
+    <g fill="#3d6b4f">
+      <path d="M92 400c0-14 10-24 22-24s22 10 22 24z"/>
+      <path d="M300 396c0-16 12-28 26-28s26 12 26 28z"/>
+      <path d="M520 402c0-13 10-23 22-23s22 10 22 23z"/>
+      <path d="M690 398c0-15 11-26 24-26s24 11 24 26z"/>
+    </g>
+
+    <!-- Road -->
+    <path d="M-20 560 250 330h120L120 560z" fill="#cbd2cd"/>
+    <path d="M-20 560 250 330h20L20 560z" fill="#bcc4bf"/>
+    <g stroke="#eef1ee" stroke-width="5" stroke-linecap="round" stroke-dasharray="18 22">
+      <path d="M60 560 258 392"/>
+    </g>
+
+    <!-- Truck -->
+    <g transform="translate(150 372) rotate(-8)">
+      <rect x="0" y="0" width="104" height="60" rx="6" fill="#f7f9f7"/>
+      <rect x="0" y="0" width="104" height="10" rx="4" fill="#1c5b3e"/>
+      <path d="M104 20h34l26 26v14h-60z" fill="#e9ecea"/>
+      <path d="M110 26h22l17 18h-39z" fill="#9fb2b8"/>
+      <g fill="#3d4547">
+        <circle cx="30" cy="62" r="14"/>
+        <circle cx="132" cy="62" r="14"/>
+      </g>
+      <g fill="#93a09f">
+        <circle cx="30" cy="62" r="5"/>
+        <circle cx="132" cy="62" r="5"/>
+      </g>
+      <rect x="12" y="22" width="60" height="5" rx="2" fill="#d8e0d6"/>
+      <rect x="12" y="36" width="40" height="5" rx="2" fill="#d8e0d6"/>
+    </g>
+
+    <!-- Crates in the foreground -->
+    <g transform="translate(556 452)">
+      <rect x="0" y="30" width="86" height="52" rx="6" fill="#b9822f"/>
+      <rect x="0" y="30" width="86" height="10" rx="4" fill="#a4711f"/>
+      <g fill="#c0562f">
+        <circle cx="20" cy="22" r="13"/><circle cx="46" cy="18" r="14"/><circle cx="70" cy="24" r="12"/>
+      </g>
+      <g fill="#d2683d">
+        <circle cx="17" cy="18" r="4" opacity=".5"/><circle cx="43" cy="13" r="4" opacity=".5"/>
+      </g>
+      <rect x="96" y="46" width="72" height="36" rx="5" fill="#c99640"/>
+      <g fill="#e8c05a">
+        <circle cx="112" cy="40" r="10"/><circle cx="134" cy="37" r="11"/><circle cx="154" cy="41" r="9"/>
+      </g>
+    </g>
+
+    <!-- Birds -->
+    <g stroke="#8fa6a8" stroke-width="2.5" fill="none" stroke-linecap="round">
+      <path d="M120 120c6-7 12-7 18 0M144 108c6-7 12-7 18 0M180 130c5-6 10-6 15 0"/>
+    </g>
+  </g>
+</svg>

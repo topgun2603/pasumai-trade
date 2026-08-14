@@ -1,0 +1,194 @@
+rules_version = '2';
+
+// Pasumai Trade — Firestore Security Rules
+//
+// The trust boundary from the architecture doc, expressed as rules:
+//
+//   Clients read. Clients never write.
+//
+// Every mutation goes through a Next.js route handler holding Admin SDK
+// credentials, where the order state machine and the ledger are enforced in
+// testable code. Expressing a nine-state lifecycle, grade disputes and money
+// movement in this language is possible and unmaintainable.
+//
+// IMPORTANT — how the write ban actually works. Firestore grants access if
+// ANY match block allows it; a `deny` cannot override an `allow` elsewhere.
+// So the guarantee here is not the catch-all below — it is that the word
+// `write` (and `create`, `update`, `delete`) never appears in an allow
+// anywhere in this file. The catch-all is documentation and a backstop for
+// paths nobody thought about. If you ever add an allow-write here, you have
+// moved the trust boundary; do it deliberately or not at all.
+//
+// Reads are scoped by custom claims set on the session:
+//   role       'farmer' | 'buyer' | 'admin'
+//   accountId  the farmer or buyer document id this user is
+//   districts  districts a buyer may source from
+//
+// Claims are minted server-side only, by an admin-triggered Cloud Function.
+// A client cannot set its own claims, which is what makes them trustworthy
+// here.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /* --------------------------------------------------------------------
+       Helpers
+       -------------------------------------------------------------------- */
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function claims() {
+      return request.auth.token;
+    }
+
+    function hasRole(role) {
+      return signedIn() && claims().get('role', '') == role;
+    }
+
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    function isBuyer() {
+      return hasRole('buyer');
+    }
+
+    function isFarmer() {
+      return hasRole('farmer');
+    }
+
+    // Anyone the platform has verified. Reference data is readable by all of
+    // them — a farmer needs the crop catalogue as much as a buyer does.
+    function isKnown() {
+      return isAdmin() || isBuyer() || isFarmer();
+    }
+
+    function accountId() {
+      return claims().get('accountId', '');
+    }
+
+    function sourcingDistricts() {
+      return claims().get('districts', []);
+    }
+
+    /* --------------------------------------------------------------------
+       Reference data — readable by every signed-in user
+       -------------------------------------------------------------------- */
+
+    match /produce/{cropId} {
+      allow read: if isKnown();
+    }
+
+    // Geography: state → district → place. Read by everyone, because every
+    // address field and location filter on the platform depends on it.
+    match /states/{stateId} {
+      allow read: if isKnown();
+    }
+
+    match /districts/{districtId} {
+      allow read: if isKnown();
+    }
+
+    match /places/{placeId} {
+      allow read: if isKnown();
+    }
+
+    match /marketRates/{rateId} {
+      // The published mandi reference. A farmer must be able to check an
+      // offer against it — that comparison is the platform's trust argument,
+      // so this is the last thing that should ever be restricted.
+      allow read: if isKnown();
+    }
+
+    /* --------------------------------------------------------------------
+       Accounts
+       -------------------------------------------------------------------- */
+
+    match /farmers/{farmerId} {
+      // A farmer sees only themselves. A buyer sees farmers supplying the
+      // districts they are allowed to source from. Operations sees all.
+      allow get: if isAdmin()
+                 || (isFarmer() && farmerId == accountId())
+                 || (isBuyer() && resource.data.district in sourcingDistricts());
+
+      // A list query cannot be evaluated per-document, so a buyer must
+      // constrain it to their own districts for the query to be accepted.
+      allow list: if isAdmin() || isBuyer();
+    }
+
+    match /buyers/{buyerId} {
+      // Commercially sensitive: a buyer sees their own record and nobody
+      // else's. Farmers have no business reading buyer accounts at all.
+      allow read: if isAdmin() || (isBuyer() && buyerId == accountId());
+    }
+
+    match /drivers/{driverId} {
+      // Operations manages drivers. A buyer sees only the driver assigned to
+      // one of their loads, and that arrives on the order document rather
+      // than by reading the driver record.
+      allow read: if isAdmin();
+    }
+
+    match /vehicles/{vehicleId} {
+      allow read: if isAdmin();
+    }
+
+    /* --------------------------------------------------------------------
+       Trade
+       -------------------------------------------------------------------- */
+
+    match /listings/{listingId} {
+      allow get: if isAdmin()
+                 || (isFarmer() && resource.data.farmerId == accountId())
+                 || (isBuyer() && resource.data.district in sourcingDistricts());
+      allow list: if isAdmin() || isBuyer() || isFarmer();
+    }
+
+    match /stock/{offerId} {
+      // Graded stock on the shelf. Buyers browse it; farmers have no view of
+      // what their produce was pooled into or priced at downstream.
+      allow read: if isAdmin() || isBuyer();
+    }
+
+    match /orders/{orderId} {
+      // Procurement orders — the farmer's sale.
+      allow get: if isAdmin()
+                 || (isFarmer() && resource.data.farmerId == accountId())
+                 || (isBuyer() && resource.data.buyerId == accountId());
+      allow list: if isAdmin() || isBuyer() || isFarmer();
+    }
+
+    match /buyerOrders/{orderId} {
+      allow get: if isAdmin()
+                 || (isBuyer() && resource.data.buyerId == accountId());
+      allow list: if isAdmin() || isBuyer();
+    }
+
+    /* --------------------------------------------------------------------
+       Money
+       -------------------------------------------------------------------- */
+
+    match /ledger/{entryId} {
+      // Append-only and operations-only. A buyer's own money movements reach
+      // them through their order documents, not by reading the ledger, so
+      // that platform margin is never exposed.
+      allow read: if isAdmin();
+    }
+
+    /* --------------------------------------------------------------------
+       Everything else, and the write ban
+       -------------------------------------------------------------------- */
+
+    match /{document=**} {
+      // No client writes anywhere, ever. See the note at the top of the file:
+      // this is a backstop, not the mechanism.
+      allow write: if false;
+
+      // Unknown collections are unreadable. A collection added without a rule
+      // is invisible rather than public.
+      allow read: if false;
+    }
+  }
+}

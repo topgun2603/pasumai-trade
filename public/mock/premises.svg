@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160" role="img" aria-label="Placeholder photograph of business premises">
+  <rect width="160" height="160" fill="#e4ece2"/>
+  <path d="M0 128h160v32H0z" fill="#cbd8c8"/>
+  <path d="M24 56h112v72H24z" fill="#f2f4ef"/>
+  <path d="M24 56h112v14H24z" fill="#1c5b3e"/>
+  <g fill="#e8b44a">
+    <path d="M24 70h18.7v16H24zM61.3 70H80v16H61.3zM98.7 70h18.7v16H98.7z"/>
+  </g>
+  <g fill="#d9e2d6">
+    <path d="M42.7 70h18.6v16H42.7zM80 70h18.7v16H80zM117.3 70h18.7v16h-18.7z"/>
+  </g>
+  <path d="M40 98h34v30H40z" fill="#b9cbb6"/>
+  <path d="M88 98h32v18H88z" fill="#9fb79c"/>
+  <g fill="#c0562f">
+    <circle cx="96" cy="122" r="5"/>
+    <circle cx="108" cy="122" r="5"/>
+  </g>
+  <g fill="#4a7c5c">
+    <circle cx="120" cy="122" r="5"/>
+  </g>
+</svg>

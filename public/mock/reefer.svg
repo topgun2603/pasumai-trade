@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160" role="img" aria-label="Placeholder photograph of a refrigerated vehicle">
+  <rect width="160" height="160" fill="#dfe9ec"/>
+  <path d="M0 116h160v44H0z" fill="#c2cbcd"/>
+  <path d="M0 112h160v6H0z" fill="#aab5b7"/>
+  <path d="M18 56h72v60H18z" fill="#fbfdfd"/>
+  <path d="M18 56h72v8H18z" fill="#2f6f8f"/>
+  <path d="M34 70h40v26H34z" fill="#e2f0f4"/>
+  <g stroke="#2f6f8f" stroke-width="3" stroke-linecap="round">
+    <path d="M54 74v18M46 78l16 10M62 78l-16 10"/>
+  </g>
+  <path d="M90 78h26l20 22v16H90z" fill="#e8eaea"/>
+  <path d="M96 84h18l13 14H96z" fill="#9fb2b8"/>
+  <g fill="#3d4547">
+    <circle cx="46" cy="120" r="13"/>
+    <circle cx="118" cy="120" r="13"/>
+  </g>
+  <g fill="#8b9698">
+    <circle cx="46" cy="120" r="5"/>
+    <circle cx="118" cy="120" r="5"/>
+  </g>
+</svg>

@@ -1,0 +1,242 @@
+/**
+ * English — the source of truth.
+ *
+ * Every other dictionary is typed against this shape, so a missing key is a
+ * build error rather than a blank space on a page. Keep the keys descriptive
+ * of purpose rather than of position: `hero.title`, not `text1`.
+ */
+export const en = {
+  nav: {
+    howItWorks: "How it works",
+    forFarmers: "For farmers",
+    forBuyers: "For buyers",
+    coverage: "Coverage",
+    signIn: "Sign in",
+    requestAccount: "Request an account",
+    menu: "Menu",
+    language: "Language",
+    theme: "Colour theme",
+  },
+
+  hero: {
+    badge: "Tamil Nadu · {districts} districts · {farmers} farmers",
+    titleLine1: "Fair prices for farmers.",
+    titleAccent: "Graded produce",
+    titleLine2: "for buyers.",
+    body: "Farmers list what they harvest and are paid against published mandi rates. Bulk buyers order graded stock from farms nearby, with transport and paperwork handled. The money is held until the produce arrives.",
+    imageAlt:
+      "Terraced farmland with a collection shed and a goods vehicle on the road",
+    statPoints: "Villages covered",
+    statGrades: "Grades priced up front",
+    statSettlement: "Typical settlement",
+  },
+
+  prices: {
+    title: "Today's rates",
+    body: "The lowest available price per crop, beside the published mandi range for the same day.",
+    refresh: "Refresh",
+    loading: "Loading today's rates",
+    mandi: "Mandi {range}",
+    noMandi: "No mandi reference today",
+    location: "location",
+    locations: "locations",
+    fresh: "Fresh",
+    useSoon: "Use soon",
+    endOfLife: "Today only",
+    error:
+      "Rates could not be loaded just now. They change through the day, so an old number is worse than none.",
+    retry: "Try again",
+    disclaimer:
+      "Indicative, exclusive of freight, and subject to grading at collection. Mandi ranges are published by Agmarknet; where a crop shows no reference, none was published for that district today.",
+  },
+
+  how: {
+    title: "How a load moves",
+    body: "Produce is graded once, in front of the farmer, at the point it is collected. Everything downstream — the price, the payout, the buyer's invoice — resolves from that single grading.",
+    caption: "One grading, in front of the farmer, settles the price for everyone.",
+    farm: "Farm",
+    farmSub: "listing created",
+    collection: "Pickup",
+    collectionSub: "graded at the farm",
+    transit: "In transit",
+    transitSub: "checked vehicle",
+    buyer: "Buyer",
+    buyerSub: "confirms receipt",
+    held: "Buyer's payment is held from the moment the order is placed",
+    released: "released",
+    moneyNote:
+      "Money only reaches the farmer after the buyer confirms the load arrived.",
+    diagramAlt:
+      "A load moves from the farm, through grading at the farm, to the buyer. The buyer's payment is held from order until delivery is confirmed, then released to the farmer.",
+  },
+
+  farmers: {
+    badge: "For farmers",
+    title: "Sell without leaving the field",
+    body1:
+      "Built for a budget Android phone in bright sunlight, one-handed, with patchy signal. Your language first.",
+    body2:
+      "You are never asked to trust a number you cannot check. Every offer sits beside the published rate for your district, and the source of that rate is named — a platform average is labelled a platform average, never a mandi price.",
+    imageAlt:
+      "Graded produce stacked in crates at the farm gate, with weighing scale and inspection sheet",
+    step1Title: "List what you have",
+    step1Body:
+      "Crop, quantity, photos. It works with no signal — the listing syncs when you are back in range.",
+    step2Title: "Check the offer",
+    step2Body:
+      "Every offer prices all three grades up front and shows the published rate for your district beside it.",
+    step3Title: "Hand over with a code",
+    step3Body:
+      "A vehicle comes to the farm. Grading happens in front of you; four digits confirm the handover.",
+    step4Title: "Get paid",
+    step4Body:
+      "Money is held from the moment the buyer orders and lands in your account once delivery is confirmed.",
+  },
+
+  buyers: {
+    badge: "For buyers and franchises",
+    title: "Bulk produce without the mandi run",
+    body: "Franchises and independent bulk buyers get the same console and the same capabilities. Browse graded stock, order what you need, and have it collected and delivered.",
+    imageAlt:
+      "The buyer console showing graded stock lines with prices, grades and a dispatch summary",
+    cta: "Sign in to the buyer console",
+    step1Title: "Browse graded stock",
+    step1Body:
+      "Real availability near you, priced per unit, with grade and remaining shelf life on every line.",
+    step2Title: "Pay on order",
+    step2Body:
+      "No credit and no ledger to reconcile. Funds are held until you confirm receipt.",
+    step3Title: "Dispatch included",
+    step3Body:
+      "Licence, insurance, fitness and permit are checked before a load moves. One vehicle run per district.",
+    step4Title: "Confirm and close",
+    step4Body:
+      "Confirm receipt and the money is released. Anything short or off-grade is raised before it settles.",
+  },
+
+  trust: {
+    title: "Why both sides can go first",
+    body: "Trade between strangers usually stalls on who takes the risk. These are the four rules that remove the question.",
+    item1Title: "Everyone is checked",
+    item1Body:
+      "Buyers submit GST, PAN and an FSSAI licence. Farmers are onboarded in person by a franchise. Nobody transacts before operations approves them.",
+    item2Title: "Graded once, in the open",
+    item2Body:
+      "Produce is graded at collection with the farmer present. All three grade prices are agreed before the vehicle is sent, so nothing is renegotiated at the roadside.",
+    item3Title: "Money is held, not passed on",
+    item3Body:
+      "The buyer's payment is held from order until delivery is confirmed. Neither side is asked to go first.",
+    item4Title: "No lapsed paperwork on the road",
+    item4Body:
+      "A vehicle with an expired certificate cannot be assigned to a load, and a driver with an expired licence cannot be dispatched. The system refuses it.",
+  },
+
+  drivers: {
+    badge: "For drivers",
+    title: "Steady runs, paid per trip",
+    body: "Own a mini truck, tempo or reefer? Register it with your licence, RC, insurance, fitness certificate and permit, and take collection runs in your district. We tell you before a certificate is close to lapsing rather than after.",
+    cta: "Register a vehicle",
+  },
+
+  coverage: {
+    title: "Where we collect",
+    body: "Produce is collected at the farm and graded in front of the farmer. These are the villages we reach.",
+    farmers: "farmers",
+  },
+
+  faq: {
+    title: "Questions we are asked",
+    body: "Something not covered here? Send an enquiry below and operations will call you back.",
+    q1: "What does it cost a farmer?",
+    a1: "Nothing to list, and nothing deducted for transport. The price you accept is the price that settles, adjusted only by the grade recorded in front of you at collection and by the actual weight loaded.",
+    q2: "How quickly are farmers paid?",
+    a2: "Money is released once the buyer confirms the load arrived, and typically reaches the account within a day. You see the last four digits of the account it went to, so you can check without calling anyone.",
+    q3: "Do buyers get credit?",
+    a3: "No. Every order is paid in full when it is placed. There is no balance to reconcile, no interest, and no collections.",
+    q4: "What happens if the grade is disputed?",
+    a4: "The load is held. A farmer who disputes the recorded grade stops the produce moving until it is resolved — moving it first would settle the argument in the buyer's favour by default.",
+    q5: "What if produce arrives short or off-grade?",
+    a5: "Raise it before you confirm receipt. Money is only released on your confirmation, so a shortfall is settled while the funds are still held rather than chased afterwards.",
+    q6: "Which languages does it work in?",
+    a6: "English, Tamil, Telugu, Kannada, Malayalam and Hindi. Crop names are held per language and per district because they vary regionally — what is one crop in Erode may be called something else in Thanjavur.",
+  },
+
+  apply: {
+    title: "Request an account",
+    body: "Accounts are opened by our operations team after documents are checked. Buyers need GST, PAN and an FSSAI licence; farmers are onboarded by a franchise, who collects bank details in person.",
+    haveAccount: "Already have an account?",
+    signInHere: "Sign in here",
+    iWantTo: "I want to",
+    buyProduce: "Buy produce in bulk",
+    sellProduce: "Sell produce I grow",
+    yourName: "Your name",
+    mobile: "Mobile",
+    businessName: "Business name",
+    district: "District",
+    optional: "optional",
+    whatBuy: "What do you buy?",
+    whatGrow: "What do you grow?",
+    send: "Send enquiry",
+    sending: "Sending…",
+    note: "We will call to arrange document checks. Accounts are opened by operations, never automatically.",
+    successTitle: "Enquiry received",
+    successBody:
+      "Operations will call you on the number you gave to arrange document checks.",
+  },
+
+  signin: {
+    title: "Sign in to Pasumai Trade",
+    subtitle: "Choose the console you work in.",
+    buyer: "Buyer",
+    operations: "Operations",
+    farmer: "Farmer",
+    buyerBlurb:
+      "Franchises and independent bulk buyers. Browse graded stock, place orders and track dispatch.",
+    adminBlurb:
+      "Platform administration. Approve accounts, manage the fleet and watch document expiry.",
+    farmerBlurb:
+      "Sign in with the mobile number your franchise registered. You will receive a one-time code.",
+    email: "Email address",
+    mobile: "Mobile number",
+    password: "Password",
+    forgotten: "Forgotten?",
+    submit: "Sign in",
+    sendCode: "Send one-time code",
+    signingIn: "Signing in…",
+    sendingCode: "Sending code…",
+    noAccount: "No account?",
+    requestOne: "Request one",
+    accountsNote: "accounts are opened by operations after documents are checked.",
+    notConnectedTitle: "Authentication is not connected yet.",
+    notConnectedBody:
+      "Signing in here does not verify anyone — it opens the console so the surfaces can be reviewed. Do not deploy this publicly until Firebase Auth and session cookies are wired up.",
+  },
+
+  footer: {
+    tagline: "Farm-to-business produce trade and logistics for Tamil Nadu.",
+    platform: "Platform",
+    signIn: "Sign in",
+    buyerOrFranchise: "Buyer or franchise",
+    operations: "Platform operations",
+    allOptions: "All sign-in options",
+    contact: "Contact",
+    rights: "All rights reserved.",
+    rateNote:
+      "Mandi reference prices are published by Agmarknet. Platform averages are labelled as such and are not official mandi rates.",
+  },
+
+  common: {
+    required: "required",
+    changeLanguage: "Change language",
+  },
+};
+
+/**
+ * The shape every dictionary must satisfy.
+ *
+ * Deliberately *not* `as const`: literal types would make the English strings
+ * the only permitted values, so no translation could ever be assigned. What
+ * matters here is that the keys match, which a missing one makes a build
+ * error.
+ */
+export type Dictionary = typeof en;

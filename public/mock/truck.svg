@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160" role="img" aria-label="Placeholder photograph of a goods vehicle">
+  <rect width="160" height="160" fill="#e2e8ea"/>
+  <path d="M0 116h160v44H0z" fill="#c2cbcd"/>
+  <path d="M0 112h160v6H0z" fill="#aab5b7"/>
+  <path d="M18 60h72v56H18z" fill="#f0f2f0"/>
+  <path d="M18 60h72v8H18z" fill="#1c5b3e"/>
+  <path d="M90 78h26l20 22v16H90z" fill="#e8eaea"/>
+  <path d="M96 84h18l13 14H96z" fill="#9fb2b8"/>
+  <g fill="#3d4547">
+    <circle cx="46" cy="120" r="13"/>
+    <circle cx="118" cy="120" r="13"/>
+  </g>
+  <g fill="#8b9698">
+    <circle cx="46" cy="120" r="5"/>
+    <circle cx="118" cy="120" r="5"/>
+  </g>
+  <path d="M26 78h56v4H26zM26 90h40v4H26z" fill="#d3dad2"/>
+</svg>

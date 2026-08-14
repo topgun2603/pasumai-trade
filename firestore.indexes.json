@@ -1,0 +1,105 @@
+{
+  "//": "Composite indexes for the queries the consoles actually make. Firestore serves single-field queries from automatic indexes; anything combining a filter with a different sort field, or two filters, needs declaring here or the query fails at runtime with a console link. Declared up front so that never happens in front of a user.",
+  "indexes": [
+    {
+      "//": "Buyer market: stock at a chosen collection point, cheapest first.",
+      "collectionGroup": "stock",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sourceId", "order": "ASCENDING" },
+        { "fieldPath": "pricePerUnit", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "//": "Buyer market: stock in a district, shortest shelf life first — the discount-before-it-spoils view.",
+      "collectionGroup": "stock",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "district", "order": "ASCENDING" },
+        { "fieldPath": "bestBefore", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "//": "Listings console: open listings in the buyer's districts, newest first.",
+      "collectionGroup": "listings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "district", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "//": "Farmer app: a farmer's own listings, newest first.",
+      "collectionGroup": "listings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "farmerId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "//": "Dispatch board: paid orders awaiting allocation, oldest first so nothing is left behind.",
+      "collectionGroup": "buyerOrders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "placedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "//": "Orders page: one buyer's orders, newest first.",
+      "collectionGroup": "buyerOrders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "buyerId", "order": "ASCENDING" },
+        { "fieldPath": "placedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "//": "Farmer's money screen: their orders by settlement date.",
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "farmerId", "order": "ASCENDING" },
+        { "fieldPath": "settledAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "//": "Admin: accounts awaiting review, oldest first — the approval queue.",
+      "collectionGroup": "farmers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "registeredAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "buyers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "registeredAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "//": "Admin: suppliers a buyer may source from, by district.",
+      "collectionGroup": "farmers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "district", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "//": "Reconciliation: ledger entries for one order, in the order they happened. Append-only, so ascending is the audit order.",
+      "collectionGroup": "ledger",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "orderId", "order": "ASCENDING" },
+        { "fieldPath": "recordedAt", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

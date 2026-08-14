@@ -1,0 +1,305 @@
+/**
+ * Registration validation.
+ *
+ * Hand-written rather than schema-library-driven: almost every field here is
+ * an Indian statutory identifier with a fixed, checkable shape, and getting
+ * those formats right is the actual work. Catching a malformed IFSC at the
+ * form is worth far more than a generic "required" engine.
+ *
+ * Server-side re-validation is still mandatory when the route handlers land —
+ * these checks are for the person typing, not for the data.
+ */
+
+export type FieldErrors<T> = Partial<Record<keyof T, string>>;
+
+/* -------------------------------------------------------------------------
+   Field formats
+   ------------------------------------------------------------------------- */
+
+/** `33AAECK4521M1ZP` — state code, PAN, entity number, Z, checksum. */
+const GSTIN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+
+/** `AAECK4521M` */
+const PAN = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+
+/** `HDFC0001234` — four letters, a zero, then six alphanumerics. */
+const IFSC = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+
+/** Ten digits starting 6–9. Stored without the country code. */
+const MOBILE = /^[6-9][0-9]{9}$/;
+
+const PINCODE = /^[1-9][0-9]{5}$/;
+
+const AADHAAR = /^[0-9]{12}$/;
+
+/** FSSAI licence numbers are exactly fourteen digits. */
+const FSSAI = /^[0-9]{14}$/;
+
+/** `TN 20 BA 4471`, with or without spaces. */
+const VEHICLE_REGISTRATION = /^[A-Z]{2}\s?[0-9]{1,2}\s?[A-Z]{1,3}\s?[0-9]{1,4}$/;
+
+/** `TN20 20180004471` — state, RTO, then eleven digits. */
+const DRIVING_LICENCE = /^[A-Z]{2}[0-9]{2}\s?[0-9]{11}$/;
+
+const BANK_ACCOUNT = /^[0-9]{9,18}$/;
+
+export function normalise(value: string): string {
+  return value.trim().toUpperCase().replace(/\s+/g, " ");
+}
+
+/* -------------------------------------------------------------------------
+   Reusable checks
+   ------------------------------------------------------------------------- */
+
+export function required(value: string, label: string): string | undefined {
+  return value.trim() === "" ? `${label} is required` : undefined;
+}
+
+export function checkMobile(value: string): string | undefined {
+  if (value.trim() === "") return "Mobile number is required";
+  const digits = value.replace(/[\s+]/g, "").replace(/^91/, "");
+  return MOBILE.test(digits)
+    ? undefined
+    : "Enter a 10-digit Indian mobile number starting 6–9";
+}
+
+export function checkPincode(value: string): string | undefined {
+  if (value.trim() === "") return "PIN code is required";
+  return PINCODE.test(value.trim()) ? undefined : "Enter a 6-digit PIN code";
+}
+
+export function checkGstin(value: string, optional = false): string | undefined {
+  if (value.trim() === "") return optional ? undefined : "GSTIN is required";
+  return GSTIN.test(normalise(value).replace(/\s/g, ""))
+    ? undefined
+    : "Not a valid GSTIN, e.g. 33AAECK4521M1ZP";
+}
+
+export function checkPan(value: string, optional = false): string | undefined {
+  if (value.trim() === "") return optional ? undefined : "PAN is required";
+  return PAN.test(normalise(value).replace(/\s/g, ""))
+    ? undefined
+    : "Not a valid PAN, e.g. AAECK4521M";
+}
+
+export function checkIfsc(value: string): string | undefined {
+  if (value.trim() === "") return "IFSC is required";
+  return IFSC.test(normalise(value).replace(/\s/g, ""))
+    ? undefined
+    : "Not a valid IFSC, e.g. HDFC0001234";
+}
+
+export function checkBankAccount(value: string): string | undefined {
+  if (value.trim() === "") return "Account number is required";
+  return BANK_ACCOUNT.test(value.replace(/\s/g, ""))
+    ? undefined
+    : "Account numbers are 9 to 18 digits";
+}
+
+export function checkAadhaar(value: string, optional = false): string | undefined {
+  if (value.trim() === "") return optional ? undefined : "Aadhaar is required";
+  return AADHAAR.test(value.replace(/\s/g, ""))
+    ? undefined
+    : "Aadhaar is 12 digits";
+}
+
+export function checkFssai(value: string, optional = false): string | undefined {
+  if (value.trim() === "") return optional ? undefined : "FSSAI licence is required";
+  return FSSAI.test(value.replace(/\s/g, ""))
+    ? undefined
+    : "FSSAI licence numbers are 14 digits";
+}
+
+export function checkVehicleRegistration(value: string): string | undefined {
+  if (value.trim() === "") return "Registration number is required";
+  return VEHICLE_REGISTRATION.test(normalise(value))
+    ? undefined
+    : "Not a valid registration, e.g. TN 20 BA 4471";
+}
+
+export function checkDrivingLicence(value: string): string | undefined {
+  if (value.trim() === "") return "Licence number is required";
+  return DRIVING_LICENCE.test(normalise(value))
+    ? undefined
+    : "Not a valid licence number, e.g. TN20 20180004471";
+}
+
+/**
+ * A document date that must be in the future.
+ *
+ * Registering something already expired is a data-entry error worth catching
+ * at the form — it would otherwise land straight in the admin console's
+ * expired queue.
+ */
+export function checkFutureDate(
+  value: string,
+  label: string,
+  optional = false,
+): string | undefined {
+  if (value.trim() === "") return optional ? undefined : `${label} is required`;
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) return `${label} is not a valid date`;
+  return parsed <= Date.now() ? `${label} is already in the past` : undefined;
+}
+
+export function checkPositiveNumber(
+  value: string,
+  label: string,
+): string | undefined {
+  if (value.trim() === "") return `${label} is required`;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return `${label} must be a number`;
+  return parsed <= 0 ? `${label} must be greater than zero` : undefined;
+}
+
+export function hasErrors<T>(errors: FieldErrors<T>): boolean {
+  return Object.values(errors).some(Boolean);
+}
+
+/* -------------------------------------------------------------------------
+   Form shapes
+   ------------------------------------------------------------------------- */
+
+export interface BuyerForm {
+  businessName: string;
+  kind: "franchise" | "independent";
+  contactName: string;
+  mobile: string;
+  email: string;
+  addressLine: string;
+  town: string;
+  district: string;
+  pincode: string;
+  sourcingDistricts: string[];
+  gstin: string;
+  pan: string;
+  fssai: string;
+  fssaiExpiry: string;
+  bankAccountName: string;
+  bankAccountNumber: string;
+  ifsc: string;
+}
+
+export function validateBuyer(values: BuyerForm): FieldErrors<BuyerForm> {
+  return {
+    businessName: required(values.businessName, "Business name"),
+    contactName: required(values.contactName, "Contact name"),
+    mobile: checkMobile(values.mobile),
+    addressLine: required(values.addressLine, "Address"),
+    town: required(values.town, "Town or city"),
+    district: required(values.district, "District"),
+    pincode: checkPincode(values.pincode),
+    sourcingDistricts:
+      values.sourcingDistricts.length === 0
+        ? "Select at least one district to source from"
+        : undefined,
+    gstin: checkGstin(values.gstin),
+    pan: checkPan(values.pan),
+    // Required only for food businesses, which a produce buyer always is.
+    fssai: checkFssai(values.fssai),
+    fssaiExpiry: checkFutureDate(values.fssaiExpiry, "FSSAI expiry"),
+    bankAccountName: required(values.bankAccountName, "Account holder name"),
+    bankAccountNumber: checkBankAccount(values.bankAccountNumber),
+    ifsc: checkIfsc(values.ifsc),
+  };
+}
+
+export interface FarmerForm {
+  name: string;
+  mobile: string;
+  village: string;
+  district: string;
+  pincode: string;
+  landAcres: string;
+  primaryCrops: string[];
+  aadhaar: string;
+  bankAccountName: string;
+  bankAccountNumber: string;
+  ifsc: string;
+  onboardedBy: string;
+}
+
+export function validateFarmer(values: FarmerForm): FieldErrors<FarmerForm> {
+  return {
+    name: required(values.name, "Farmer name"),
+    mobile: checkMobile(values.mobile),
+    village: required(values.village, "Village"),
+    district: required(values.district, "District"),
+    pincode: checkPincode(values.pincode),
+    landAcres: checkPositiveNumber(values.landAcres, "Land under cultivation"),
+    primaryCrops:
+      values.primaryCrops.length === 0
+        ? "Select at least one crop"
+        : undefined,
+    aadhaar: checkAadhaar(values.aadhaar),
+    bankAccountName: required(values.bankAccountName, "Account holder name"),
+    bankAccountNumber: checkBankAccount(values.bankAccountNumber),
+    ifsc: checkIfsc(values.ifsc),
+    // Never blank: a farmer is always onboarded by an account answerable
+    // for the record.
+    onboardedBy: required(values.onboardedBy, "Onboarding account"),
+  };
+}
+
+export interface DriverForm {
+  name: string;
+  mobile: string;
+  addressLine: string;
+  district: string;
+  pincode: string;
+  aadhaar: string;
+  licenceNumber: string;
+  licenceClass: string;
+  licenceExpiry: string;
+  assignedVehicle: string;
+}
+
+export function validateDriver(values: DriverForm): FieldErrors<DriverForm> {
+  return {
+    name: required(values.name, "Driver name"),
+    mobile: checkMobile(values.mobile),
+    addressLine: required(values.addressLine, "Address"),
+    district: required(values.district, "District"),
+    pincode: checkPincode(values.pincode),
+    aadhaar: checkAadhaar(values.aadhaar),
+    licenceNumber: checkDrivingLicence(values.licenceNumber),
+    licenceClass: required(values.licenceClass, "Licence class"),
+    licenceExpiry: checkFutureDate(values.licenceExpiry, "Licence expiry"),
+  };
+}
+
+export interface VehicleForm {
+  registration: string;
+  type: string;
+  capacityKg: string;
+  refrigerated: boolean;
+  owner: string;
+  district: string;
+  rcNumber: string;
+  insurer: string;
+  insurancePolicy: string;
+  insuranceExpiry: string;
+  fitnessNumber: string;
+  fitnessExpiry: string;
+  permitNumber: string;
+  permitExpiry: string;
+  assignedDriver: string;
+}
+
+export function validateVehicle(values: VehicleForm): FieldErrors<VehicleForm> {
+  return {
+    registration: checkVehicleRegistration(values.registration),
+    type: required(values.type, "Vehicle type"),
+    capacityKg: checkPositiveNumber(values.capacityKg, "Capacity"),
+    owner: required(values.owner, "Owner"),
+    district: required(values.district, "Operating district"),
+    rcNumber: required(values.rcNumber, "RC number"),
+    insurer: required(values.insurer, "Insurer"),
+    insurancePolicy: required(values.insurancePolicy, "Policy number"),
+    insuranceExpiry: checkFutureDate(values.insuranceExpiry, "Insurance expiry"),
+    fitnessNumber: required(values.fitnessNumber, "Fitness certificate number"),
+    fitnessExpiry: checkFutureDate(values.fitnessExpiry, "Fitness expiry"),
+    permitNumber: required(values.permitNumber, "Permit number"),
+    permitExpiry: checkFutureDate(values.permitExpiry, "Permit expiry"),
+  };
+}

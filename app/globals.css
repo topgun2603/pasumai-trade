@@ -1,0 +1,224 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ---------------------------------------------------------------------------
+   Pasumai Trade palette.
+
+   Ported from the platform's own tokens — packages/core/lib/src/design/tokens.dart
+   in the logistics_app workspace. Two constraints drove these and both still
+   apply on the web: the primary context of use is outdoors in bright sunlight,
+   so contrast runs higher than a default palette; and neutrals carry a slight
+   green bias so they sit with the accent rather than fighting it.
+
+   shadcn's semantic names are mapped onto the platform's names below. Keep the
+   mapping — do not introduce a second palette.
+--------------------------------------------------------------------------- */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-tamil: var(--font-tamil);
+  --font-heading: var(--font-sans);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Platform additions. shadcn has no vocabulary for these and the domain
+     needs them: money pending, offers expiring, disputes. */
+  --color-faint: var(--faint);
+  --color-rule-soft: var(--rule-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Minimum tap target. Larger than the usual 48px: the farmer is standing in
+     a field, one-handed, possibly with wet or dirty hands. */
+  --spacing-tap: 3.5rem;
+}
+
+:root {
+  /* platform: ground */
+  --background: #f6f8f4;
+  /* platform: ink */
+  --foreground: #171c16;
+  /* platform: surface */
+  --card: #ffffff;
+  --card-foreground: #171c16;
+  --popover: #ffffff;
+  --popover-foreground: #171c16;
+  /* platform: accent / onAccent */
+  --primary: #1c5b3e;
+  --primary-foreground: #ffffff;
+  /* platform: sunken */
+  --secondary: #edf1e9;
+  --secondary-foreground: #171c16;
+  --muted: #edf1e9;
+  /* platform: muted — secondary text, passes contrast on ground and surface */
+  --muted-foreground: #4e5a4c;
+  /* platform: accentSoft — shadcn uses --accent for hover surfaces */
+  --accent: #e2efe7;
+  --accent-foreground: #1c5b3e;
+  /* platform: danger */
+  --destructive: #8c3324;
+  /* platform: rule */
+  --border: #dce2d6;
+  --input: #dce2d6;
+  --ring: #1c5b3e;
+
+  /* platform: faint — labels and timestamps. Never used for anything a
+     farmer must read to make a decision. */
+  --faint: #75806f;
+  --rule-soft: #e8ede3;
+  --warning: #7a5410;
+  --warning-soft: #f5ebd8;
+  --destructive-soft: #f6e4e0;
+  --success: #1c5b3e;
+  --success-soft: #e2efe7;
+
+  /* Categorical series colours.
+
+     Not the brand greens: those were measured and failed. Deep green against
+     mid green sat at ΔE 3.2 for a deuteranope and 9.2 even with full colour
+     vision — indistinguishable as adjacent series. These five were validated
+     against this project's card surfaces in both themes: worst adjacent pair
+     ΔE 23.1 CVD / 24.0 normal on light, 19.6 / 20.9 on dark.
+
+     Slot order is the safety mechanism, not decoration. Assign in fixed order
+     and never cycle — a sixth series folds into "Other". Green leads so the
+     first series still reads as the platform's own colour. */
+  --chart-1: #1baf7a;
+  --chart-2: #2a78d6;
+  --chart-3: #eb6834;
+  --chart-4: #4a3aa7;
+  --chart-5: #eda100;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #171c16;
+  --sidebar-primary: #1c5b3e;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e2efe7;
+  --sidebar-accent-foreground: #1c5b3e;
+  --sidebar-border: #dce2d6;
+  --sidebar-ring: #1c5b3e;
+
+  /* platform: Radii.card */
+  --radius: 0.625rem;
+}
+
+.dark {
+  --background: #0e120e;
+  --foreground: #e4eae1;
+  --card: #161b16;
+  --card-foreground: #e4eae1;
+  --popover: #161b16;
+  --popover-foreground: #e4eae1;
+  --primary: #6ecb95;
+  --primary-foreground: #0e120e;
+  --secondary: #1c231c;
+  --secondary-foreground: #e4eae1;
+  --muted: #1c231c;
+  --muted-foreground: #a7b3a4;
+  --accent: #16281e;
+  --accent-foreground: #6ecb95;
+  --destructive: #e58270;
+  --border: #2a322a;
+  --input: #2a322a;
+  --ring: #6ecb95;
+
+  --faint: #808c7e;
+  --rule-soft: #222922;
+  --warning: #e0ae4e;
+  --warning-soft: #2a2314;
+  --destructive-soft: #2c1a16;
+  --success: #6ecb95;
+  --success-soft: #16281e;
+
+  /* The same five hues stepped for the dark surface — a selected dark
+     palette, not an automatic inversion of the light one. */
+  --chart-1: #199e70;
+  --chart-2: #3987e5;
+  --chart-3: #d95926;
+  --chart-4: #9085e9;
+  --chart-5: #c98500;
+
+  --sidebar: #161b16;
+  --sidebar-foreground: #e4eae1;
+  --sidebar-primary: #6ecb95;
+  --sidebar-primary-foreground: #0e120e;
+  --sidebar-accent: #16281e;
+  --sidebar-accent-foreground: #6ecb95;
+  --sidebar-border: #2a322a;
+  --sidebar-ring: #6ecb95;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  html {
+    @apply font-sans;
+  }
+
+  /* Tamil needs more vertical space than Latin at the same size, and the
+     catalogue renders both scripts in the same cell. */
+  :lang(ta),
+  .font-tamil {
+    font-family: var(--font-tamil), var(--font-sans), sans-serif;
+    line-height: 1.7;
+  }
+
+  /* Every column of digits in the console lines up. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}

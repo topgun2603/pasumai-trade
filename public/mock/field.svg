@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160" role="img" aria-label="Placeholder photograph of farmland">
+  <rect width="160" height="160" fill="#dbe9df"/>
+  <circle cx="124" cy="34" r="16" fill="#f0e0bc"/>
+  <path d="M0 96h160v64H0z" fill="#8fb99a"/>
+  <path d="M0 96h160v10H0z" fill="#7aa889"/>
+  <g stroke="#5c8f6d" stroke-width="3" stroke-linecap="round">
+    <path d="M12 158 34 106M46 158 60 106M80 158 86 106M114 158 112 106M148 158 138 106"/>
+  </g>
+  <g fill="#4a7c5c">
+    <path d="M24 96c0-8 5-14 12-14s12 6 12 14z"/>
+    <path d="M104 96c0-10 6-18 15-18s15 8 15 18z"/>
+  </g>
+  <path d="M0 88h160v8H0z" fill="#a8c9ae"/>
+</svg>
