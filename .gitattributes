@@ -1,0 +1,22 @@
+# Normalise line endings so a repo authored on Windows still works on the
+# Linux CI runner.
+#
+# `core.autocrlf` is a per-machine setting, which means without this file the
+# committed bytes depend on whoever ran `git add`. A shell script that reaches
+# the runner with CRLF fails as `bad interpreter: /usr/bin/env bash^M`, and the
+# error names neither the file nor the cause.
+* text=auto eol=lf
+
+# Never touched — a converted byte is a corrupted file.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
+
+# Generated. Collapsed in diffs and excluded from language statistics, so the
+# repo is not reported as mostly JSON.
+package-lock.json linguist-generated=true -diff
