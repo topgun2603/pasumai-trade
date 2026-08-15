@@ -122,18 +122,30 @@ export type MediaKey = keyof typeof MEDIA;
  * Runs on the server during the static build, so the check costs nothing at
  * request time and the generated HTML already points at the right file.
  */
+/**
+ * Extensions accepted for a photograph, best first.
+ *
+ * The slot names one file, but whoever supplies the photography should not
+ * have to care which container it lands in — a PNG export from a design tool
+ * is as valid as a JPEG from a camera. WebP is preferred where both exist
+ * because it is the one worth keeping in the repository.
+ */
+const EXTENSIONS = [".webp", ".jpg", ".jpeg", ".png", ".avif"];
+
 export function resolveMedia(key: MediaKey): {
   src: string;
   isPhotograph: boolean;
   aspect: string;
 } {
   const slot = MEDIA[key];
-  const onDisk = join(process.cwd(), "public", slot.photo);
-  const hasPhoto = existsSync(onDisk);
+  const base = slot.photo.replace(/.[a-z0-9]+$/i, "");
 
-  return {
-    src: hasPhoto ? slot.photo : slot.fallback,
-    isPhotograph: hasPhoto,
-    aspect: slot.aspect,
-  };
+  for (const extension of EXTENSIONS) {
+    const candidate = base + extension;
+    if (existsSync(join(process.cwd(), "public", candidate))) {
+      return { src: candidate, isPhotograph: true, aspect: slot.aspect };
+    }
+  }
+
+  return { src: slot.fallback, isPhotograph: false, aspect: slot.aspect };
 }
