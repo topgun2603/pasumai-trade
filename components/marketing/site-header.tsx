@@ -48,6 +48,7 @@ export function SiteHeader({
 
   const links = [
     { href: "#bargaining", label: t.nav.pricing },
+    { href: "#languages", label: t.nav.languages },
     { href: "#how-it-works", label: t.nav.howItWorks },
     { href: "#farmers", label: t.nav.forFarmers },
     { href: "#buyers", label: t.nav.forBuyers },

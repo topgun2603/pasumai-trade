@@ -9,6 +9,7 @@ export const en = {
   nav: {
     howItWorks: "How it works",
     pricing: "Pricing",
+    languages: "Languages",
     forFarmers: "For farmers",
     forBuyers: "For buyers",
     coverage: "Coverage",
@@ -20,6 +21,10 @@ export const en = {
   },
 
   hero: {
+    cardCrop: "Tomato · 800 kg",
+    cardSettled: "Settled",
+    cardGrade: "Grade",
+    cardNote: "Agreed by the farmer and the buyer. Illustrative.",
     badge: "Tamil Nadu · {districts} districts · {farmers} farmers",
     titleLine1: "Fair prices for farmers.",
     titleAccent: "Graded produce",
@@ -64,6 +69,13 @@ export const en = {
       "Exclusive of freight, and subject to grading at collection. These are prices real buyers and farmers agreed — not a published index and not a platform quote.",
   },
 
+  languages: {
+    eyebrow: "Six languages",
+    title: "A farmer sees the word their village uses",
+    body: "Crop names are held per language as data, not translation files — because the same crop genuinely goes by different words across Tamil Nadu, and a picker full of words nobody says is a picker nobody uses.",
+    caption: "Crop names across the six languages the platform speaks",
+  },
+
   bargain: {
     title: "The price is not ours to set",
     body: "There is no published rate to check an offer against, because there is no offer we made. A farmer names a price, a buyer counters, and the two of them settle it — grade by grade, before a vehicle moves.",
@@ -71,6 +83,7 @@ export const en = {
   },
 
   how: {
+    eyebrow: "How a load moves",
     step1Title: "List what you have",
     step1Body: "Crop, quantity, photos — from the field, and it syncs when signal returns.",
     step1Alt: "A farmer standing at the edge of a field, entering a crop listing on a phone",

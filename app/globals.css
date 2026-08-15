@@ -24,7 +24,7 @@
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
   --font-tamil: var(--font-tamil);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-heading-display), var(--font-sans);
 
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);

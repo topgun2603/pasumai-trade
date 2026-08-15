@@ -141,17 +141,49 @@ export function Hero({
           </StaggerItem>
         </Stagger>
 
-        {/* Bottom-aligned so the figure stands on the strip below, as drawn. */}
-        <div className="relative hidden self-end lg:block">
-          <Image
-            src={farmer.src}
-            alt={t.hero.imageAlt}
-            width={620}
-            height={820}
-            priority
-            sizes="(min-width: 1024px) 30rem, 0px"
-            className="h-auto w-full max-w-[30rem] object-contain object-bottom drop-shadow-xl"
-          />
+        {/* An arch rather than a rectangle. Every page in this market frames
+            its farmer in a rounded box; the shape is the cheapest way to look
+            like nobody else, and it echoes a doorway, which is where produce
+            actually changes hands. */}
+        <div className="relative hidden self-end justify-self-center lg:block">
+          <div className="border-primary/15 relative aspect-[3/4] w-[26rem] overflow-hidden rounded-t-full rounded-b-3xl border-4 shadow-2xl">
+            <Image
+              src={farmer.src}
+              alt={t.hero.imageAlt}
+              fill
+              priority
+              sizes="26rem"
+              className="object-cover object-top"
+            />
+          </div>
+
+          {/* The signature object: three grades, one card. It recurs down the
+              page, so the reader meets it before it has to carry meaning. */}
+          <div className="bg-card/95 absolute -bottom-4 -left-10 w-56 rounded-xl border p-3.5 shadow-xl backdrop-blur">
+            <div className="flex items-baseline justify-between pb-2">
+              <span className="text-xs font-medium">{t.hero.cardCrop}</span>
+              <span className="text-success text-[10px] font-medium tracking-wide uppercase">
+                {t.hero.cardSettled}
+              </span>
+            </div>
+            <dl className="flex flex-col gap-1">
+              {[
+                ["A", "₹24"],
+                ["B", "₹19.50"],
+                ["C", "₹13.50"],
+              ].map(([grade, rate]) => (
+                <div key={grade} className="flex items-baseline justify-between">
+                  <dt className="text-muted-foreground text-xs">
+                    {t.hero.cardGrade} {grade}
+                  </dt>
+                  <dd className="tabular text-sm font-semibold">{rate}</dd>
+                </div>
+              ))}
+            </dl>
+            <p className="text-faint border-border mt-2.5 border-t pt-2 text-[10px] leading-tight">
+              {t.hero.cardNote}
+            </p>
+          </div>
         </div>
       </div>
 

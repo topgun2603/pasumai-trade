@@ -18,6 +18,7 @@ import { EnquiryForm } from "@/components/marketing/enquiry-form";
 import { BargainDemo } from "@/components/marketing/bargain-demo";
 import { Hero } from "@/components/marketing/hero";
 import { Journey } from "@/components/marketing/journey";
+import { LanguageBand } from "@/components/marketing/language-band";
 import { LivePrices } from "@/components/marketing/live-prices";
 import { MediaFrame } from "@/components/marketing/media-frame";
 import {
@@ -147,6 +148,15 @@ export default async function LandingPage({
         </div>
       </section>
 
+      {/* Six languages, shown rather than claimed. */}
+      <section id="languages" className="border-b scroll-mt-20">
+        <div className="mx-auto w-full max-w-6xl px-5 py-16">
+          <Reveal>
+            <LanguageBand t={t} />
+          </Reveal>
+        </div>
+      </section>
+
       {/* How it works, as photographs rather than a diagram. */}
       <section id="how-it-works" className="border-b scroll-mt-20">
         <div className="mx-auto w-full max-w-6xl px-5 py-16">
@@ -159,10 +169,12 @@ export default async function LandingPage({
         <div className="mx-auto grid w-full max-w-6xl items-start gap-12 px-5 py-16 lg:grid-cols-2">
           <div className="flex flex-col gap-5">
             <Reveal className="flex flex-col gap-5">
-              <Badge variant="secondary" className="w-fit">
+              <span className="text-muted-foreground flex items-center gap-3 text-xs font-medium tracking-[0.18em] uppercase">
+                <span aria-hidden className="tabular text-primary">04</span>
+                <span aria-hidden className="bg-border h-px w-8" />
                 {t.farmers.badge}
-              </Badge>
-              <h2 className="text-3xl font-semibold tracking-tight text-balance">
+              </span>
+              <h2 className="font-heading text-3xl leading-[1.1] font-semibold tracking-tight text-balance sm:text-4xl">
                 {t.farmers.title}
               </h2>
               <p className="text-muted-foreground">{t.farmers.body1}</p>
@@ -223,10 +235,12 @@ export default async function LandingPage({
 
           <div className="flex flex-col gap-5">
             <Reveal className="flex flex-col gap-5">
-              <Badge variant="secondary" className="w-fit">
+              <span className="text-muted-foreground flex items-center gap-3 text-xs font-medium tracking-[0.18em] uppercase">
+                <span aria-hidden className="tabular text-primary">05</span>
+                <span aria-hidden className="bg-border h-px w-8" />
                 {t.buyers.badge}
-              </Badge>
-              <h2 className="text-3xl font-semibold tracking-tight text-balance">
+              </span>
+              <h2 className="font-heading text-3xl leading-[1.1] font-semibold tracking-tight text-balance sm:text-4xl">
                 {t.buyers.title}
               </h2>
               <p className="text-muted-foreground">{t.buyers.body}</p>
@@ -253,7 +267,7 @@ export default async function LandingPage({
       <section id="trust" className="border-b scroll-mt-20">
         <div className="mx-auto w-full max-w-6xl px-5 py-16">
           <Reveal className="flex max-w-2xl flex-col gap-3">
-            <h2 className="text-3xl font-semibold tracking-tight text-balance">
+            <h2 className="font-heading text-3xl leading-[1.1] font-semibold tracking-tight text-balance sm:text-4xl">
               {t.trust.title}
             </h2>
             <p className="text-muted-foreground">{t.trust.body}</p>
@@ -290,7 +304,7 @@ export default async function LandingPage({
               <Badge variant="secondary" className="w-fit">
                 {t.drivers.badge}
               </Badge>
-              <h2 className="text-3xl font-semibold tracking-tight text-balance">
+              <h2 className="font-heading text-3xl leading-[1.1] font-semibold tracking-tight text-balance sm:text-4xl">
                 {t.drivers.title}
               </h2>
               <p className="text-muted-foreground">{t.drivers.body}</p>
@@ -311,7 +325,7 @@ export default async function LandingPage({
       <section id="coverage" className="border-b scroll-mt-20">
         <div className="mx-auto w-full max-w-6xl px-5 py-16">
           <Reveal className="flex max-w-2xl flex-col gap-3">
-            <h2 className="text-3xl font-semibold tracking-tight text-balance">
+            <h2 className="font-heading text-3xl leading-[1.1] font-semibold tracking-tight text-balance sm:text-4xl">
               {t.coverage.title}
             </h2>
             <p className="text-muted-foreground">{t.coverage.body}</p>
@@ -343,7 +357,7 @@ export default async function LandingPage({
       <section id="faq" className="border-b scroll-mt-20">
         <div className="mx-auto grid w-full max-w-6xl gap-10 px-5 py-16 lg:grid-cols-[0.8fr_1.2fr]">
           <Reveal className="flex flex-col gap-3">
-            <h2 className="text-3xl font-semibold tracking-tight text-balance">
+            <h2 className="font-heading text-3xl leading-[1.1] font-semibold tracking-tight text-balance sm:text-4xl">
               {t.faq.title}
             </h2>
             <p className="text-muted-foreground">{t.faq.body}</p>
@@ -368,7 +382,7 @@ export default async function LandingPage({
       <section id="apply" className="scroll-mt-20">
         <div className="mx-auto grid w-full max-w-6xl gap-10 px-5 py-16 lg:grid-cols-[0.85fr_1.15fr]">
           <Reveal className="flex flex-col gap-3">
-            <h2 className="text-3xl font-semibold tracking-tight text-balance">
+            <h2 className="font-heading text-3xl leading-[1.1] font-semibold tracking-tight text-balance sm:text-4xl">
               {t.apply.title}
             </h2>
             <p className="text-muted-foreground">{t.apply.body}</p>

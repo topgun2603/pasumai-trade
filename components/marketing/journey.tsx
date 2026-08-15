@@ -1,6 +1,7 @@
 import Image from "next/image";
 
-import { Reveal, Stagger, StaggerItem } from "@/components/motion/motion-primitives";
+import { Stagger, StaggerItem } from "@/components/motion/motion-primitives";
+import { SectionHead } from "@/components/marketing/section-head";
 import type { Dictionary } from "@/lib/i18n";
 import { resolveMedia, type MediaKey } from "@/lib/marketing/media";
 
@@ -46,12 +47,13 @@ export function Journey({ t }: { t: Dictionary }) {
 
   return (
     <>
-      <Reveal className="mx-auto flex max-w-2xl flex-col items-center gap-3 text-center">
-        <h2 className="font-heading text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-          {t.how.title}
-        </h2>
-        <p className="text-muted-foreground text-pretty">{t.how.body}</p>
-      </Reveal>
+      <SectionHead
+        index="03"
+        eyebrow={t.how.eyebrow}
+        title={t.how.title}
+        body={t.how.body}
+        align="center"
+      />
 
       <Stagger className="mt-12 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
         {steps.map((step, index) => {

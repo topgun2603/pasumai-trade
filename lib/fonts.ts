@@ -1,4 +1,5 @@
 import {
+  Fraunces,
   Geist,
   Geist_Mono,
   Noto_Sans_Devanagari,
@@ -25,6 +26,25 @@ export const sans = Geist({
   variable: "--font-sans",
   subsets: ["latin"],
   display: "swap",
+});
+
+/**
+ * Display face for headings.
+ *
+ * A serif, deliberately. Every agritech site in this market is set entirely in
+ * a geometric sans, and the page it produces is indistinguishable from a
+ * fintech landing page with different photographs. Fraunces is warm, slightly
+ * agricultural in its shapes, and — the part that matters — legible at the
+ * weights and sizes headings actually use.
+ *
+ * Latin only. Headings in the Indic scripts fall through to their own faces,
+ * which is correct: a Latin display serif has nothing to say about Tamil.
+ */
+export const heading = Fraunces({
+  variable: "--font-heading-display",
+  subsets: ["latin"],
+  display: "swap",
+  axes: ["SOFT", "WONK", "opsz"],
 });
 
 export const mono = Geist_Mono({
@@ -71,6 +91,7 @@ export const devanagari = Noto_Sans_Devanagari({
 /** Every font variable, for the `<html>` class list. */
 export const fontVariables = [
   sans.variable,
+  heading.variable,
   mono.variable,
   tamil.variable,
   telugu.variable,
