@@ -28,8 +28,21 @@ export const en = {
     imageAlt:
       "Terraced farmland with a collection shed and a goods vehicle on the road",
     statPoints: "Villages covered",
+    statDistricts: "Districts",
+    statFarmers: "Farmers registered",
     statGrades: "Grades priced up front",
     statSettlement: "Typical settlement",
+  },
+
+  promises: {
+    fairTitle: "Fair price",
+    fairBody: "You and the buyer settle it. Nobody else sets a number.",
+    gradedTitle: "Graded once",
+    gradedBody: "In front of you, at your gate. The grade decides the price.",
+    networkTitle: "Real network",
+    networkBody: "Verified buyers, drivers and crew — every document checked.",
+    paidTitle: "Paid on delivery",
+    paidBody: "Money is held from the order and released when it arrives.",
   },
 
   prices: {
@@ -58,6 +71,18 @@ export const en = {
   },
 
   how: {
+    step1Title: "List what you have",
+    step1Body: "Crop, quantity, photos — from the field, and it syncs when signal returns.",
+    step1Alt: "A farmer standing at the edge of a field, entering a crop listing on a phone",
+    step2Title: "Settle the price",
+    step2Body: "A buyer offers, you counter. All three grades agreed before anything moves.",
+    step2Alt: "Hands holding a phone showing grade prices being agreed",
+    step3Title: "Collected and graded",
+    step3Body: "A vehicle comes to the farm. Grading happens in front of you; a code confirms handover.",
+    step3Alt: "A loaded goods vehicle on a rural road",
+    step4Title: "Money reaches you",
+    step4Body: "Held from the moment the buyer ordered, released once delivery is confirmed.",
+    step4Alt: "Hands holding a seedling in soil",
     title: "How a load moves",
     body: "Produce is graded once, in front of the farmer, at the point it is collected. Everything downstream — the price, the payout, the buyer's invoice — resolves from that single grading.",
     caption: "One grading, in front of the farmer, settles the price for everyone.",

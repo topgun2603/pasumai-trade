@@ -56,6 +56,62 @@ export const MEDIA = {
     brief:
       "A real screenshot of the buyer console at /market, taken on a wide window with stock loaded. Crop to the content area.",
   },
+  /* From the design sheet ------------------------------------------------ */
+
+  /**
+   * The farmer in the hero, cut out against the landscape.
+   *
+   * Wants a real person who has agreed to appear, not stock. A produce
+   * platform asking farmers for trust cannot open with someone who was paid to
+   * pose — and anyone in the districts we operate in will know the difference.
+   */
+  heroFarmer: {
+    photo: "/marketing/photos/hero-farmer.jpg",
+    fallback: "/marketing/hero-farmer.svg",
+    aspect: "3 / 4",
+    minWidth: 1200,
+    brief:
+      "Portrait, standing, arms crossed, waist up, facing camera. Shot against the field so the background can be blurred out. Morning light. Needs a signed release.",
+  },
+  heroLandscape: {
+    photo: "/marketing/photos/hero-landscape.jpg",
+    fallback: "/marketing/hero.svg",
+    aspect: "16 / 7",
+    minWidth: 2000,
+    brief:
+      "Wide cultivated field receding to hills, rows leading away from camera. Used behind the hero at low contrast, so avoid a busy horizon.",
+  },
+  stepList: {
+    photo: "/marketing/photos/step-list.jpg",
+    fallback: "/marketing/harvest.svg",
+    aspect: "4 / 3",
+    minWidth: 900,
+    brief: "A farmer holding a phone at the field edge, listing a crop.",
+  },
+  stepBargain: {
+    photo: "/marketing/photos/step-bargain.jpg",
+    fallback: "/marketing/console.svg",
+    aspect: "4 / 3",
+    minWidth: 900,
+    brief:
+      "Hands holding a phone showing the bargaining screen with grade prices. Screen must be a real capture, not a mock-up — a fake interface in a photograph is the one thing people always spot.",
+  },
+  stepDelivery: {
+    photo: "/marketing/photos/step-delivery.jpg",
+    fallback: "/marketing/step-delivery.svg",
+    aspect: "4 / 3",
+    minWidth: 900,
+    brief:
+      "A loaded goods vehicle on a rural road. Only livery it actually carries — a painted-on logo that does not exist is a claim, not a photograph.",
+  },
+  stepSettle: {
+    photo: "/marketing/photos/step-settle.jpg",
+    fallback: "/marketing/step-settle.svg",
+    aspect: "4 / 3",
+    minWidth: 900,
+    brief:
+      "Close on hands and a seedling in soil, or a farmer with a passbook. Warm, shallow depth of field.",
+  },
 } as const satisfies Record<string, MediaSlot>;
 
 export type MediaKey = keyof typeof MEDIA;

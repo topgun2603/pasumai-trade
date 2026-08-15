@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" role="img" aria-label="Illustration standing in for a farmer portrait">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#dff0e2"/><stop offset="1" stop-color="#f2f7ef"/>
+    </linearGradient>
+  </defs>
+  <rect width="300" height="400" fill="url(#sky)"/>
+  <g fill="#7ba05b" opacity=".5">
+    <path d="M0 300h300v100H0z"/>
+    <path d="M0 292c40-14 80-14 120 0s80 14 120 0 60-10 60-10v20H0z"/>
+  </g>
+  <g fill="#2f6b34">
+    <ellipse cx="150" cy="150" rx="42" ry="48"/>
+    <path d="M108 130c0-24 19-40 42-40s42 16 42 40c0-6-84-6-84 0z" fill="#e8e2d4"/>
+    <path d="M150 200c-46 0-84 30-84 72v128h168V272c0-42-38-72-84-72z" fill="#efeadd"/>
+    <path d="M150 200c-46 0-84 30-84 72v18h168v-18c0-42-38-72-84-72z" opacity=".18"/>
+  </g>
+</svg>

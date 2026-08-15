@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="Illustration standing in for a delivery photograph">
+  <rect width="400" height="300" fill="#eef4ea"/>
+  <path d="M0 210h400v90H0z" fill="#c9d9bd"/>
+  <path d="M0 236h400v10H0z" fill="#ffffff" opacity=".65"/>
+  <g>
+    <rect x="70" y="108" width="180" height="96" rx="8" fill="#ffffff" stroke="#cfd8c8"/>
+    <path d="M250 138h48l30 40v26h-78z" fill="#f4f7f1" stroke="#cfd8c8"/>
+    <circle cx="126" cy="212" r="20" fill="#33413a"/><circle cx="126" cy="212" r="8" fill="#8d9a8f"/>
+    <circle cx="278" cy="212" r="20" fill="#33413a"/><circle cx="278" cy="212" r="8" fill="#8d9a8f"/>
+    <rect x="92" y="130" width="88" height="10" rx="5" fill="#2f6b34" opacity=".65"/>
+    <rect x="92" y="150" width="56" height="8" rx="4" fill="#2f6b34" opacity=".35"/>
+  </g>
+</svg>

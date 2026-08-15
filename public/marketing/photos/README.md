@@ -1,35 +1,39 @@
-# Landing page photography
+# Photography
 
-Drop real photographs in this folder and they replace the illustrations
-automatically. Nothing else needs changing — `lib/marketing/media.ts` checks
-for each file at build time and falls back to the drawing when it is absent.
+Drop files here with the exact names below and they replace the illustrations
+automatically — no code change, no redeploy of anything but the assets. The
+build checks which files exist; anything missing falls back to a drawing, and
+the drawing is labelled "Illustration" on screen so nothing passes as evidence
+that is not.
 
-| File | Aspect | Min width | What to shoot |
-|---|---|---|---|
-| `hero.jpg` | 8:5.6 (landscape) | 1600px | Cultivated field foreground, collection shed and a loaded vehicle mid-ground. Morning light. |
-| `harvest.jpg` | 7:5 | 1200px | Graded produce in crates at a collection point, weighing scale and inspection sheet visible. Grade labels legible. |
-| `console.jpg` | 7:5 | 1200px | Screenshot of the buyer console at `/market` on a wide window with stock loaded. Crop to the content area. |
+| File | Aspect | Min width | What it needs to be |
+| --- | --- | --- | --- |
+| `hero-farmer.jpg` | 3:4 | 1200 | Portrait, waist up, arms crossed, facing camera, shot against the field so the background can be blurred. Morning light. |
+| `hero-landscape.jpg` | 16:7 | 2000 | Wide cultivated field receding to hills, rows leading away. Sits behind the hero at ~35% opacity, so avoid a busy horizon. |
+| `step-list.jpg` | 4:3 | 900 | A farmer at the field edge, listing a crop on a phone. |
+| `step-bargain.jpg` | 4:3 | 900 | Hands holding a phone showing the bargaining screen with grade prices. |
+| `step-delivery.jpg` | 4:3 | 900 | A loaded goods vehicle on a rural road. |
+| `step-settle.jpg` | 4:3 | 900 | Hands and a seedling in soil, or a farmer with a passbook. |
+| `hero.jpg` | 8:5.6 | 1600 | Field, collection shed and a loaded vehicle. Used elsewhere on the page. |
+| `harvest.jpg` | 7:5 | 1200 | Graded produce in crates at the farm gate, grade labels legible. |
+| `console.jpg` | 7:5 | 1200 | A real screenshot of the buyer console at `/market`. |
 
-## Before you shoot
+## Three rules
 
-- **Get written consent** from anyone identifiable in frame, farmers included.
-  A signed release, not a verbal yes.
-- Shoot **landscape**, and leave room at the edges — the frames crop with
-  `object-cover` and the exact crop shifts between breakpoints.
-- Avoid text in the image. It cannot be translated, and this page renders in
-  six languages.
+**Real people, with a signed release.** A produce platform asking farmers to
+trust it with a harvest cannot open with someone who was paid to pose, and
+anyone in the districts we operate in will know the difference. Get written
+consent for each person whose face appears, and keep it.
 
-## Export
+**Real interfaces.** Where a photograph shows a phone, the screen must be an
+actual capture. A mocked-up interface inside a photograph is the one thing
+people reliably spot.
 
-JPEG or WebP, quality ~80, sRGB. Do not pre-resize below the minimum width —
-Next's image optimizer generates the smaller sizes and modern formats, and it
-cannot invent detail you removed.
+**Real livery.** Only vehicle branding that exists. A logo painted on in
+post-production is a claim about the size of the fleet, not a photograph.
 
-Strip EXIF GPS before committing. Farm coordinates are not ours to publish.
+## Format
 
-## Why not stock photography
-
-Generic stock undermines the point of the page. A buyer deciding whether to
-trust a produce platform is looking for evidence that these crates, this
-collection point and these vehicles actually exist — and stock imagery
-reliably signals the opposite.
+JPEG or WebP, sRGB, quality ~80. Next resizes and re-encodes on the fly, so
+upload the largest clean version you have rather than pre-shrinking. Nothing
+here should exceed about 2 MB.

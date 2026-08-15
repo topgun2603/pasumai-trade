@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="Illustration standing in for a settlement photograph">
+  <rect width="400" height="300" fill="#eef4ea"/>
+  <path d="M96 200c0-26 46-34 104-34s104 8 104 34c0 30-46 54-104 54S96 230 96 200z" fill="#d9c7a8"/>
+  <path d="M200 168c0-30 8-58 30-76-30 6-46 30-50 58-6-22-22-38-46-42 16 20 22 42 22 60z" fill="#3f8b45"/>
+  <rect x="192" y="166" width="8" height="40" rx="4" fill="#3f8b45"/>
+  <g fill="#2f6b34" opacity=".5">
+    <circle cx="150" cy="212" r="4"/><circle cx="176" cy="222" r="3"/><circle cx="232" cy="216" r="4"/><circle cx="256" cy="226" r="3"/>
+  </g>
+</svg>

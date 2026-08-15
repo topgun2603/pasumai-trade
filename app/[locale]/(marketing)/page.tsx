@@ -16,13 +16,13 @@ import { notFound } from "next/navigation";
 
 import { EnquiryForm } from "@/components/marketing/enquiry-form";
 import { BargainDemo } from "@/components/marketing/bargain-demo";
+import { Hero } from "@/components/marketing/hero";
+import { Journey } from "@/components/marketing/journey";
 import { LivePrices } from "@/components/marketing/live-prices";
 import { MediaFrame } from "@/components/marketing/media-frame";
 import {
-  CountUp,
   Reveal,
   Stagger,
-  StaggerItem,
   StaggerListItem,
 } from "@/components/motion/motion-primitives";
 import {
@@ -34,7 +34,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { findDistrict } from "@/lib/domain/location";
-import { fill, getDictionary, isLocale } from "@/lib/i18n";
+import { getDictionary, isLocale } from "@/lib/i18n";
 import { resolveMedia } from "@/lib/marketing/media";
 import { GEOGRAPHY } from "@/lib/mock/locations";
 
@@ -81,7 +81,6 @@ export default async function LandingPage({
     places.map((p) => findDistrict(GEOGRAPHY, p.districtId)?.name),
   ).size;
 
-  const heroMedia = resolveMedia("hero");
   const harvestMedia = resolveMedia("harvest");
   const consoleMedia = resolveMedia("console");
 
@@ -115,106 +114,16 @@ export default async function LandingPage({
     { q: t.faq.q6, a: t.faq.a6 },
   ];
 
-  const nodes = [
-    { x: 20, title: t.how.farm, sub: t.how.farmSub },
-    { x: 245, title: t.how.collection, sub: t.how.collectionSub },
-    { x: 470, title: t.how.transit, sub: t.how.transitSub },
-    { x: 695, title: t.how.buyer, sub: t.how.buyerSub },
-  ];
 
   return (
     <>
-      {/* Hero */}
-      <section className="relative isolate overflow-hidden border-b">
-        {/* Decorative only: two blurred washes in brand green, and a hairline
-            grid that fades out. Pointer-events off and aria-hidden, so nothing
-            here reaches the keyboard or a screen reader. */}
-        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-          <div className="bg-primary/10 absolute -top-32 -left-24 size-[34rem] rounded-full blur-3xl" />
-          <div className="bg-success/10 absolute -right-32 -bottom-40 size-[30rem] rounded-full blur-3xl" />
-          <div className="absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,black,transparent_75%)] bg-[linear-gradient(to_right,var(--color-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-border)_1px,transparent_1px)] bg-[size:56px_56px] opacity-40" />
-        </div>
-
-        <div className="mx-auto grid w-full max-w-6xl items-center gap-12 px-5 py-16 lg:grid-cols-[1.05fr_1fr] lg:py-24">
-          <Stagger immediate className="flex flex-col items-start gap-6">
-            <StaggerItem>
-              <Badge
-                variant="outline"
-                className="border-primary/30 bg-accent text-accent-foreground"
-              >
-                {fill(t.hero.badge, { districts, farmers })}
-              </Badge>
-            </StaggerItem>
-
-            <StaggerItem>
-              <h1 className="max-w-2xl text-4xl leading-[1.12] font-semibold tracking-tight text-balance sm:text-5xl">
-                {t.hero.titleLine1}
-                <br />
-                <span className="text-primary">{t.hero.titleAccent}</span>{" "}
-                {t.hero.titleLine2}
-              </h1>
-            </StaggerItem>
-
-            <StaggerItem>
-              <p className="text-muted-foreground max-w-xl text-lg leading-relaxed">
-                {t.hero.body}
-              </p>
-            </StaggerItem>
-
-            <StaggerItem className="flex flex-wrap gap-3">
-              <Button asChild size="lg">
-                <a href="#apply">{t.nav.requestAccount}</a>
-              </Button>
-              <Button asChild variant="outline" size="lg">
-                <Link href={`/${locale}/signin`}>{t.nav.signIn}</Link>
-              </Button>
-            </StaggerItem>
-          </Stagger>
-
-          <div className="flex flex-col gap-4">
-            <MediaFrame
-              src={heroMedia.src}
-              alt={t.hero.imageAlt}
-              aspect={heroMedia.aspect}
-              isPhotograph={heroMedia.isPhotograph}
-              priority
-              sizes="(min-width: 1024px) 40rem, 100vw"
-            />
-
-            <Reveal>
-              <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border bg-border">
-                <div className="bg-card flex flex-col gap-0.5 px-4 py-4">
-                  <dt className="sr-only">{t.hero.statPoints}</dt>
-                  <dd className="tabular text-primary text-2xl font-semibold">
-                    <CountUp value={places.length} />
-                  </dd>
-                  <p className="text-muted-foreground text-xs leading-tight">
-                    {t.hero.statPoints}
-                  </p>
-                </div>
-                <div className="bg-card flex flex-col gap-0.5 px-4 py-4">
-                  <dt className="sr-only">{t.hero.statGrades}</dt>
-                  <dd className="tabular text-primary text-2xl font-semibold">
-                    <CountUp value={3} />
-                  </dd>
-                  <p className="text-muted-foreground text-xs leading-tight">
-                    {t.hero.statGrades}
-                  </p>
-                </div>
-                <div className="bg-card flex flex-col gap-0.5 px-4 py-4">
-                  <dt className="sr-only">{t.hero.statSettlement}</dt>
-                  <dd className="tabular text-primary text-2xl font-semibold">
-                    <CountUp value={24} suffix="h" />
-                  </dd>
-                  <p className="text-muted-foreground text-xs leading-tight">
-                    {t.hero.statSettlement}
-                  </p>
-                </div>
-              </dl>
-            </Reveal>
-          </div>
-        </div>
-      </section>
+      <Hero
+        t={t}
+        locale={locale}
+        districts={districts}
+        farmers={farmers}
+        villages={places.length}
+      />
 
       {/* Live prices */}
       <section id="prices" className="border-b scroll-mt-20">
@@ -238,80 +147,10 @@ export default async function LandingPage({
         </div>
       </section>
 
-      {/* How it works */}
+      {/* How it works, as photographs rather than a diagram. */}
       <section id="how-it-works" className="border-b scroll-mt-20">
         <div className="mx-auto w-full max-w-6xl px-5 py-16">
-          <Reveal className="flex max-w-2xl flex-col gap-3">
-            <h2 className="text-3xl font-semibold tracking-tight text-balance">
-              {t.how.title}
-            </h2>
-            <p className="text-muted-foreground">{t.how.body}</p>
-          </Reveal>
-
-          <Reveal delay={0.1}>
-            <figure className="mt-10">
-              <div className="bg-card overflow-x-auto rounded-xl border p-6">
-                <svg
-                  viewBox="0 0 900 220"
-                  role="img"
-                  aria-label={t.how.diagramAlt}
-                  className="mx-auto h-auto w-full max-w-full min-w-[640px]"
-                >
-                  <defs>
-                    <marker id="lp-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-                      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--muted-foreground)" />
-                    </marker>
-                    <marker id="lp-arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-                      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--primary)" />
-                    </marker>
-                  </defs>
-
-                  <g fontFamily="var(--font-sans)">
-                    {nodes.map((node, index) => (
-                      <g key={node.title}>
-                        <rect
-                          x={node.x}
-                          y={40}
-                          width={185}
-                          height={64}
-                          rx={10}
-                          fill={index === 1 ? "var(--accent)" : "var(--secondary)"}
-                          stroke={index === 1 ? "var(--primary)" : "var(--border)"}
-                          strokeWidth={1.5}
-                        />
-                        <text x={node.x + 92} y={68} textAnchor="middle" fill="var(--foreground)" fontSize="13" fontWeight="600">
-                          {node.title}
-                        </text>
-                        <text x={node.x + 92} y={88} textAnchor="middle" fill="var(--muted-foreground)" fontSize="11">
-                          {node.sub}
-                        </text>
-                      </g>
-                    ))}
-
-                    {[205, 430, 655].map((x) => (
-                      <line key={x} x1={x} y1={72} x2={x + 32} y2={72} stroke="var(--muted-foreground)" strokeWidth={1.5} markerEnd="url(#lp-arrow)" />
-                    ))}
-
-                    <rect x={20} y={140} width={860} height={34} rx={8} fill="var(--warning-soft)" stroke="var(--warning)" strokeWidth={1.5} />
-                    <text x={450} y={162} textAnchor="middle" fill="var(--warning)" fontSize="12" fontWeight="600">
-                      {t.how.held}
-                    </text>
-
-                    <line x1={787} y1={136} x2={787} y2={110} stroke="var(--primary)" strokeWidth={2} markerEnd="url(#lp-arrow-accent)" />
-                    <text x={798} y={126} fill="var(--primary)" fontSize="11" fontWeight="600">
-                      {t.how.released}
-                    </text>
-                    <text x={20} y={196} fill="var(--muted-foreground)" fontSize="11">
-                      {t.how.moneyNote}
-                    </text>
-                  </g>
-                </svg>
-              </div>
-              <figcaption className="text-muted-foreground mx-auto mt-3 max-w-3xl text-center text-sm">
-                {t.how.caption}
-              </figcaption>
-            </figure>
-          </Reveal>
+          <Journey t={t} />
         </div>
       </section>
 
