@@ -236,6 +236,86 @@ export interface DriverAccount {
   readonly documents: readonly ComplianceDocument[];
 }
 
+/**
+ * What a hand is engaged to do.
+ *
+ * A crew is picked by skill, not by headcount: a load of graded tomatoes needs
+ * someone who can grade, and sending four loaders to a job that needed a
+ * weighman is how a vehicle sits idle at the farm gate.
+ */
+export const MANPOWER_SKILLS = [
+  "loading",
+  "grading",
+  "packing",
+  "weighing",
+  "coldChain",
+] as const;
+
+export type ManpowerSkill = (typeof MANPOWER_SKILLS)[number];
+
+export const MANPOWER_SKILL_LABELS: Record<ManpowerSkill, string> = {
+  loading: "Loading",
+  grading: "Grading",
+  packing: "Packing",
+  weighing: "Weighing",
+  coldChain: "Cold chain",
+};
+
+export type EngagementBasis = "daily" | "perTrip" | "monthly";
+
+export const ENGAGEMENT_LABELS: Record<EngagementBasis, string> = {
+  daily: "Per day",
+  perTrip: "Per trip",
+  monthly: "Monthly",
+};
+
+/**
+ * A labourer engaged for collection work — loading, grading, weighing.
+ *
+ * Registered like every other account because the same things matter: they are
+ * paid, so bank details are verified; they are at the farm gate representing
+ * the platform, so identity is verified; and they work a district, so dispatch
+ * needs to know who is available where.
+ *
+ * The rate is on the record rather than negotiated per job. A crew that agrees
+ * its price at the roadside, with produce waiting and a vehicle running, is a
+ * crew paid whatever the pressure of the moment decides.
+ */
+export interface ManpowerAccount {
+  readonly id: string;
+  readonly name: string;
+  readonly mobile: string;
+  readonly district: string;
+  /** Where they are based. Dispatch prefers the nearest available crew. */
+  readonly place: string;
+  readonly skills: readonly ManpowerSkill[];
+  readonly basis: EngagementBasis;
+  /** Agreed rate in paise, on the stated basis. Integer, like all money here. */
+  readonly rate: number;
+  readonly status: VerificationStatus;
+  readonly registeredAt: Date;
+  readonly jobsCompleted: number;
+  /**
+   * Off the roster without being removed — sick, on leave, or working
+   * elsewhere this season. Distinct from verification: a verified hand who is
+   * unavailable must not be assigned, and an unavailable hand is not a
+   * compliance problem.
+   */
+  readonly available: boolean;
+  readonly photoUrl?: string;
+  readonly documents: readonly ComplianceDocument[];
+}
+
+/** Whether this hand can be put on a job today. */
+export function manpowerDispatchable(
+  account: ManpowerAccount,
+  now: number,
+): boolean {
+  if (!canTransact(account.status)) return false;
+  if (!account.available) return false;
+  return worstExpiry(account.documents, now) !== "expired";
+}
+
 export type VehicleType = "miniTruck" | "tempo" | "truck" | "reefer";
 
 export const VEHICLE_TYPE_LABELS: Record<VehicleType, string> = {

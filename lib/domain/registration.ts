@@ -268,6 +268,54 @@ export function validateDriver(values: DriverForm): FieldErrors<DriverForm> {
   };
 }
 
+export interface ManpowerForm {
+  name: string;
+  mobile: string;
+  district: string;
+  place: string;
+  skills: string[];
+  basis: string;
+  /** Entered in rupees; converted to paise on submit. */
+  rate: string;
+  aadhaar: string;
+  bankAccountName: string;
+  bankAccountNumber: string;
+  ifsc: string;
+}
+
+/**
+ * Bank details are required, not optional.
+ *
+ * A crew member who cannot be paid electronically is a crew member paid in
+ * cash at the roadside, which is exactly the arrangement this platform exists
+ * to replace.
+ */
+export function validateManpower(values: ManpowerForm): FieldErrors<ManpowerForm> {
+  const rate = Number(values.rate);
+
+  return {
+    name: required(values.name, "Name"),
+    mobile: checkMobile(values.mobile),
+    district: required(values.district, "District"),
+    place: required(values.place, "Village or town"),
+    skills:
+      values.skills.length === 0
+        ? "Pick at least one skill — a crew is assigned by what it can do"
+        : undefined,
+    basis: required(values.basis, "Engagement basis"),
+    rate:
+      values.rate.trim() === ""
+        ? "Rate — required"
+        : !Number.isFinite(rate) || rate <= 0
+          ? "Rate must be more than zero"
+          : undefined,
+    aadhaar: checkAadhaar(values.aadhaar),
+    bankAccountName: required(values.bankAccountName, "Account holder name"),
+    bankAccountNumber: checkBankAccount(values.bankAccountNumber),
+    ifsc: checkIfsc(values.ifsc),
+  };
+}
+
 export interface VehicleForm {
   registration: string;
   type: string;

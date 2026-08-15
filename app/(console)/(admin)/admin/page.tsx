@@ -32,6 +32,7 @@ import {
   buyerAccounts,
   driverAccounts,
   farmerAccounts,
+  manpowerAccounts,
   vehicles,
 } from "@/lib/mock/admin";
 import { openListings } from "@/lib/mock/listings";
@@ -57,6 +58,7 @@ export default async function AdminOverviewPage() {
   const farmers = farmerAccounts(now);
   const drivers = driverAccounts(now);
   const fleet = vehicles(now);
+  const crew = manpowerAccounts(now);
   const listings = openListings(now);
   const offers = stockOffers(now);
 
@@ -64,6 +66,7 @@ export default async function AdminOverviewPage() {
   const pendingFarmers = farmers.filter((f) => needsReview(f.status));
   const pendingDrivers = drivers.filter((d) => needsReview(d.status));
   const pendingVehicles = fleet.filter((v) => needsReview(v.status));
+  const pendingCrew = crew.filter((m) => needsReview(m.status));
 
   const awaitingReview = [
     ...pendingBuyers.map((b) => ({
@@ -86,7 +89,7 @@ export default async function AdminOverviewPage() {
       id: d.id,
       name: d.name,
       kind: "Driver",
-      href: "/admin/drivers",
+      href: "/admin/transport/drivers",
       at: d.registeredAt,
       status: d.status,
     })),
@@ -94,9 +97,17 @@ export default async function AdminOverviewPage() {
       id: v.id,
       name: v.registration,
       kind: "Vehicle",
-      href: "/admin/vehicles",
+      href: "/admin/transport/vehicles",
       at: v.registeredAt,
       status: v.status,
+    })),
+    ...pendingCrew.map((m) => ({
+      id: m.id,
+      name: m.name,
+      kind: "Crew",
+      href: "/admin/transport/manpower",
+      at: m.registeredAt,
+      status: m.status,
     })),
   ].sort((a, b) => a.at.getTime() - b.at.getTime());
 
@@ -106,7 +117,7 @@ export default async function AdminOverviewPage() {
     ...drivers.flatMap((d) =>
       expiringDocuments(d.documents, t).map((doc) => ({
         subject: d.name,
-        href: "/admin/drivers",
+        href: "/admin/transport/drivers",
         kind: "Driver",
         document: doc,
         days: daysUntilExpiry(doc, t) ?? 0,
@@ -115,8 +126,17 @@ export default async function AdminOverviewPage() {
     ...fleet.flatMap((v) =>
       expiringDocuments(v.documents, t).map((doc) => ({
         subject: v.registration,
-        href: "/admin/vehicles",
+        href: "/admin/transport/vehicles",
         kind: "Vehicle",
+        document: doc,
+        days: daysUntilExpiry(doc, t) ?? 0,
+      })),
+    ),
+    ...crew.flatMap((m) =>
+      expiringDocuments(m.documents, t).map((doc) => ({
+        subject: m.name,
+        href: "/admin/transport/manpower",
+        kind: "Crew",
         document: doc,
         days: daysUntilExpiry(doc, t) ?? 0,
       })),
@@ -145,7 +165,7 @@ export default async function AdminOverviewPage() {
       .map((f) => ({ id: f.id, name: f.name, kind: "Farmer", href: "/admin/farmers", status: f.status })),
     ...drivers
       .filter((d) => d.status === "suspended" || d.status === "rejected")
-      .map((d) => ({ id: d.id, name: d.name, kind: "Driver", href: "/admin/drivers", status: d.status })),
+      .map((d) => ({ id: d.id, name: d.name, kind: "Driver", href: "/admin/transport/drivers", status: d.status })),
   ];
 
   const groundedVehicles = fleet.filter(
@@ -206,7 +226,7 @@ export default async function AdminOverviewPage() {
             </span>
           </div>
           <Button asChild variant="outline" size="sm" className="ml-auto shrink-0">
-            <Link href="/admin/vehicles">Review fleet</Link>
+            <Link href="/admin/transport/vehicles">Review fleet</Link>
           </Button>
         </div>
       ) : null}

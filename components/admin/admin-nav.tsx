@@ -5,6 +5,7 @@ import {
   ChartColumnIcon,
   ClipboardListIcon,
   GaugeIcon,
+  HardHatIcon,
   LeafIcon,
   MoonIcon,
   ShieldCheckIcon,
@@ -34,15 +35,62 @@ import { cn } from "@/lib/utils";
 /** Counts of what is waiting, keyed by href. */
 export type PendingCounts = Record<string, number>;
 
-const LINKS = [
-  { href: "/admin", label: "Overview", icon: GaugeIcon, exact: true },
-  { href: "/admin/analytics", label: "Analytics", icon: ChartColumnIcon },
-  { href: "/admin/buyers", label: "Buyers", icon: UserRoundIcon },
-  { href: "/admin/farmers", label: "Farmers", icon: TractorIcon },
-  { href: "/admin/drivers", label: "Drivers", icon: ShieldCheckIcon },
-  { href: "/admin/vehicles", label: "Vehicles", icon: TruckIcon },
-  { href: "/admin/listings", label: "Listings", icon: ClipboardListIcon },
-  { href: "/admin/controls", label: "Controls", icon: SlidersHorizontalIcon },
+interface NavLink {
+  href: string;
+  label: string;
+  icon: typeof GaugeIcon;
+  exact?: boolean;
+}
+
+/**
+ * Grouped, because the rail had grown to eight peers with no relationship
+ * between them.
+ *
+ * Transportation is the one grouping that earns its place: a driver, a vehicle
+ * and a crew are not three kinds of record, they are the three things a
+ * dispatch needs at once, and a run is blocked if any of them is missing.
+ */
+const SECTIONS: Array<{ title?: string; links: NavLink[] }> = [
+  {
+    links: [
+      { href: "/admin", label: "Overview", icon: GaugeIcon, exact: true },
+      { href: "/admin/analytics", label: "Analytics", icon: ChartColumnIcon },
+    ],
+  },
+  {
+    title: "Accounts",
+    links: [
+      { href: "/admin/buyers", label: "Buyers", icon: UserRoundIcon },
+      { href: "/admin/farmers", label: "Farmers", icon: TractorIcon },
+    ],
+  },
+  {
+    title: "Transportation",
+    links: [
+      {
+        href: "/admin/transport/drivers",
+        label: "Drivers",
+        icon: ShieldCheckIcon,
+      },
+      { href: "/admin/transport/vehicles", label: "Vehicles", icon: TruckIcon },
+      {
+        href: "/admin/transport/manpower",
+        label: "Manpower",
+        icon: HardHatIcon,
+      },
+    ],
+  },
+  {
+    title: "Trade",
+    links: [
+      { href: "/admin/listings", label: "Listings", icon: ClipboardListIcon },
+      {
+        href: "/admin/controls",
+        label: "Controls",
+        icon: SlidersHorizontalIcon,
+      },
+    ],
+  },
 ];
 
 function ThemeToggle() {
@@ -58,9 +106,15 @@ function ThemeToggle() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
-        <DropdownMenuItem onClick={() => setTheme("light")}>Light</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>Dark</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>System</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("light")}>
+          Light
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("dark")}>
+          Dark
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("system")}>
+          System
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -96,40 +150,49 @@ export function AdminNav({
 
       {/* Takes the slack and scrolls on its own, so the footer below stays
           put however many sections are added. */}
-      <ul className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2">
-        {LINKS.map(({ href, label, icon: Icon, exact }) => {
-          const active = exact
-            ? pathname === href
-            : pathname === href || pathname.startsWith(`${href}/`);
-          const waiting = pending[href] ?? 0;
+      <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-2">
+        {SECTIONS.map((section, index) => (
+          <ul key={section.title ?? index} className="flex flex-col gap-0.5">
+            {section.title ? (
+              <li className="text-faint px-2.5 pt-1 pb-1 text-xs font-medium tracking-wide uppercase">
+                {section.title}
+              </li>
+            ) : null}
+            {section.links.map(({ href, label, icon: Icon, exact }) => {
+              const active = exact
+                ? pathname === href
+                : pathname === href || pathname.startsWith(`${href}/`);
+              const waiting = pending[href] ?? 0;
 
-          return (
-            <li key={href}>
-              <Link
-                href={href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "focus-visible:ring-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
-                  active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-                )}
-              >
-                <Icon className="size-4 shrink-0" />
-                {label}
-                {waiting > 0 ? (
-                  <Badge
-                    variant="outline"
-                    className="border-warning/40 bg-warning-soft text-warning tabular ml-auto px-1.5"
+              return (
+                <li key={href}>
+                  <Link
+                    href={href}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "focus-visible:ring-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
+                      active
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                    )}
                   >
-                    {waiting}
-                  </Badge>
-                ) : null}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+                    <Icon className="size-4 shrink-0" />
+                    {label}
+                    {waiting > 0 ? (
+                      <Badge
+                        variant="outline"
+                        className="border-warning/40 bg-warning-soft text-warning tabular ml-auto px-1.5"
+                      >
+                        {waiting}
+                      </Badge>
+                    ) : null}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        ))}
+      </div>
 
       <div className="border-sidebar-border shrink-0 border-t p-3 flex flex-col gap-3">
         <Link

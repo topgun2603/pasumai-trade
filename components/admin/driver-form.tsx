@@ -119,7 +119,7 @@ export function DriverRegistrationForm({
       toast.success(`${values.name} registered`, {
         description: "Cannot be dispatched until the licence is verified.",
       });
-      router.push("/admin/drivers");
+      router.push("/admin/transport/drivers");
     }, 500);
   }
 

@@ -21,7 +21,7 @@ export default async function AdminVehiclesPage() {
         description="Registered fleet across all owners. Compliance is the worst of RC, insurance, fitness and permit — valid insurance does not help when the fitness certificate lapsed last week."
         aside={
           <Button asChild>
-            <Link href="/admin/vehicles/new">
+            <Link href="/admin/transport/vehicles/new">
               <PlusIcon className="size-4" />
               Register vehicle
             </Link>

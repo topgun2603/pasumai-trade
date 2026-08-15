@@ -21,7 +21,7 @@ export default async function AdminDriversPage() {
         description="Anyone who may move a load. A licence lapses silently, so expiry is shown as prominently as approval — a verified driver with an expired licence must not be dispatched."
         aside={
           <Button asChild>
-            <Link href="/admin/drivers/new">
+            <Link href="/admin/transport/drivers/new">
               <PlusIcon className="size-4" />
               Register driver
             </Link>

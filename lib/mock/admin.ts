@@ -3,6 +3,7 @@
   ComplianceDocument,
   DriverAccount,
   FarmerAccount,
+  ManpowerAccount,
   Vehicle,
 } from "@/lib/domain/admin";
 import { money, rupees } from "@/lib/domain/money";
@@ -402,6 +403,116 @@ export function vehicles(now: Date): Vehicle[] {
         doc("insurance", "OIC/2025/204411", 415, t),
         doc("fitness", "FC-TN39-20441", 380, t),
         doc("permit", "NP-TN39-29954", 200, t),
+      ],
+    },
+  ];
+}
+
+/**
+ * Registered crew.
+ *
+ * Deliberately spans the states that matter to the screen: a verified hand
+ * ready to work, one whose bank proof has lapsed, one awaiting review, and one
+ * verified but off the roster — because "cannot be dispatched" has four
+ * different causes and the console has to tell them apart.
+ */
+export function manpowerAccounts(now: Date): ManpowerAccount[] {
+  const t = now.getTime();
+  return [
+    {
+      id: "M-501",
+      name: "K. Ravi",
+      mobile: "+91 90031 44872",
+      district: "Krishnagiri",
+      place: "Kaveripattinam",
+      skills: ["loading", "weighing"],
+      basis: "perTrip",
+      rate: 45_000,
+      status: "verified",
+      registeredAt: new Date(t - 240 * DAY),
+      jobsCompleted: 318,
+      available: true,
+      photoUrl: "/mock/portrait.svg",
+      documents: [
+        doc("aadhaar", "XXXX XXXX 4487", null, t),
+        doc("bankProof", "KVB 0091 4487", null, t),
+      ],
+    },
+    {
+      id: "M-509",
+      name: "A. Devi",
+      mobile: "+91 97865 20114",
+      district: "Krishnagiri",
+      place: "Bargur",
+      // Grading is the skill in shortest supply: it decides what the farmer is
+      // paid, so it is the one the platform is most careful about.
+      skills: ["grading", "packing"],
+      basis: "daily",
+      rate: 70_000,
+      status: "verified",
+      registeredAt: new Date(t - 180 * DAY),
+      jobsCompleted: 205,
+      available: true,
+      photoUrl: "/mock/portrait.svg",
+      documents: [
+        doc("aadhaar", "XXXX XXXX 2011", null, t),
+        doc("bankProof", "IOB 4410 2011", null, t),
+      ],
+    },
+    {
+      id: "M-514",
+      name: "M. Sekar",
+      mobile: "+91 94438 71209",
+      district: "Erode",
+      place: "Bhavani",
+      skills: ["loading"],
+      basis: "perTrip",
+      rate: 40_000,
+      status: "verified",
+      registeredAt: new Date(t - 130 * DAY),
+      jobsCompleted: 142,
+      // Verified, compliant, and simply not working this month. Not a problem
+      // to escalate — but not someone to assign either.
+      available: false,
+      photoUrl: "/mock/portrait.svg",
+      documents: [
+        doc("aadhaar", "XXXX XXXX 7120", null, t),
+        doc("bankProof", "SBI 3320 7120", null, t),
+      ],
+    },
+    {
+      id: "M-522",
+      name: "R. Kalaiselvi",
+      mobile: "+91 98651 33076",
+      district: "Salem",
+      place: "Attur",
+      skills: ["grading", "weighing", "coldChain"],
+      basis: "monthly",
+      rate: 1_800_000,
+      status: "pending",
+      registeredAt: new Date(t - 6 * DAY),
+      jobsCompleted: 0,
+      available: true,
+      documents: [doc("aadhaar", "XXXX XXXX 3307", null, t)],
+    },
+    {
+      id: "M-530",
+      name: "S. Anbarasan",
+      mobile: "+91 90475 66218",
+      district: "Thanjavur",
+      place: "Kumbakonam",
+      skills: ["loading", "packing"],
+      basis: "daily",
+      rate: 65_000,
+      status: "verified",
+      registeredAt: new Date(t - 95 * DAY),
+      jobsCompleted: 88,
+      available: true,
+      // Bank proof lapsed. They can work, but they cannot be paid, and the
+      // console must show that before someone is sent out expecting money.
+      documents: [
+        doc("aadhaar", "XXXX XXXX 6621", null, t),
+        doc("bankProof", "TMB 8890 6621", -9, t),
       ],
     },
   ];
