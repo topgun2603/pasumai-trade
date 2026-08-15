@@ -25,8 +25,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { GRADE_LABELS, GRADES, unitLabel, type Grade } from "@/lib/domain/enums";
 import { formatMoney, forQuantity, money } from "@/lib/domain/money";
-import { marketHigh, marketLow, type Listing } from "@/lib/domain/models";
-import { shortDate } from "@/lib/format";
+import type { Listing } from "@/lib/domain/models";
 
 const EXPIRY_OPTIONS = [
   { value: "1", label: "1 hour" },
@@ -44,12 +43,16 @@ function toMinorUnits(input: string): number | null {
 }
 
 /**
- * Quote all three grade bands against a listing.
+ * Quote a listing, one grade or several.
  *
- * Every grade is priced before the truck moves. Grading happens physically at
- * pickup with the farmer present, so agreeing all three up front is what stops
- * the price being reopened at the roadside with a vehicle idling — which is
- * also why this dialog will not submit with a band missing.
+ * Grades are bought separately: a buyer who wants only the top grade prices
+ * grade A and leaves the rest of the lot with the farmer to sell elsewhere.
+ * Leaving a band blank is therefore an ordinary thing to do, not an incomplete
+ * form — the same rule `canPropose` enforces on a bargain.
+ *
+ * What a priced band still guarantees is unchanged: grading happens physically
+ * at pickup with the farmer present, so for the grades in the offer the
+ * weighing resolves the price rather than reopening it at the roadside.
  *
  * The caller mounts this with `key={listing.id}`, so opening a different
  * listing remounts it with fresh state. That is the reset — no effect syncing
@@ -83,17 +86,21 @@ export function QuoteDialog({
     [rates],
   );
 
-  const allPresent = GRADES.every((g) => parsed[g] !== null);
+  // A blank band means "not buying this grade", not zero.
+  const priced = GRADES.filter((g) => parsed[g] !== null);
   const anyInvalid = GRADES.some(
     (g) => rates[g].trim() !== "" && parsed[g] === null,
   );
 
   // Best grade first is a domain invariant, not a preference: the farmer reads
   // the bands as a ladder and an inverted one is a mistake, not an offer.
-  const ordered =
-    allPresent && parsed.a! >= parsed.b! && parsed.b! >= parsed.c!;
+  // Compared only across the bands actually priced, since a gap between them
+  // is legitimate — pricing A and C says nothing about B.
+  const ordered = priced.every(
+    (g, i) => i === 0 || parsed[priced[i - 1]]! >= parsed[g]!,
+  );
 
-  const canSubmit = allPresent && !anyInvalid && ordered && !submitting;
+  const canSubmit = priced.length > 0 && !anyInvalid && ordered && !submitting;
 
   const unit = unitLabel(listing.unit);
 
@@ -136,14 +143,15 @@ export function QuoteDialog({
         </DialogHeader>
 
         <div className="bg-secondary flex items-center justify-between rounded-md px-3 py-2.5 text-sm">
-          <span className="text-muted-foreground">Mandi reference</span>
+          <span className="text-muted-foreground">Farmer asked</span>
           <span className="flex flex-col items-end leading-tight">
             <span className="tabular font-medium">
-              {formatMoney(marketLow(listing.marketRate))} –{" "}
-              {formatMoney(marketHigh(listing.marketRate))} / {unit}
+              {listing.offer
+                ? `${formatMoney(money(listing.offer.bands[0].ratePerUnit))} / ${unit}`
+                : "—"}
             </span>
             <span className="text-faint text-xs">
-              {listing.marketRate.source} · {shortDate(listing.marketRate.asOf)}
+              {listing.offer ? "your last offer" : "no offer yet"}
             </span>
           </span>
         </div>
@@ -156,6 +164,11 @@ export function QuoteDialog({
               listed
             </span>
           </div>
+
+          <p className="text-muted-foreground text-xs">
+            Price the grades you want. A band left blank is not part of this
+            offer, and the farmer keeps that grade to sell elsewhere.
+          </p>
 
           {GRADES.map((g) => {
             const minor = parsed[g];
@@ -205,7 +218,7 @@ export function QuoteDialog({
             </p>
           ) : null}
 
-          {allPresent && !ordered ? (
+          {priced.length > 1 && !ordered ? (
             <p className="text-destructive flex items-center gap-1.5 text-xs">
               <TriangleAlertIcon className="size-3.5 shrink-0" />
               Grade A must be at least B, and B at least C. The farmer reads the

@@ -36,7 +36,7 @@ export default async function ListingsPage() {
     <>
       <PageHeader
         title="Listings"
-        description="Open produce across your districts. Quote all three grade bands — grading happens at pickup, and the price resolves from the band."
+        description="Open produce across your districts. Quote the grades you want — grading happens at pickup, and the price resolves from the band you priced."
         aside={
           <p className="text-faint text-xs">
             {listings.length} open · {DISTRICTS.length} districts
