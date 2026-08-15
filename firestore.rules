@@ -20,7 +20,7 @@ rules_version = '2';
 // moved the trust boundary; do it deliberately or not at all.
 //
 // Reads are scoped by custom claims set on the session:
-//   role       'farmer' | 'buyer' | 'admin'
+//   role       'admin' | 'franchise' | 'buyer' | 'transport' | 'manpower' | 'farmer'
 //   accountId  the farmer or buyer document id this user is
 //   districts  districts a buyer may source from
 //
@@ -51,8 +51,16 @@ service cloud.firestore {
       return hasRole('admin');
     }
 
+    // Franchise and buyer are separate roles holding the same kind of buying
+    // account. Every rule scoped to "what a buyer may read" means both.
     function isBuyer() {
-      return hasRole('buyer');
+      return hasRole('buyer') || hasRole('franchise');
+    }
+
+    // Transport and manpower contractors. They read reference data and their
+    // own records; nothing here grants them a view of trade.
+    function isAgency() {
+      return hasRole('transport') || hasRole('manpower');
     }
 
     function isFarmer() {
@@ -62,7 +70,7 @@ service cloud.firestore {
     // Anyone the platform has verified. Reference data is readable by all of
     // them — a farmer needs the crop catalogue as much as a buyer does.
     function isKnown() {
-      return isAdmin() || isBuyer() || isFarmer();
+      return isAdmin() || isBuyer() || isFarmer() || isAgency();
     }
 
     function accountId() {

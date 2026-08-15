@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { SignInForm, type Audience } from "@/components/marketing/signin-form";
+import { ROLES } from "@/lib/auth/claims";
 import { getDictionary, isLocale } from "@/lib/i18n";
 
 export async function generateMetadata({
@@ -18,7 +19,7 @@ export async function generateMetadata({
   };
 }
 
-const AUDIENCES: Audience[] = ["buyer", "admin", "agency", "farmer"];
+const AUDIENCES: Audience[] = [...ROLES];
 
 function parseAudience(value: string | undefined): Audience {
   return AUDIENCES.includes(value as Audience) ? (value as Audience) : "buyer";

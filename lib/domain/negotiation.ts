@@ -58,7 +58,14 @@ export function partyFor(
 ): Party | null {
   if (!accountId) return null;
   if (role === "farmer" && accountId === negotiation.farmerId) return "farmer";
-  if (role === "buyer" && accountId === negotiation.buyerId) return "buyer";
+  // Franchise and buyer are separate roles holding the same buying account,
+  // so both map to the buyer side of a bargain.
+  if (
+    (role === "buyer" || role === "franchise") &&
+    accountId === negotiation.buyerId
+  ) {
+    return "buyer";
+  }
   return null;
 }
 

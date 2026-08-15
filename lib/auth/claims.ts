@@ -19,7 +19,26 @@
  * server that mints claims and the client that reads a session.
  */
 
-export const ROLES = ["admin", "buyer", "agency", "farmer", "driver"] as const;
+/**
+ * Six roles, one per door on the public site.
+ *
+ * Franchise and buyer share every capability, and so do transport and manpower
+ * — but they are kept apart deliberately. A labour contractor signing in is not
+ * a "generic agency", and the day the two diverge (different verification,
+ * different rates, different console sections) the split already exists rather
+ * than needing to be unpicked from every call site at once.
+ *
+ * The cost is that a firm doing both transport and manpower holds two logins.
+ * In practice those are two different people at that firm anyway.
+ */
+export const ROLES = [
+  "admin",
+  "franchise",
+  "buyer",
+  "transport",
+  "manpower",
+  "farmer",
+] as const;
 
 export type Role = (typeof ROLES)[number];
 
@@ -29,11 +48,26 @@ export function isRole(value: unknown): value is Role {
 
 export const ROLE_LABELS: Record<Role, string> = {
   admin: "Operations",
+  franchise: "Franchise",
   buyer: "Buyer",
-  agency: "Agency",
+  transport: "Transportation",
+  manpower: "Manpower",
   farmer: "Farmer",
-  driver: "Driver",
 };
+
+/** Roles that buy produce. Both see the same console. */
+export const BUYING_ROLES = ["franchise", "buyer"] as const;
+
+/** Roles that supply people or vehicles. Both see the agency console. */
+export const AGENCY_ROLES = ["transport", "manpower"] as const;
+
+export function isBuyingRole(role: Role): boolean {
+  return (BUYING_ROLES as readonly Role[]).includes(role);
+}
+
+export function isAgencyRole(role: Role): boolean {
+  return (AGENCY_ROLES as readonly Role[]).includes(role);
+}
 
 export interface Claims {
   readonly role: Role;
@@ -56,15 +90,16 @@ export interface Claims {
  */
 export const HOME_FOR_ROLE: Record<Role, string> = {
   admin: "/admin",
+  franchise: "/market",
   buyer: "/market",
-  agency: "/agency",
+  transport: "/agency",
+  manpower: "/agency",
   farmer: "/",
-  driver: "/",
 };
 
 /** Roles with a console to sign into. The rest have accounts but nowhere to go. */
 export function hasConsole(role: Role): boolean {
-  return role === "admin" || role === "buyer" || role === "agency";
+  return role !== "farmer";
 }
 
 /**
@@ -92,9 +127,7 @@ export function readClaims(token: Record<string, unknown>): Claims | null {
   // empty platform rather than an error.
   // An agency with no account id would see every other agency's workers,
   // because every query it makes is scoped by exactly this value.
-  if ((role === "buyer" || role === "farmer" || role === "agency") && !accountId) {
-    return null;
-  }
+  if (role !== "admin" && !accountId) return null;
 
   return { role, accountId, districts };
 }
@@ -102,7 +135,7 @@ export function readClaims(token: Record<string, unknown>): Claims | null {
 /** May this role reach this path? Checked in the console layouts. */
 export function mayAccess(role: Role, pathname: string): boolean {
   if (role === "admin") return true;
-  if (role === "buyer") return !pathname.startsWith("/admin");
-  if (role === "agency") return pathname.startsWith("/agency");
+  if (isBuyingRole(role)) return !pathname.startsWith("/admin");
+  if (isAgencyRole(role)) return pathname.startsWith("/agency");
   return false;
 }

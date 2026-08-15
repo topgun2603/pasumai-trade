@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { AgencyNav } from "@/components/agency/agency-nav";
 import { requireAgency } from "@/lib/auth/agency";
+import { verifySession } from "@/lib/auth/session";
 import { needsReview } from "@/lib/domain/admin";
 import { driverAccounts, vehicles, workers } from "@/lib/mock/admin";
 
@@ -16,7 +17,8 @@ import { driverAccounts, vehicles, workers } from "@/lib/mock/admin";
  * is no code path that takes an agency id from the request.
  */
 export default async function AgencyLayout({ children }: { children: ReactNode }) {
-  const { agency, email } = await requireAgency();
+  const { agency, email, service } = await requireAgency();
+  const session = await verifySession();
   const now = new Date();
 
   const mine = <T extends { agencyId: string }>(rows: T[]) =>
@@ -33,7 +35,8 @@ export default async function AgencyLayout({ children }: { children: ReactNode }
     <div className="flex min-h-svh w-full">
       <AgencyNav
         agency={{ name: agency.name, id: agency.id }}
-        services={agency.services}
+        service={service}
+        role={session!.claims.role}
         session={{ email }}
         pending={pending}
       />

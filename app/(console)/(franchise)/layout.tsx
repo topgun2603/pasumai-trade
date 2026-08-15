@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { ConsoleNav } from "@/components/franchise/console-nav";
+import { BUYING_ROLES } from "@/lib/auth/claims";
 import { requireConsole } from "@/lib/auth/require";
 import { CURRENT_FRANCHISE } from "@/lib/mock/listings";
 
@@ -19,7 +20,7 @@ export default async function FranchiseLayout({
 }) {
   // Operations too: they need to see what a buyer sees when a buyer calls to
   // ask why something is missing.
-  const session = await requireConsole(["buyer", "admin"]);
+  const session = await requireConsole([...BUYING_ROLES, "admin"]);
 
   return (
     <div className="flex min-h-svh w-full">

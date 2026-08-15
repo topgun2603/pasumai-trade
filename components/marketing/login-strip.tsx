@@ -21,19 +21,19 @@ import type { Locale } from "@/lib/i18n/config";
  * is: you learn there are farmers, buyers, transport and crew on it before
  * reading a line of copy.
  *
- * Several doors lead to the same place. Franchise and Buyer are one account
- * type with a commercial label between them; Transportation and Manpower are
- * both agencies, differing in what they are contracted for. That is a fact
- * about the internals, and there is no reason to make anyone learn it.
+ * Six doors, six roles. Franchise and Buyer see the same console, and so do
+ * Transportation and Manpower, but each signs in as itself — a labour
+ * contractor is not a "generic agency", and keeping them apart means the day
+ * the two diverge there is nothing to unpick.
  */
 export function LoginStrip({ t, locale }: { t: Dictionary; locale: Locale }) {
   const doors = [
     { as: "admin", label: t.doors.admin, icon: ShieldCheckIcon },
     { as: "farmer", label: t.doors.farmer, icon: TractorIcon },
-    { as: "buyer", label: t.doors.franchise, icon: StoreIcon },
+    { as: "franchise", label: t.doors.franchise, icon: StoreIcon },
     { as: "buyer", label: t.doors.buyer, icon: ShoppingBagIcon },
-    { as: "agency", label: t.doors.transport, icon: TruckIcon },
-    { as: "agency", label: t.doors.manpower, icon: HardHatIcon },
+    { as: "transport", label: t.doors.transport, icon: TruckIcon },
+    { as: "manpower", label: t.doors.manpower, icon: HardHatIcon },
   ];
 
   return (

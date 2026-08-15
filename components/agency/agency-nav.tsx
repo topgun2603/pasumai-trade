@@ -24,15 +24,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
+import type { Role } from "@/lib/auth/claims";
 import type { AgencyService } from "@/lib/domain/admin";
 import { cn } from "@/lib/utils";
 
 /**
  * The agency console rail.
  *
- * Only the sections this agency is contracted for. A labour contractor never
- * sees a Fleet link, because the page behind it would refuse them anyway and a
- * dead link is a worse answer than no link.
+ * Only the sections this login is for. A manpower login never sees a Fleet
+ * link, because the page behind it would refuse them anyway and a dead link is
+ * a worse answer than no link.
  */
 const LINKS: Array<{
   href: string;
@@ -86,17 +87,20 @@ function ThemeToggle() {
 
 export function AgencyNav({
   agency,
-  services,
+  service,
+  role,
   session,
   pending,
 }: {
   agency: { name: string; id: string };
-  services: readonly AgencyService[];
+  /** What this login is for. Transport sees fleet and drivers; manpower sees crew. */
+  service: AgencyService;
+  role: Role;
   session: { email?: string };
   pending: Record<string, number>;
 }) {
   const pathname = usePathname();
-  const links = LINKS.filter((l) => !l.service || services.includes(l.service));
+  const links = LINKS.filter((l) => !l.service || l.service === service);
 
   return (
     <nav className="bg-sidebar border-sidebar-border sticky top-0 hidden h-svh w-60 shrink-0 flex-col border-r md:flex">
@@ -155,7 +159,7 @@ export function AgencyNav({
           <span className="text-faint font-mono text-xs">{agency.id}</span>
         </div>
         <Separator />
-        <SessionFooter email={session.email} role="agency" />
+        <SessionFooter email={session.email} role={role} />
       </div>
     </nav>
   );

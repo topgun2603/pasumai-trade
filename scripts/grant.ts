@@ -29,6 +29,16 @@ import { getFirestore } from "firebase-admin/firestore";
 
 import { ROLES, type Role } from "@/lib/auth/claims";
 
+/** Where each role's account record lives. Operations has none. */
+const COLLECTION_FOR_ROLE: Record<Role, string> = {
+  admin: "",
+  franchise: "buyers",
+  buyer: "buyers",
+  transport: "agencies",
+  manpower: "agencies",
+  farmer: "farmers",
+};
+
 function loadEnv(file: string): Record<string, string> {
   const out: Record<string, string> = {};
   let raw: string;
@@ -95,7 +105,7 @@ async function main() {
   if (!(ROLES as readonly string[]).includes(role)) {
     usage(`Unknown role "${role}".`);
   }
-  if ((role === "buyer" || role === "farmer" || role === "agency") && !accountId) {
+  if (role !== "admin" && !accountId) {
     usage(`A ${role} needs an account id — their record on the platform.`);
   }
 
@@ -108,8 +118,7 @@ async function main() {
   // produces a console where every scoped query returns empty and nothing
   // explains why.
   if (accountId) {
-    const collection =
-      role === "buyer" ? "buyers" : role === "agency" ? "agencies" : "farmers";
+    const collection = COLLECTION_FOR_ROLE[role as Role];
     const doc = await db.collection(collection).doc(accountId).get();
     if (!doc.exists) {
       console.error(
@@ -140,15 +149,10 @@ async function main() {
 
   // Districts come off the account record so a claim can never disagree with
   // it. A buyer sources from these; an agency sends crew and vehicles to them.
-  const districts =
-    role === "buyer" || role === "agency"
-      ? ((
-          await db
-            .collection(role === "buyer" ? "buyers" : "agencies")
-            .doc(accountId!)
-            .get()
-        ).data()?.districts ?? [])
-      : undefined;
+  const districts = accountId
+    ? ((await db.collection(COLLECTION_FOR_ROLE[role as Role]).doc(accountId).get())
+        .data()?.districts ?? [])
+    : undefined;
 
   // Replaces the whole claim set rather than merging: a user demoted from admin
   // to buyer must not keep an admin claim nobody remembered to remove.

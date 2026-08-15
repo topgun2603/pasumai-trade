@@ -4,7 +4,9 @@ import {
   ArrowRightIcon,
   InfoIcon,
   ShieldCheckIcon,
+  HardHatIcon,
   SmartphoneIcon,
+  StoreIcon,
   TruckIcon,
   TriangleAlertIcon,
   UserRoundIcon,
@@ -16,14 +18,15 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HOME_FOR_ROLE } from "@/lib/auth/claims";
 import { signIn } from "@/lib/auth/sign-in";
 import { checkMobile } from "@/lib/domain/registration";
 import type { Dictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n/config";
+import type { Role } from "@/lib/auth/claims";
 
-export type Audience = "buyer" | "admin" | "agency" | "farmer";
+/** One per door on the public rail. Same set as the platform's roles. */
+export type Audience = Role;
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -50,34 +53,46 @@ export function SignInForm({
     icon: typeof UserRoundIcon;
   }> = [
     {
-      value: "buyer",
-      label: t.signin.buyer,
-      blurb: t.signin.buyerBlurb,
-      destination: "/market",
-      icon: UserRoundIcon,
-    },
-    {
       value: "admin",
-      label: t.signin.operations,
+      label: t.doors.admin,
       blurb: t.signin.adminBlurb,
       destination: "/admin",
       icon: ShieldCheckIcon,
     },
     {
-      // Transport and manpower contractors are one account type, differing
-      // only in what they are contracted for — so one door, not two.
-      value: "agency",
-      label: t.signin.agency,
-      blurb: t.signin.agencyBlurb,
+      value: "farmer",
+      label: t.doors.farmer,
+      blurb: t.signin.farmerBlurb,
+      destination: `/${locale}`,
+      icon: SmartphoneIcon,
+    },
+    {
+      value: "franchise",
+      label: t.doors.franchise,
+      blurb: t.signin.franchiseBlurb,
+      destination: "/market",
+      icon: StoreIcon,
+    },
+    {
+      value: "buyer",
+      label: t.doors.buyer,
+      blurb: t.signin.buyerBlurb,
+      destination: "/market",
+      icon: UserRoundIcon,
+    },
+    {
+      value: "transport",
+      label: t.doors.transport,
+      blurb: t.signin.transportBlurb,
       destination: "/agency",
       icon: TruckIcon,
     },
     {
-      value: "farmer",
-      label: t.signin.farmer,
-      blurb: t.signin.farmerBlurb,
-      destination: `/${locale}`,
-      icon: SmartphoneIcon,
+      value: "manpower",
+      label: t.doors.manpower,
+      blurb: t.signin.manpowerBlurb,
+      destination: "/agency",
+      icon: HardHatIcon,
     },
   ];
 
@@ -136,25 +151,17 @@ export function SignInForm({
 
   return (
     <div className="flex flex-col gap-6">
-      <Tabs
-        value={audience}
-        onValueChange={(v) => {
-          setAudience(v as Audience);
-          setErrors({});
-        }}
-      >
-        <TabsList className="w-full">
-          {audiences.map((option) => (
-            <TabsTrigger key={option.value} value={option.value} className="flex-1">
-              {option.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
-
-      <div className="bg-secondary text-muted-foreground flex items-start gap-2.5 rounded-lg px-3.5 py-3 text-sm">
-        <active.icon className="text-foreground mt-0.5 size-4 shrink-0" />
-        <span>{active.blurb}</span>
+      {/* Six tabs do not fit, and the rail on the public site already named
+          the door. So this shows the one that was chosen, with the others a
+          click away rather than competing for the same row. */}
+      <div className="border-primary/25 bg-accent flex items-start gap-3 rounded-lg border px-3.5 py-3">
+        <span className="bg-primary text-primary-foreground mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full">
+          <active.icon className="size-4" />
+        </span>
+        <span className="flex flex-col gap-0.5">
+          <span className="font-medium">{active.label}</span>
+          <span className="text-muted-foreground text-sm">{active.blurb}</span>
+        </span>
       </div>
 
       <form onSubmit={submit} noValidate className="flex flex-col gap-4">
@@ -247,6 +254,28 @@ export function SignInForm({
             to create it — there is no self sign-up.
           </span>
         </p>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <span className="text-muted-foreground text-xs">{t.signin.otherDoors}</span>
+        <div className="flex flex-wrap gap-1.5">
+          {audiences
+            .filter((option) => option.value !== audience)
+            .map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  setAudience(option.value);
+                  setErrors({});
+                }}
+                className="border-border hover:bg-secondary focus-visible:ring-ring flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none"
+              >
+                <option.icon className="size-3" />
+                {option.label}
+              </button>
+            ))}
+        </div>
       </div>
 
       <p className="text-muted-foreground text-center text-sm">

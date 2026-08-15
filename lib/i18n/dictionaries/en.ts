@@ -240,6 +240,10 @@ export const en = {
   },
 
   signin: {
+    franchiseBlurb: "Contracted franchises. Same console and same capabilities as an independent buyer.",
+    transportBlurb: "Transport contractors. Register your vehicles and drivers; operations verifies them.",
+    manpowerBlurb: "Labour contractors. Register your loading, grading and weighing crew.",
+    otherDoors: "Signing in as someone else?",
     agency: "Agency",
     agencyBlurb: "Transport and manpower contractors. Register your vehicles, drivers and crew; operations verifies them.",
     title: "Sign in to Pasumai Trade",

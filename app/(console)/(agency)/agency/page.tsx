@@ -7,12 +7,7 @@ import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/admin/badges";
 import { Badge } from "@/components/ui/badge";
 import { requireAgency } from "@/lib/auth/agency";
-import {
-  agencyDispatchable,
-  needsReview,
-  offers,
-  worstExpiry,
-} from "@/lib/domain/admin";
+import { agencyDispatchable, needsReview, worstExpiry } from "@/lib/domain/admin";
 import { driverAccounts, vehicles, workers } from "@/lib/mock/admin";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +16,7 @@ export const metadata: Metadata = { title: "Overview · Agency" };
 export default async function AgencyOverviewPage() {
   await connection();
 
-  const { agency } = await requireAgency();
+  const { agency, service } = await requireAgency();
   const now = new Date();
   const t = now.getTime();
 
@@ -37,7 +32,7 @@ export default async function AgencyOverviewPage() {
       href: "/agency/workers",
       label: "Workers",
       icon: HardHatIcon,
-      show: offers(agency, "manpower"),
+      show: service === "manpower",
       total: crew.length,
       waiting: crew.filter((w) => needsReview(w.status)).length,
     },
@@ -45,7 +40,7 @@ export default async function AgencyOverviewPage() {
       href: "/agency/fleet",
       label: "Vehicles",
       icon: TruckIcon,
-      show: offers(agency, "transport"),
+      show: service === "transport",
       total: fleet.length,
       waiting: fleet.filter((v) => needsReview(v.status)).length,
     },
@@ -53,7 +48,7 @@ export default async function AgencyOverviewPage() {
       href: "/agency/drivers",
       label: "Drivers",
       icon: ShieldCheckIcon,
-      show: offers(agency, "transport"),
+      show: service === "transport",
       total: drivers.length,
       waiting: drivers.filter((d) => needsReview(d.status)).length,
     },

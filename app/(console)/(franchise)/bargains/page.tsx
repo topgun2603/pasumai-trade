@@ -10,6 +10,7 @@ import { CATALOGUE } from "@/lib/mock/catalogue";
 import { GEOGRAPHY } from "@/lib/mock/locations";
 import { negotiations } from "@/lib/mock/negotiations";
 import { DOCUMENT_RULES, PACKS, PHRASES } from "@/lib/mock/reference";
+import { isBuyingRole } from "@/lib/auth/claims";
 import { verifySession } from "@/lib/auth/session";
 
 export const metadata: Metadata = { title: "Bargains · Pasumai Trade" };
@@ -42,7 +43,8 @@ export default async function BargainsPage() {
   // Operations can read a bargain but never speak in one, which is the same
   // rule the endpoint enforces.
   const session = await verifySession();
-  const editable = live && session?.claims.role === "buyer";
+  const editable =
+    live && session !== null && isBuyingRole(session.claims.role);
 
   return (
     <div className="flex min-h-svh flex-col">

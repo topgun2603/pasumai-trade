@@ -45,7 +45,7 @@ export async function POST(
 ) {
   // Operations are deliberately not permitted here. They may read a bargain;
   // they may not speak in one.
-  const gate = await requireRole("farmer", "buyer");
+  const gate = await requireRole("farmer", "buyer", "franchise");
   if (!gate.ok) return gate.response;
 
   const { id } = await context.params;
