@@ -50,7 +50,19 @@ export default async function SignInPage({
         </div>
       </div>
 
-      <SignInForm initial={parseAudience(as)} locale={locale} t={t} />
+      {/* Keyed by the door, so arriving from the rail at a different one
+          remounts the form with that role selected.
+          
+          Without this, clicking Manpower while already on ?as=admin is a
+          client-side navigation: the prop changes, the component instance is
+          reused, and useState keeps the role it mounted with. Same reason the
+          crop and quote dialogs are keyed by their record. */}
+      <SignInForm
+        key={parseAudience(as)}
+        initial={parseAudience(as)}
+        locale={locale}
+        t={t}
+      />
     </div>
   );
 }
