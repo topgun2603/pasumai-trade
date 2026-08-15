@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BadgeCheckIcon,
   ClipboardListIcon,
   CreditCardIcon,
   HandshakeIcon,
@@ -39,6 +40,7 @@ const LINKS = [
   { href: "/orders", label: "Orders", icon: PackageIcon },
   { href: "/dispatch", label: "Dispatch", icon: TruckIcon },
   { href: "/farmers", label: "Farmers", icon: UsersIcon },
+  { href: "/verification", label: "Verification", icon: BadgeCheckIcon },
   { href: "/subscription", label: "Subscription", icon: CreditCardIcon },
 ];
 

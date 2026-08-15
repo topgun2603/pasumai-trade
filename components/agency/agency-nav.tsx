@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BadgeCheckIcon,
   BuildingIcon,
   CreditCardIcon,
   GaugeIcon,
@@ -63,6 +64,7 @@ const LINKS: Array<{
     service: "transport",
   },
   { href: "/agency/profile", label: "Agency", icon: BuildingIcon },
+  { href: "/agency/verification", label: "Verification", icon: BadgeCheckIcon },
   { href: "/agency/subscription", label: "Subscription", icon: CreditCardIcon },
 ];
 

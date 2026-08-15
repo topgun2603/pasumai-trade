@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BadgeCheckIcon,
   CreditCardIcon,
   GaugeIcon,
   HandshakeIcon,
@@ -127,6 +128,21 @@ export function FarmNav({
               </li>
             );
           })}
+          <li>
+            <Link
+              href="/farm/verification"
+              aria-current={isActive(pathname, "/farm/verification") ? "page" : undefined}
+              className={cn(
+                "focus-visible:ring-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
+                isActive(pathname, "/farm/verification")
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+              )}
+            >
+              <BadgeCheckIcon className="size-4 shrink-0" />
+              Verification
+            </Link>
+          </li>
           <li>
             <Link
               href="/farm/subscription"

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BadgeCheckIcon,
   ArrowLeftRightIcon,
   BuildingIcon,
   ChartColumnIcon,
@@ -61,6 +62,7 @@ const SECTIONS: Array<{ title?: string; links: NavLink[] }> = [
   {
     title: "Accounts",
     links: [
+      { href: "/admin/kyc", label: "KYC review", icon: BadgeCheckIcon },
       { href: "/admin/buyers", label: "Buyers", icon: UserRoundIcon },
       { href: "/admin/farmers", label: "Farmers", icon: TractorIcon },
     ],
