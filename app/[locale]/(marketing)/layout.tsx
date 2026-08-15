@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { SiteFooter } from "@/components/marketing/site-footer";
+import { LoginStrip } from "@/components/marketing/login-strip";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { getDictionary, isLocale } from "@/lib/i18n";
 
@@ -27,6 +28,7 @@ export default async function MarketingLayout({
   return (
     <div className="flex min-h-svh flex-col">
       <SiteHeader locale={locale} t={t} />
+      <LoginStrip locale={locale} t={t} />
       <main className="flex-1">{children}</main>
       <SiteFooter locale={locale} t={t} />
     </div>

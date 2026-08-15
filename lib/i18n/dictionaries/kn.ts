@@ -16,6 +16,16 @@ export const kn: Dictionary = {
     theme: "ಬಣ್ಣದ ಶೈಲಿ",
   },
 
+  doors: {
+    label: "ಹೀಗೆ ಸೈನ್ ಇನ್",
+    admin: "ನಿರ್ವಹಣೆ",
+    farmer: "ರೈತ",
+    franchise: "ಫ್ರಾಂಚೈಸಿ",
+    buyer: "ಖರೀದಿದಾರ",
+    transport: "ಸಾಗಣೆ",
+    manpower: "ಸಿಬ್ಬಂದಿ",
+  },
+
   hero: {
     cardCrop: "ಟೊಮ್ಯಾಟೊ · 800 ಕೆಜಿ",
     cardSettled: "ನಿಗದಿಯಾಗಿದೆ",
@@ -224,6 +234,8 @@ export const kn: Dictionary = {
   },
 
   signin: {
+    agency: "ಏಜೆನ್ಸಿ",
+    agencyBlurb: "ಸಾಗಣೆ ಮತ್ತು ಸಿಬ್ಬಂದಿ ಗುತ್ತಿಗೆದಾರರು. ನಿಮ್ಮ ವಾಹನ, ಚಾಲಕರು, ಸಿಬ್ಬಂದಿಯನ್ನು ನೋಂದಾಯಿಸಿ; ನಿರ್ವಹಣೆ ಪರಿಶೀಲಿಸುತ್ತದೆ.",
     title: "ಪಸುಮೈ ಟ್ರೇಡ್‌ಗೆ ಸೈನ್ ಇನ್",
     subtitle: "ನೀವು ಕೆಲಸ ಮಾಡುವ ಕನ್ಸೋಲ್ ಆಯ್ಕೆಮಾಡಿ.",
     buyer: "ಖರೀದಿದಾರ",

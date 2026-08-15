@@ -16,6 +16,16 @@ export const te: Dictionary = {
     theme: "రంగు థీమ్",
   },
 
+  doors: {
+    label: "ఇలా సైన్ ఇన్",
+    admin: "అడ్మిన్",
+    farmer: "రైతు",
+    franchise: "ఫ్రాంచైజీ",
+    buyer: "కొనుగోలుదారు",
+    transport: "రవాణా",
+    manpower: "సిబ్బంది",
+  },
+
   hero: {
     cardCrop: "టమాటా · 800 కేజీ",
     cardSettled: "ఖరారైంది",
@@ -224,6 +234,8 @@ export const te: Dictionary = {
   },
 
   signin: {
+    agency: "ఏజెన్సీ",
+    agencyBlurb: "రవాణా, సిబ్బంది కాంట్రాక్టర్లు. మీ వాహనాలు, డ్రైవర్లు, సిబ్బందిని నమోదు చేయండి; నిర్వహణ ధృవీకరిస్తుంది.",
     title: "పసుమై ట్రేడ్‌లో సైన్ ఇన్",
     subtitle: "మీరు పనిచేసే కన్సోల్‌ను ఎంచుకోండి.",
     buyer: "కొనుగోలుదారు",

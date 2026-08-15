@@ -141,25 +141,33 @@ export function Hero({
           </StaggerItem>
         </Stagger>
 
-        {/* An arch rather than a rectangle. Every page in this market frames
-            its farmer in a rounded box; the shape is the cheapest way to look
-            like nobody else, and it echoes a doorway, which is where produce
-            actually changes hands. */}
-        <div className="relative hidden self-end justify-self-center lg:block">
-          <div className="border-primary/15 relative aspect-[3/4] w-[26rem] overflow-hidden rounded-t-full rounded-b-3xl border-4 shadow-2xl">
+        {/* A plain rounded frame with an offset panel behind it.
+            The arch this replaced cropped the subject at the dome and read as
+            a tombstone at this aspect ratio — the photograph has no alpha
+            channel, so it cannot be cut out and needs a frame that flatters a
+            rectangle rather than fighting it. */}
+        <div className="relative hidden self-end justify-self-center pb-10 lg:block">
+          <div
+            aria-hidden
+            className="border-primary/25 absolute -top-5 -right-5 h-full w-full rounded-3xl border-2"
+          />
+          <div className="ring-border relative aspect-[3/4] w-[24rem] overflow-hidden rounded-3xl shadow-2xl ring-1">
             <Image
               src={farmer.src}
               alt={t.hero.imageAlt}
               fill
               priority
-              sizes="26rem"
-              className="object-cover object-top"
+              sizes="24rem"
+              className="object-cover object-center"
             />
+            {/* Grounds the card against the photograph rather than letting it
+                float on a bright patch. */}
+            <div className="from-foreground/25 absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t to-transparent" />
           </div>
 
           {/* The signature object: three grades, one card. It recurs down the
               page, so the reader meets it before it has to carry meaning. */}
-          <div className="bg-card/95 absolute -bottom-4 -left-10 w-56 rounded-xl border p-3.5 shadow-xl backdrop-blur">
+          <div className="bg-card/95 absolute bottom-0 -left-8 w-56 rounded-xl border p-3.5 shadow-xl backdrop-blur">
             <div className="flex items-baseline justify-between pb-2">
               <span className="text-xs font-medium">{t.hero.cardCrop}</span>
               <span className="text-success text-[10px] font-medium tracking-wide uppercase">

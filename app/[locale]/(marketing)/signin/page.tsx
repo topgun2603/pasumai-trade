@@ -18,7 +18,7 @@ export async function generateMetadata({
   };
 }
 
-const AUDIENCES: Audience[] = ["buyer", "admin", "farmer"];
+const AUDIENCES: Audience[] = ["buyer", "admin", "agency", "farmer"];
 
 function parseAudience(value: string | undefined): Audience {
   return AUDIENCES.includes(value as Audience) ? (value as Audience) : "buyer";

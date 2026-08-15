@@ -5,6 +5,7 @@ import {
   InfoIcon,
   ShieldCheckIcon,
   SmartphoneIcon,
+  TruckIcon,
   TriangleAlertIcon,
   UserRoundIcon,
 } from "lucide-react";
@@ -22,7 +23,7 @@ import { checkMobile } from "@/lib/domain/registration";
 import type { Dictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n/config";
 
-export type Audience = "buyer" | "admin" | "farmer";
+export type Audience = "buyer" | "admin" | "agency" | "farmer";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -61,6 +62,15 @@ export function SignInForm({
       blurb: t.signin.adminBlurb,
       destination: "/admin",
       icon: ShieldCheckIcon,
+    },
+    {
+      // Transport and manpower contractors are one account type, differing
+      // only in what they are contracted for — so one door, not two.
+      value: "agency",
+      label: t.signin.agency,
+      blurb: t.signin.agencyBlurb,
+      destination: "/agency",
+      icon: TruckIcon,
     },
     {
       value: "farmer",

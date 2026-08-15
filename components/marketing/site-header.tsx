@@ -90,9 +90,6 @@ export function SiteHeader({
         <div className="ml-auto flex items-center gap-2">
           <LanguageSwitcher current={locale} label={t.common.changeLanguage} />
           <ThemeToggle label={t.nav.theme} />
-          <Button asChild variant="ghost" className="hidden sm:inline-flex">
-            <Link href={`/${locale}/signin`}>{t.nav.signIn}</Link>
-          </Button>
           <Button asChild className="hidden md:inline-flex">
             <a href="#apply">{t.nav.requestAccount}</a>
           </Button>
@@ -122,9 +119,9 @@ export function SiteHeader({
             </a>
           ))}
           <div className="mt-2 flex flex-col gap-2">
-            <Button asChild variant="outline">
-              <Link href={`/${locale}/signin`}>{t.nav.signIn}</Link>
-            </Button>
+            {/* No generic sign-in here: the strip below the bar is visible on
+                mobile too and names all six doors, which beats one that makes
+                everyone work out which they are afterwards. */}
             <Button asChild>
               <a href="#apply" onClick={() => setOpen(false)}>
                 {t.nav.requestAccount}

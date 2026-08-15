@@ -20,6 +20,16 @@ export const en = {
     theme: "Colour theme",
   },
 
+  doors: {
+    label: "Sign in as",
+    admin: "Admin",
+    farmer: "Farmer",
+    franchise: "Franchise",
+    buyer: "Buyer",
+    transport: "Transportation",
+    manpower: "Manpower",
+  },
+
   hero: {
     cardCrop: "Tomato · 800 kg",
     cardSettled: "Settled",
@@ -230,6 +240,8 @@ export const en = {
   },
 
   signin: {
+    agency: "Agency",
+    agencyBlurb: "Transport and manpower contractors. Register your vehicles, drivers and crew; operations verifies them.",
     title: "Sign in to Pasumai Trade",
     subtitle: "Choose the console you work in.",
     buyer: "Buyer",

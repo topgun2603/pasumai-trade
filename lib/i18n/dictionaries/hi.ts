@@ -16,6 +16,16 @@ export const hi: Dictionary = {
     theme: "रंग शैली",
   },
 
+  doors: {
+    label: "इस रूप में साइन इन",
+    admin: "एडमिन",
+    farmer: "किसान",
+    franchise: "फ़्रेंचाइज़ी",
+    buyer: "खरीदार",
+    transport: "परिवहन",
+    manpower: "श्रमिक",
+  },
+
   hero: {
     cardCrop: "टमाटर · 800 किलो",
     cardSettled: "तय हुआ",
@@ -224,6 +234,8 @@ export const hi: Dictionary = {
   },
 
   signin: {
+    agency: "एजेंसी",
+    agencyBlurb: "परिवहन और श्रमिक ठेकेदार। अपने वाहन, ड्राइवर और मज़दूर दर्ज करें; संचालन टीम जाँचती है।",
     title: "पसुमै ट्रेड में साइन इन करें",
     subtitle: "जिस कंसोल में आप काम करते हैं उसे चुनें।",
     buyer: "खरीदार",
