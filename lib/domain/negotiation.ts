@@ -8,10 +8,11 @@
  *
  * Three decisions shape everything here:
  *
- *  - **Every proposal prices all three grades.** Grading happens physically at
- *    pickup, so a bargain struck over a single number is a bargain that gets
- *    reopened at the farm gate with a truck idling. Settling A, B and C
- *    together is what makes the handover a weighing, not an argument.
+ *  - **Grades trade separately.** A proposal prices any subset — a buyer who
+ *    wants only the top grade bids on grade A alone, and the rest of the lot
+ *    is simply not part of that deal. What a priced grade still guarantees is
+ *    that grading at the farm gate resolves its price rather than reopening
+ *    it, which is what makes the handover a weighing and not an argument.
  *
  *  - **A party may not move away from the other.** Once a buyer has offered
  *    ₹22, they cannot later offer ₹20. Without that rule a buyer can ratchet
@@ -248,16 +249,23 @@ export function canPropose(
     return refuse("settled", "This bargain is closed. Start a new one.");
   }
 
-  // Every grade, every time. A proposal missing grade C is a proposal that
-  // gets argued about at the farm gate when the produce grades out as C.
-  for (const grade of GRADES) {
-    const rate = rateFor(bands, grade);
-    if (rate === undefined) {
-      return refuse(
-        "incompletePricing",
-        `Set a rate for grade ${GRADE_LABELS[grade]} too — produce is graded at pickup, and every grade needs a price agreed now.`,
-      );
-    }
+  // Any subset of grades, so long as it is not empty.
+  //
+  // Grades are traded separately: a buyer who wants only the top grade bids on
+  // grade A alone, and the rest of the lot is simply not part of that deal.
+  // What each priced grade still guarantees is that grading at the farm gate
+  // resolves the price rather than reopening it — for the grades in the deal.
+  const priced = GRADES.filter((grade) => rateFor(bands, grade) !== undefined);
+
+  if (priced.length === 0) {
+    return refuse(
+      "incompletePricing",
+      "Price at least one grade. You can bid on a single grade — you do not have to price all three.",
+    );
+  }
+
+  for (const grade of priced) {
+    const rate = rateFor(bands, grade)!;
     if (!Number.isFinite(rate) || rate <= 0) {
       return refuse(
         "nonPositiveRate",
@@ -266,15 +274,16 @@ export function canPropose(
     }
   }
 
-  // A better grade cannot be worth less than a worse one. Almost always a typo
-  // — two figures swapped — and catching it here saves an argument later.
-  for (let i = 1; i < GRADES.length; i += 1) {
-    const better = rateFor(bands, GRADES[i - 1])!;
-    const worse = rateFor(bands, GRADES[i])!;
+  // A better grade cannot be worth less than a worse one. Compared only across
+  // the grades actually priced, since a gap between them is now legitimate —
+  // pricing A and C but not B says nothing about B.
+  for (let i = 1; i < priced.length; i += 1) {
+    const better = rateFor(bands, priced[i - 1])!;
+    const worse = rateFor(bands, priced[i])!;
     if (worse > better) {
       return refuse(
         "gradeOrder",
-        `Grade ${GRADE_LABELS[GRADES[i]]} cannot be priced above grade ${GRADE_LABELS[GRADES[i - 1]]}. Check the figures.`,
+        `Grade ${GRADE_LABELS[priced[i]]} cannot be priced above grade ${GRADE_LABELS[priced[i - 1]]}. Check the figures.`,
       );
     }
   }
@@ -284,9 +293,19 @@ export function canPropose(
     let moved = false;
 
     for (const grade of GRADES) {
-      const now = rateFor(bands, grade)!;
+      const now = rateFor(bands, grade);
       const before = rateFor(previous.bands, grade);
-      if (before === undefined) continue;
+
+      // Dropping a grade you previously priced is a change, not a retreat —
+      // narrowing to "actually, just your grade A" is a legitimate move.
+      if (now === undefined) {
+        if (before !== undefined) moved = true;
+        continue;
+      }
+      if (before === undefined) {
+        moved = true;
+        continue;
+      }
       if (now !== before) moved = true;
 
       // A buyer only ever improves upward, a farmer only ever concedes

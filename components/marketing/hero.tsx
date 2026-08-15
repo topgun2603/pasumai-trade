@@ -165,8 +165,8 @@ export function Hero({
             <div className="from-foreground/25 absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t to-transparent" />
           </div>
 
-          {/* The signature object: three grades, one card. It recurs down the
-              page, so the reader meets it before it has to carry meaning. */}
+          {/* The signature object: an agreed grade on a card. It recurs down
+              the page, so the reader meets it before it has to carry meaning. */}
           <div className="bg-card/95 absolute bottom-0 -left-8 w-56 rounded-xl border p-3.5 shadow-xl backdrop-blur">
             <div className="flex items-baseline justify-between pb-2">
               <span className="text-xs font-medium">{t.hero.cardCrop}</span>
@@ -175,11 +175,7 @@ export function Hero({
               </span>
             </div>
             <dl className="flex flex-col gap-1">
-              {[
-                ["A", "₹24"],
-                ["B", "₹19.50"],
-                ["C", "₹13.50"],
-              ].map(([grade, rate]) => (
+              {[["A", "₹24"]].map(([grade, rate]) => (
                 <div key={grade} className="flex items-baseline justify-between">
                   <dt className="text-muted-foreground text-xs">
                     {t.hero.cardGrade} {grade}

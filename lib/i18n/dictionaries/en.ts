@@ -34,7 +34,7 @@ export const en = {
     cardCrop: "Tomato · 800 kg",
     cardSettled: "Settled",
     cardGrade: "Grade",
-    cardNote: "Agreed by the farmer and the buyer. Illustrative.",
+    cardNote: "Grade A only, agreed by the farmer and the buyer. Illustrative.",
     badge: "Tamil Nadu · {districts} districts · {farmers} farmers",
     titleLine1: "Fair prices for farmers.",
     titleAccent: "Graded produce",
@@ -53,7 +53,7 @@ export const en = {
     fairTitle: "Fair price",
     fairBody: "You and the buyer settle it. Nobody else sets a number.",
     gradedTitle: "Graded once",
-    gradedBody: "In front of you, at your gate. The grade decides the price.",
+    gradedBody: "In front of you, at your gate. The grade decides the price you agreed for it.",
     networkTitle: "Real network",
     networkBody: "Verified buyers, drivers and crew — every document checked.",
     paidTitle: "Paid on delivery",
@@ -88,8 +88,8 @@ export const en = {
 
   bargain: {
     title: "The price is not ours to set",
-    body: "There is no published rate to check an offer against, because there is no offer we made. A farmer names a price, a buyer counters, and the two of them settle it — grade by grade, before a vehicle moves.",
-    caption: "Grade A ₹24 · B ₹19.50 · C ₹13.50",
+    body: "There is no published rate to check an offer against, because there is no offer we made. A farmer names a price, a buyer counters, and the two of them settle it — grade by grade, and only the grades they both want.",
+    caption: "Grade A · ₹24/kg · 800 kg",
   },
 
   how: {
@@ -98,7 +98,7 @@ export const en = {
     step1Body: "Crop, quantity, photos — from the field, and it syncs when signal returns.",
     step1Alt: "A farmer standing at the edge of a field, entering a crop listing on a phone",
     step2Title: "Settle the price",
-    step2Body: "A buyer offers, you counter. All three grades agreed before anything moves.",
+    step2Body: "A buyer offers, you counter. Bid on one grade or all three — whatever is agreed is what moves.",
     step2Alt: "Hands holding a phone showing grade prices being agreed",
     step3Title: "Collected and graded",
     step3Body: "A vehicle comes to the farm. Grading happens in front of you; a code confirms handover.",
@@ -139,7 +139,7 @@ export const en = {
       "Crop, quantity, photos. It works with no signal — the listing syncs when you are back in range.",
     step2Title: "Check the offer",
     step2Body:
-      "Every offer prices all three grades at once. Counter it, or accept — the thread is the record of how you got there.",
+      "An offer names the grades the buyer wants and what they will pay for each. Counter it, or accept — the thread is the record of how you got there.",
     step3Title: "Hand over with a code",
     step3Body:
       "A vehicle comes to the farm. Grading happens in front of you; four digits confirm the handover.",

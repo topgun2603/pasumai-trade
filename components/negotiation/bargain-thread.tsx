@@ -45,8 +45,8 @@ import { cn } from "@/lib/utils";
  *
  * Two things make this different from a chat box with a number in it:
  *
- *  - A **proposal is a card, not a sentence.** All three grade rates, and what
- *    the lot is worth at each, laid out the same way every time. A price
+ *  - A **proposal is a card, not a sentence.** Whichever grades it prices, and
+ *    what the lot is worth at each, laid out the same way every time. A price
  *    buried in prose is a price that gets misread — and the farmer reading it
  *    may be doing so on a phone, in a field, in a second language.
  *
@@ -63,7 +63,7 @@ function localeOf(message: NegotiationMessage): Locale | undefined {
   return value && value in LOCALE_META ? (value as Locale) : undefined;
 }
 
-/** The three rates, priced out against the actual quantity. */
+/** The rates on offer, priced out against the actual quantity. */
 function ProposalCard({
   negotiation,
   bands,
@@ -134,8 +134,8 @@ function ProposalCard({
       </ul>
 
       <p className="text-faint text-xs">
-        Right-hand figure is the whole lot at that grade — grading happens at
-        pickup, so all three are settled now.
+        Right-hand figure is the whole lot at that grade. Grades not listed are
+        not part of this offer.
       </p>
     </div>
   );
@@ -269,7 +269,10 @@ export function BargainThread({
   const [draft, setDraft] = useState<Record<string, string>>(() => {
     const source = standing?.bands ?? [];
     return Object.fromEntries(
-      GRADES.map((grade) => [grade, String((rateFor(source, grade) ?? 0) / 100 || "")]),
+      GRADES.map((grade) => {
+        const rate = rateFor(source, grade);
+        return [grade, rate === undefined ? "" : String(rate / 100)];
+      }),
     );
   });
   const [text, setText] = useState("");
@@ -278,10 +281,14 @@ export function BargainThread({
   const settled = isSettled(negotiation);
   const acceptCheck = canAccept(negotiation, viewer, now);
 
-  const proposed: GradeBand[] = GRADES.map((grade) => ({
-    grade,
-    ratePerUnit: Math.round(Number(draft[grade] ?? 0) * 100),
-  }));
+  // A blank field means "not bidding on this grade", not "zero". Grades trade
+  // separately, so leaving one out is an ordinary thing to do rather than an
+  // incomplete form.
+  const proposed: GradeBand[] = GRADES.flatMap((grade) => {
+    const entered = (draft[grade] ?? "").trim();
+    if (entered === "") return [];
+    return [{ grade, ratePerUnit: Math.round(Number(entered) * 100) }];
+  });
   const proposeCheck = canPropose(negotiation, viewer, proposed);
 
   const distance = gap(negotiation);
@@ -417,6 +424,11 @@ export function BargainThread({
 
           {countering ? (
             <div className="bg-background flex flex-col gap-3 rounded-lg border p-3">
+              <p className="text-muted-foreground text-xs">
+                Bid on one grade or several. Anything you leave blank is not
+                part of this offer.
+              </p>
+
               <div className="grid gap-3 sm:grid-cols-3">
                 {GRADES.map((grade) => (
                   <div key={grade} className="flex flex-col gap-1.5">
@@ -445,9 +457,16 @@ export function BargainThread({
                 </p>
               ) : (
                 <p className="text-faint text-xs">
-                  Whole lot at grade A:{" "}
-                  {formatMoney(valueAt(negotiation, proposed, "a"))} · at grade C:{" "}
-                  {formatMoney(valueAt(negotiation, proposed, "c"))}
+                  {proposed.length === 0
+                    ? "Leave a grade blank to skip it — but price at least one."
+                    : proposed
+                        .map(
+                          (band) =>
+                            `${GRADE_LABELS[band.grade]} ${formatMoney(
+                              valueAt(negotiation, proposed, band.grade),
+                            )}`,
+                        )
+                        .join(" · ")}
                 </p>
               )}
 

@@ -84,18 +84,53 @@ describe("proposing", () => {
     expect(canPropose(fresh(), "farmer", bands(2500, 2000, 1400)).allowed).toBe(true);
   });
 
-  it("refuses a proposal that skips a grade", () => {
-    const result = canPropose(fresh(), "buyer", [
-      { grade: "a", ratePerUnit: 2200 },
-      { grade: "b", ratePerUnit: 1800 },
-    ]);
+  it("accepts a proposal covering only some grades", () => {
+    // Grades trade separately. A buyer who wants only the top grade bids on
+    // grade A alone, and the rest of the lot is not part of that deal.
+    expect(
+      canPropose(fresh(), "buyer", [{ grade: "a", ratePerUnit: 2200 }]).allowed,
+    ).toBe(true);
+    expect(
+      canPropose(fresh(), "buyer", [
+        { grade: "a", ratePerUnit: 2200 },
+        { grade: "c", ratePerUnit: 1300 },
+      ]).allowed,
+    ).toBe(true);
+  });
+
+  it("refuses a proposal that prices nothing at all", () => {
+    const result = canPropose(fresh(), "buyer", []);
     expect(result.allowed).toBe(false);
     if (!result.allowed) {
       expect(result.refusal.code).toBe("incompletePricing");
-      // The reason has to explain *why* all three are needed, because the
-      // person reading it is standing in a field wondering why it will not send.
-      expect(result.refusal.message).toContain("graded at pickup");
+      // Says the single-grade bid is allowed, because the person reading this
+      // has just been refused and needs to know what *is* permitted.
+      expect(result.refusal.message).toContain("single grade");
     }
+  });
+
+  it("checks ordering only across the grades actually priced", () => {
+    // A and C priced, B skipped: C must still sit at or below A.
+    expect(
+      canPropose(fresh(), "buyer", [
+        { grade: "a", ratePerUnit: 2200 },
+        { grade: "c", ratePerUnit: 2400 },
+      ]).allowed,
+    ).toBe(false);
+    expect(
+      canPropose(fresh(), "buyer", [
+        { grade: "a", ratePerUnit: 2200 },
+        { grade: "c", ratePerUnit: 1300 },
+      ]).allowed,
+    ).toBe(true);
+  });
+
+  it("treats narrowing to fewer grades as a move, not a retreat", () => {
+    // "Actually, just your grade A" is a legitimate counter.
+    const result = canPropose(opened(), "buyer", [
+      { grade: "a", ratePerUnit: 2200 },
+    ]);
+    expect(result.allowed).toBe(true);
   });
 
   it("refuses a zero or negative rate", () => {

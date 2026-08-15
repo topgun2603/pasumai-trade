@@ -48,7 +48,7 @@ export default async function BargainsPage() {
     <div className="flex min-h-svh flex-col">
       <PageHeader
         title="Bargains"
-        description="Settle a price with the farmer before the vehicle is committed. Every proposal prices all three grades, because grading happens at the farm gate and a number agreed now is a number nobody reopens there."
+        description="Settle a price with the farmer before the vehicle is committed. Bid on one grade or several — grading happens at the farm gate, and a grade priced now is a grade nobody reopens there."
       />
 
       {editable ? null : (

@@ -24,7 +24,8 @@ import { cn } from "@/lib/utils";
 interface Step {
   readonly party: "farmer" | "buyer";
   readonly text: string;
-  readonly rates?: readonly [number, number, number];
+  /** Only the grades this message actually prices. */
+  readonly rates?: Partial<Record<"A" | "B" | "C", number>>;
   readonly accept?: boolean;
 }
 
@@ -32,34 +33,36 @@ const SCRIPT: readonly Step[] = [
   {
     party: "farmer",
     text: "800 kg tomato, picked this morning.",
-    rates: [26, 21, 14.5],
+    rates: { A: 26, B: 21, C: 14.5 },
   },
   {
     party: "buyer",
-    text: "Rate is soft this week. This is what I can do today.",
-    rates: [22, 18, 13],
+    text: "I only need the top grade this week.",
+    rates: { A: 22 },
   },
-  { party: "farmer", text: "Yesterday it went at 24." },
+  { party: "farmer", text: "Yesterday grade A went at 24." },
   {
     party: "buyer",
     text: "Meeting you most of the way. Loading tomorrow at six.",
-    rates: [24, 19.5, 13.5],
+    rates: { A: 24 },
   },
-  { party: "farmer", text: "Agreed.", rates: [24, 19.5, 13.5], accept: true },
+  { party: "farmer", text: "Agreed.", rates: { A: 24 }, accept: true },
 ];
 
 const GRADES = ["A", "B", "C"] as const;
 
-function RateRow({ rates }: { rates: readonly [number, number, number] }) {
+function RateRow({ rates }: { rates: Partial<Record<"A" | "B" | "C", number>> }) {
+  const priced = GRADES.filter((grade) => rates[grade] !== undefined);
+
   return (
     <span className="mt-2 flex gap-2">
-      {GRADES.map((grade, i) => (
+      {priced.map((grade) => (
         <span
           key={grade}
           className="bg-background/60 flex flex-1 flex-col items-center rounded-md px-2 py-1.5 leading-tight"
         >
           <span className="text-[10px] opacity-70">Grade {grade}</span>
-          <span className="tabular text-sm font-semibold">₹{rates[i]}</span>
+          <span className="tabular text-sm font-semibold">₹{rates[grade]}</span>
         </span>
       ))}
     </span>
@@ -107,7 +110,7 @@ export function BargainDemo({
 
           <ul className="mt-2 flex flex-col gap-3">
             {[
-              "Every offer prices all three grades at once, so grading at the farm gate settles the price instead of reopening it.",
+              "Bid on one grade or all three. A buyer who wants only the top grade says so, and the rest of the lot stays yours to sell.",
               "Neither side can walk an offer backwards once it is made.",
               "Nobody can accept their own price — an agreement needs both.",
               "The thread is the record. What was agreed, and how, stays readable.",
