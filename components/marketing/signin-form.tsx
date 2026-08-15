@@ -240,19 +240,28 @@ export function SignInForm({
       </form>
 
       {/*
-        Accounts are created by operations, not by signing up. A buyer is
-        verified against a GST number before they may order and a farmer is
-        onboarded by a franchise, so there is no self-registration to offer —
-        and saying so beats leaving someone hunting for a button that does not
-        exist.
+        Anyone can register except operations, whose accounts are still issued
+        internally — so this offers the door when there is one and says why
+        there is not when there is not, rather than showing a link that leads
+        to a redirect.
       */}
       <div className="bg-secondary rounded-lg px-3.5 py-3">
         <p className="text-muted-foreground flex items-start gap-2 text-sm">
           <InfoIcon className="mt-0.5 size-4 shrink-0" />
-          <span>
-            Accounts are issued by operations. If you do not have one, ask them
-            to create it — there is no self sign-up.
-          </span>
+          {audience === "admin" ? (
+            <span>Operations accounts are issued internally, not by signing up.</span>
+          ) : (
+            <span>
+              No account yet?{" "}
+              <Link
+                href={`/${locale}/signup?as=${audience}`}
+                className="text-primary hover:underline"
+              >
+                Register as {active.label.toLowerCase()}
+              </Link>{" "}
+              — verification takes about two working days.
+            </span>
+          )}
         </p>
       </div>
 
@@ -278,13 +287,6 @@ export function SignInForm({
         </div>
       </div>
 
-      <p className="text-muted-foreground text-center text-sm">
-        {t.signin.noAccount}{" "}
-        <Link href={`/${locale}#apply`} className="text-primary hover:underline">
-          {t.signin.requestOne}
-        </Link>{" "}
-        — {t.signin.accountsNote}
-      </p>
     </div>
   );
 }

@@ -78,7 +78,11 @@ export function checkPincode(value: string): string | undefined {
 export function checkEmail(value: string, optional = false): string | undefined {
   const trimmed = value.trim();
   if (trimmed === "") return optional ? undefined : "Email is required";
-  return /^[^s@]+@[^s@]+.[^s@]{2,}$/.test(trimmed)
+  // `\s` and `\.`, both of which had lost their backslash. `[^s@]` reads as
+  // "not the letter s", so this rejected every address with an s in it —
+  // purchasing@, ops@, sales@ — and said "that does not look like an email"
+  // about addresses that were fine.
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(trimmed)
     ? undefined
     : "That does not look like an email address";
 }
