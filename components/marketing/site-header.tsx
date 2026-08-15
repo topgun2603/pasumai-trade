@@ -47,6 +47,7 @@ export function SiteHeader({
   const [open, setOpen] = useState(false);
 
   const links = [
+    { href: "#bargaining", label: t.nav.pricing },
     { href: "#how-it-works", label: t.nav.howItWorks },
     { href: "#farmers", label: t.nav.forFarmers },
     { href: "#buyers", label: t.nav.forBuyers },

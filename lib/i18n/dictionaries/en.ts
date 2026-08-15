@@ -8,6 +8,7 @@
 export const en = {
   nav: {
     howItWorks: "How it works",
+    pricing: "Pricing",
     forFarmers: "For farmers",
     forBuyers: "For buyers",
     coverage: "Coverage",
@@ -23,7 +24,7 @@ export const en = {
     titleLine1: "Fair prices for farmers.",
     titleAccent: "Graded produce",
     titleLine2: "for buyers.",
-    body: "Farmers list what they harvest and are paid against published mandi rates. Bulk buyers order graded stock from farms nearby, with transport and paperwork handled. The money is held until the produce arrives.",
+    body: "Farmers name their price. Buyers counter. You settle it together, grade by grade, and it is written down before a vehicle moves. Collection, grading and payment are handled — the money is held until the produce arrives.",
     imageAlt:
       "Terraced farmland with a collection shed and a goods vehicle on the road",
     statPoints: "Villages covered",
@@ -32,12 +33,12 @@ export const en = {
   },
 
   prices: {
-    title: "Today's rates",
-    body: "The lowest available price per crop, beside the published mandi range for the same day.",
+    title: "What produce is settling at",
+    body: "Prices agreed between farmers and buyers on the platform today. Nobody sets these but the two people trading.",
     refresh: "Refresh",
     loading: "Loading today's rates",
-    mandi: "Mandi {range}",
-    noMandi: "No mandi reference today",
+    sources: "{count} settled today",
+    noSettled: "First offer of the day",
     location: "location",
     locations: "locations",
     fresh: "Fresh",
@@ -47,7 +48,13 @@ export const en = {
       "Rates could not be loaded just now. They change through the day, so an old number is worse than none.",
     retry: "Try again",
     disclaimer:
-      "Indicative, exclusive of freight, and subject to grading at collection. Mandi ranges are published by Agmarknet; where a crop shows no reference, none was published for that district today.",
+      "Exclusive of freight, and subject to grading at collection. These are prices real buyers and farmers agreed — not a published index and not a platform quote.",
+  },
+
+  bargain: {
+    title: "The price is not ours to set",
+    body: "There is no published rate to check an offer against, because there is no offer we made. A farmer names a price, a buyer counters, and the two of them settle it — grade by grade, before a vehicle moves.",
+    caption: "Grade A ₹24 · B ₹19.50 · C ₹13.50",
   },
 
   how: {
@@ -76,7 +83,7 @@ export const en = {
     body1:
       "Built for a budget Android phone in bright sunlight, one-handed, with patchy signal. Your language first.",
     body2:
-      "You are never asked to trust a number you cannot check. Every offer sits beside the published rate for your district, and the source of that rate is named — a platform average is labelled a platform average, never a mandi price.",
+      "You are never asked to accept a number you did not agree to. A buyer offers, you counter, and neither side can walk an offer backwards once it is made. What you settle on is what is written down.",
     imageAlt:
       "Graded produce stacked in crates at the farm gate, with weighing scale and inspection sheet",
     step1Title: "List what you have",
@@ -84,7 +91,7 @@ export const en = {
       "Crop, quantity, photos. It works with no signal — the listing syncs when you are back in range.",
     step2Title: "Check the offer",
     step2Body:
-      "Every offer prices all three grades up front and shows the published rate for your district beside it.",
+      "Every offer prices all three grades at once. Counter it, or accept — the thread is the record of how you got there.",
     step3Title: "Hand over with a code",
     step3Body:
       "A vehicle comes to the farm. Grading happens in front of you; four digits confirm the handover.",
@@ -95,7 +102,7 @@ export const en = {
 
   buyers: {
     badge: "For buyers and franchises",
-    title: "Bulk produce without the mandi run",
+    title: "Bulk produce, priced by agreement",
     body: "Franchises and independent bulk buyers get the same console and the same capabilities. Browse graded stock, order what you need, and have it collected and delivered.",
     imageAlt:
       "The buyer console showing graded stock lines with prices, grades and a dispatch summary",
@@ -222,7 +229,7 @@ export const en = {
     contact: "Contact",
     rights: "All rights reserved.",
     rateNote:
-      "Mandi reference prices are published by Agmarknet. Platform averages are labelled as such and are not official mandi rates.",
+      "Prices shown are agreed between farmers and buyers on the platform. They are not a published index and the platform does not set them.",
   },
 
   common: {

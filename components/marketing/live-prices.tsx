@@ -132,9 +132,9 @@ export function LivePrices({ t }: { t: Dictionary }) {
                     {line.nameTa}
                   </span>
                   <span className="text-muted-foreground mt-1 text-xs">
-                    {line.mandiRange
-                      ? fill(t.prices.mandi, { range: line.mandiRange })
-                      : t.prices.noMandi}
+                    {line.settledCount > 1
+                      ? fill(t.prices.sources, { count: String(line.settledCount) })
+                      : t.prices.noSettled}
                   </span>
                 </span>
 

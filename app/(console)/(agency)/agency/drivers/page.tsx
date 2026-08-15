@@ -1,8 +1,11 @@
+import { PlusIcon } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { connection } from "next/server";
 
 import { DriversTable } from "@/components/admin/drivers-table";
 import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
 import { requireService } from "@/lib/auth/agency";
 import { driverAccounts } from "@/lib/mock/admin";
 
@@ -21,6 +24,14 @@ export default async function AgencyDriversPage() {
       <PageHeader
         title="Drivers"
         description="Your drivers. A licence lapses silently, so expiry is shown beside verification — a verified driver with an expired licence cannot be dispatched."
+        aside={
+          <Button asChild>
+            <Link href="/agency/drivers/new">
+              <PlusIcon className="size-4" />
+              Add driver
+            </Link>
+          </Button>
+        }
       />
       <DriversTable drivers={drivers} now={now.getTime()} />
     </>

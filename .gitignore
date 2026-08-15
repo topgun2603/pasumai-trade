@@ -50,3 +50,6 @@ next-env.d.ts
 # Claude Code local settings. Accumulated per machine, with absolute paths in
 # them — not shared project config.
 .claude/
+
+.vercel
+.env*

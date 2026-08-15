@@ -15,6 +15,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { EnquiryForm } from "@/components/marketing/enquiry-form";
+import { BargainDemo } from "@/components/marketing/bargain-demo";
 import { LivePrices } from "@/components/marketing/live-prices";
 import { MediaFrame } from "@/components/marketing/media-frame";
 import {
@@ -124,7 +125,16 @@ export default async function LandingPage({
   return (
     <>
       {/* Hero */}
-      <section className="border-b">
+      <section className="relative isolate overflow-hidden border-b">
+        {/* Decorative only: two blurred washes in brand green, and a hairline
+            grid that fades out. Pointer-events off and aria-hidden, so nothing
+            here reaches the keyboard or a screen reader. */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+          <div className="bg-primary/10 absolute -top-32 -left-24 size-[34rem] rounded-full blur-3xl" />
+          <div className="bg-success/10 absolute -right-32 -bottom-40 size-[30rem] rounded-full blur-3xl" />
+          <div className="absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,black,transparent_75%)] bg-[linear-gradient(to_right,var(--color-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-border)_1px,transparent_1px)] bg-[size:56px_56px] opacity-40" />
+        </div>
+
         <div className="mx-auto grid w-full max-w-6xl items-center gap-12 px-5 py-16 lg:grid-cols-[1.05fr_1fr] lg:py-24">
           <Stagger immediate className="flex flex-col items-start gap-6">
             <StaggerItem>
@@ -215,8 +225,21 @@ export default async function LandingPage({
         </div>
       </section>
 
+      {/* How a price is reached. Sits directly after the prices so the
+          obvious question — who decided these? — is answered where it is
+          asked, rather than three sections later. */}
+      <section id="bargaining" className="bg-secondary/40 border-b scroll-mt-20">
+        <div className="mx-auto w-full max-w-6xl px-5 py-16">
+          <BargainDemo
+            title={t.bargain.title}
+            body={t.bargain.body}
+            caption={t.bargain.caption}
+          />
+        </div>
+      </section>
+
       {/* How it works */}
-      <section id="how-it-works" className="bg-secondary/40 border-b scroll-mt-20">
+      <section id="how-it-works" className="border-b scroll-mt-20">
         <div className="mx-auto w-full max-w-6xl px-5 py-16">
           <Reveal className="flex max-w-2xl flex-col gap-3">
             <h2 className="text-3xl font-semibold tracking-tight text-balance">

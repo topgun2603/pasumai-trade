@@ -125,7 +125,7 @@ export function VehicleRegistrationForm({
       toast.success(`${values.registration.toUpperCase()} registered`, {
         description: "Cannot be dispatched until documents are verified.",
       });
-      router.push("/admin/transport/vehicles");
+      router.push("/agency/fleet");
     }, 500);
   }
 
