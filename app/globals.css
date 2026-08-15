@@ -42,6 +42,9 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-rail: var(--rail);
+  --color-rail-foreground: var(--rail-foreground);
+  --color-rail-hover: var(--rail-hover);
 
   /* Platform additions. shadcn has no vocabulary for these and the domain
      needs them: money pending, offers expiring, disputes. */
@@ -109,6 +112,13 @@
   --border: #dce2d6;
   --input: #dce2d6;
   --ring: #1c5b3e;
+  /* The sign-in rail. Deliberately its own pair rather than reusing --primary:
+     primary inverts to a bright green in dark mode, which is right for a
+     button somebody chooses to look at and wrong for a bar that is always on
+     screen. This one stays dark in both themes. */
+  --rail: #12402c;
+  --rail-foreground: #e8f2ec;
+  --rail-hover: #1c5b3e;
 
   /* platform: faint — labels and timestamps. Never used for anything a
      farmer must read to make a decision. */
@@ -169,6 +179,9 @@
   --border: #2a322a;
   --input: #2a322a;
   --ring: #6ecb95;
+  --rail: #101a14;
+  --rail-foreground: #cfe0d6;
+  --rail-hover: #1a2b20;
 
   --faint: #808c7e;
   --rule-soft: #222922;

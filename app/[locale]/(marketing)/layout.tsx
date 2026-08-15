@@ -27,8 +27,9 @@ export default async function MarketingLayout({
 
   return (
     <div className="flex min-h-svh flex-col">
-      <SiteHeader locale={locale} t={t} />
-      <LoginStrip locale={locale} t={t} />
+      <SiteHeader locale={locale} t={t}>
+        <LoginStrip locale={locale} t={t} />
+      </SiteHeader>
       <main className="flex-1">{children}</main>
       <SiteFooter locale={locale} t={t} />
     </div>

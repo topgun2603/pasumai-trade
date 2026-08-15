@@ -37,7 +37,7 @@ export function LoginStrip({ t, locale }: { t: Dictionary; locale: Locale }) {
   ];
 
   return (
-    <div className="bg-secondary/60 border-b">
+    <div className="bg-rail text-rail-foreground border-rail-hover border-b">
       <nav
         aria-label={t.doors.label}
         className="mx-auto w-full max-w-6xl px-5"
@@ -45,14 +45,16 @@ export function LoginStrip({ t, locale }: { t: Dictionary; locale: Locale }) {
         {/* Scrolls rather than wrapping on a narrow screen: six items on two
             ragged lines is worse than one line the thumb can push. */}
         <ul className="scrollbar-none flex items-stretch gap-1 overflow-x-auto py-1.5">
-          <li className="text-muted-foreground hidden shrink-0 items-center pr-2 text-xs font-medium tracking-wide uppercase lg:flex">
+          <li className="hidden shrink-0 items-center pr-3 text-xs font-medium tracking-[0.14em] uppercase opacity-65 lg:flex">
             {t.doors.label}
           </li>
           {doors.map(({ as, label, icon: Icon }) => (
             <li key={label} className="shrink-0">
+              {/* Pills rather than plain links: on a coloured bar an underline
+                  is hard to see and a filled hover state is not. */}
               <Link
                 href={`/${locale}/signin?as=${as}`}
-                className="text-muted-foreground hover:bg-background hover:text-foreground focus-visible:ring-ring flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                className="hover:bg-rail-hover flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none"
               >
                 <Icon className="size-3.5 shrink-0" />
                 {label}

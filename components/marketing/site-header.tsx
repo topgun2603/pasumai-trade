@@ -40,9 +40,12 @@ function ThemeToggle({ label }: { label: string }) {
 export function SiteHeader({
   locale,
   t,
+  children,
 }: {
   locale: Locale;
   t: Dictionary;
+  /** The sign-in rail, so it sticks to the viewport with the bar above it. */
+  children?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -130,6 +133,7 @@ export function SiteHeader({
           </div>
         </nav>
       </div>
+      {children}
     </header>
   );
 }
