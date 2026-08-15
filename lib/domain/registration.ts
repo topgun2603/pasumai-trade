@@ -63,6 +63,25 @@ export function checkMobile(value: string): string | undefined {
     : "Enter a 10-digit Indian mobile number starting 6–9";
 }
 
+/**
+ * A mobile number as Firebase wants it: `+919843011204`.
+ *
+ * Numbers are stored on the account as ten bare digits, because that is how
+ * they are said, written and read back over the phone here. Firebase Auth
+ * insists on E.164, so the country code is added at the boundary rather than
+ * being carried around in the data — one representation in the database, one
+ * conversion where an external system requires a different one.
+ *
+ * Returns null when the input is not a valid Indian mobile, so a caller cannot
+ * accidentally hand Firebase a malformed number and get a confusing error back
+ * from it instead of a clear one from here.
+ */
+export function toE164(value: string): string | null {
+  const digits = value.replace(/[^0-9]/g, "").replace(/^0+/, "");
+  const ten = digits.startsWith("91") && digits.length === 12 ? digits.slice(2) : digits;
+  return MOBILE.test(ten) ? `+91${ten}` : null;
+}
+
 export function checkPincode(value: string): string | undefined {
   if (value.trim() === "") return "PIN code is required";
   return PINCODE.test(value.trim()) ? undefined : "Enter a 6-digit PIN code";

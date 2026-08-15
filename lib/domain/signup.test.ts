@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ROLES } from "@/lib/auth/claims";
+import { checkMobile, toE164 } from "./registration";
 import {
   accountFor,
   canSelfSignup,
@@ -166,5 +167,42 @@ describe("email", () => {
   it("still catches a missing @ and a bare domain", () => {
     expect(validateSignup(form({ email: "selvam.kongufresh.in" })).email).toBeDefined();
     expect(validateSignup(form({ email: "selvam@kongufresh" })).email).toBeDefined();
+  });
+});
+
+describe("mobile numbers for Firebase", () => {
+  it("adds the country code to a plain ten-digit number", () => {
+    expect(toE164("9843011204")).toBe("+919843011204");
+  });
+
+  it("survives the ways people actually write them", () => {
+    for (const written of [
+      "98430 11204",
+      "+91 98430 11204",
+      "919843011204",
+      "+919843011204",
+      "098430 11204",
+      "98430-11204",
+    ]) {
+      expect(toE164(written)).toBe("+919843011204");
+    }
+  });
+
+  it("refuses anything that is not an Indian mobile", () => {
+    // Landline, too short, too long, and a leading digit India does not issue.
+    expect(toE164("0422 2201234")).toBeNull();
+    expect(toE164("98430")).toBeNull();
+    expect(toE164("98430112040")).toBeNull();
+    expect(toE164("5843011204")).toBeNull();
+    expect(toE164("")).toBeNull();
+  });
+
+  // A number that survived checkMobile must survive this too, or a signup
+  // passes validation and then fails at Firebase with a worse message.
+  it("accepts everything checkMobile accepts", () => {
+    for (const n of ["6000000000", "7538891944", "9047821134", "8123456789"]) {
+      expect(checkMobile(n)).toBeUndefined();
+      expect(toE164(n)).toBe(`+91${n}`);
+    }
   });
 });

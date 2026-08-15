@@ -3,7 +3,7 @@ import "server-only";
 import { notFound } from "next/navigation";
 
 import type { FarmerAccount } from "@/lib/domain/admin";
-import { farmerAccounts } from "@/lib/mock/admin";
+import { readFarmer } from "@/lib/firebase/farmer-read";
 import { readAccountState } from "@/lib/firebase/subscription-read";
 import type { Subscription } from "@/lib/domain/subscription";
 
@@ -36,16 +36,19 @@ export async function requireFarmer(): Promise<FarmSession> {
   // of it in /admin already.
   const session = await requireConsole(["farmer"]);
 
-  const farmer = farmerAccounts(new Date()).find(
-    (f) => f.id === session.claims.accountId,
-  );
+  // From Firestore, not the mock catalogue. Self-signup writes there and
+  // nowhere else, so a lookup in the mocks refused every real farmer their own
+  // console while the seeded demo accounts worked — the worst shape of bug,
+  // because testing with seeded data never sees it.
+  const [farmer, state] = await Promise.all([
+    readFarmer(session.claims.accountId ?? ""),
+    readAccountState("farmer", session.claims.accountId),
+  ]);
 
   // A claim pointing at no farmer. Not found rather than an empty console: an
   // empty console reads as "you have nothing", which is a different and much
   // more alarming thing to tell someone about their own account.
   if (!farmer) notFound();
-
-  const state = await readAccountState("farmer", session.claims.accountId);
 
   return {
     farmer,

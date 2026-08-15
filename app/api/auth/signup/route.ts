@@ -8,6 +8,7 @@ import {
   validateSignup,
   type SignupForm,
 } from "@/lib/domain/signup";
+import { toE164 } from "@/lib/domain/registration";
 import { adminAuth, adminDb, hasAdminCredentials } from "@/lib/firebase/admin";
 
 /**
@@ -106,6 +107,12 @@ export async function POST(request: Request) {
       email: values.email,
       password: values.password,
       displayName: values.contactName || values.name,
+      // The number goes on the *same* user record as the email, which is what
+      // makes OTP sign-in work at all. Firebase matches an SMS sign-in to an
+      // existing user by phone number, so the session it produces carries the
+      // role and accountId claims already set below. Without this, signing in
+      // by OTP would mint a second, claimless user and be refused.
+      ...(toE164(values.mobile) ? { phoneNumber: toE164(values.mobile)! } : {}),
     });
     uid = user.uid;
   } catch (error) {
@@ -119,6 +126,16 @@ export async function POST(request: Request) {
         {
           error: "An account already uses that email. Sign in instead, or use another address.",
           fields: { email: "Already registered" },
+        },
+        { status: 409 },
+      );
+    }
+    if (code === "auth/phone-number-already-exists") {
+      return Response.json(
+        {
+          error:
+            "An account already uses that mobile number. Sign in with it, or register with another.",
+          fields: { mobile: "Already registered" },
         },
         { status: 409 },
       );
