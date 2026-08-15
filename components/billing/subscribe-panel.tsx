@@ -1,6 +1,7 @@
 "use client";
 
 import { BanknoteIcon, ClockIcon, CopyIcon, ShieldCheckIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -14,6 +15,7 @@ import {
   type Plan,
   type SubscriptionStatus,
 } from "@/lib/domain/subscription";
+import { loadCheckout, openCheckout } from "@/lib/payments/checkout";
 
 /** What the server already worked out, so the client does not re-derive it. */
 export interface SubscriptionView {
@@ -38,47 +40,115 @@ const TONE: Record<SubscriptionStatus | "none", string> = {
 export function SubscribePanel({
   plans,
   current,
+  payer,
 }: {
   plans: readonly Plan[];
   current: SubscriptionView;
+  /** Prefills the checkout so nobody retypes what the platform already knows. */
+  payer?: { name?: string; email?: string; mobile?: string };
 }) {
+  const router = useRouter();
   const [period, setPeriod] = useState<BillingPeriod>("monthly");
   const [pending, setPending] = useState<string | null>(null);
   const [reference, setReference] = useState<string | null>(current.reference ?? null);
 
+  /**
+   * Subscribe, end to end.
+   *
+   * Open an order on the server, take the payment in Razorpay's modal, then
+   * hand what it returns back to the server to be verified. The middle step is
+   * the only one the browser owns, and nothing it says is believed without the
+   * signature check at the end.
+   */
   async function choose(plan: Plan) {
     setPending(plan.id);
-    let response: Response;
+
     try {
-      response = await fetch("/api/subscription", {
+      const response = await fetch("/api/subscription/checkout", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ planId: plan.id, period }),
       });
+
+      const data = (await response.json().catch(() => ({}))) as {
+        orderId?: string;
+        amount?: number;
+        currency?: string;
+        keyId?: string;
+        planName?: string;
+        reference?: string;
+        error?: string;
+        alreadyActive?: boolean;
+      };
+
+      if (!response.ok || !data.orderId) {
+        if (data.alreadyActive) toast.info("That subscription is already running.");
+        else if (response.status === 503) {
+          // No payment credentials on this deployment. Said as a fact rather
+          // than as a failure they could retry their way out of.
+          toast.error("Card payment is not switched on here yet.", {
+            description: "Ask operations for a bank transfer reference instead.",
+          });
+        } else toast.error(data.error ?? "Could not start the payment.");
+        setPending(null);
+        return;
+      }
+
+      setReference(data.reference ?? null);
+
+      const ready = await loadCheckout();
+      if (!ready) {
+        toast.error("Could not load the payment window.", {
+          description: "An ad blocker or a poor connection can stop it. Try again.",
+        });
+        setPending(null);
+        return;
+      }
+
+      const result = await openCheckout(
+        {
+          orderId: data.orderId,
+          amount: data.amount ?? 0,
+          currency: data.currency ?? "INR",
+          keyId: data.keyId ?? "",
+          planName: data.planName ?? plan.name,
+          reference: data.reference ?? "",
+        },
+        { name: payer?.name, email: payer?.email, contact: payer?.mobile },
+      );
+
+      // Dismissed. Not an error — the order stays open and Subscribe works
+      // again whenever they come back to it.
+      if (!result) {
+        setPending(null);
+        return;
+      }
+
+      const verified = await fetch("/api/subscription/verify", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(result),
+      });
+
+      const outcome = (await verified.json().catch(() => ({}))) as { error?: string };
+      setPending(null);
+
+      if (!verified.ok) {
+        // The money may well have left their account — the webhook is what
+        // rescues this, so the message must not tell them to pay again.
+        toast.error(outcome.error ?? "Payment could not be confirmed.", {
+          description:
+            "If you were charged, it will be applied automatically within a few minutes.",
+        });
+        return;
+      }
+
+      toast.success("Subscription active", { description: "Everything is unlocked." });
+      router.refresh();
     } catch {
       setPending(null);
       toast.error("Could not reach the server. Try again.");
-      return;
     }
-
-    const data = (await response.json().catch(() => ({}))) as {
-      reference?: string;
-      error?: string;
-      alreadyActive?: boolean;
-    };
-    setPending(null);
-
-    if (!response.ok) {
-      toast.error(data.error ?? "Could not start that subscription.");
-      return;
-    }
-    if (data.alreadyActive) {
-      toast.info("That subscription is already running.");
-      return;
-    }
-
-    setReference(data.reference ?? null);
-    toast.success("Reference created. Pay using it and operations will switch you on.");
   }
 
   return (
@@ -114,14 +184,14 @@ export function SubscribePanel({
       </div>
 
       {/*
-        No card form, because there is no gateway. Showing one would take
-        details the platform cannot charge and cannot legally store — so this
-        says plainly how payment actually works today.
+        The reference is no longer how you pay — card and UPI go through the
+        checkout modal. It stays because it is what operations quote on the
+        phone, and what somebody paying by transfer still needs.
       */}
-      {reference ? (
-        <div className="border-warning/30 bg-warning-soft flex flex-col gap-2 rounded-lg border px-4 py-3.5">
+      {reference && current.status !== "active" ? (
+        <div className="border-border flex flex-col gap-2 rounded-lg border px-4 py-3.5">
           <span className="flex items-center gap-2 text-sm font-medium">
-            <BanknoteIcon className="size-4" /> Pay using this reference
+            <BanknoteIcon className="size-4" /> Paying by bank transfer instead?
           </span>
           <div className="flex flex-wrap items-center gap-2">
             <code className="bg-background rounded border px-2 py-1 font-mono text-base tracking-wider">
@@ -145,10 +215,10 @@ export function SubscribePanel({
               </span>
             ) : null}
           </div>
-          <p className="flex items-start gap-1.5 text-xs">
+          <p className="text-muted-foreground flex items-start gap-1.5 text-xs">
             <ClockIcon className="mt-0.5 size-3.5 shrink-0" />
-            Transfer to the platform account with this reference. Operations switch you on once it
-            clears — usually the same working day.
+            Quote this reference on the transfer. Operations switch you on once it clears — usually
+            the same working day. Paying by card or UPI above is instant.
           </p>
         </div>
       ) : null}
@@ -186,10 +256,10 @@ export function SubscribePanel({
                 onClick={() => choose(plan)}
               >
                 {pending === plan.id
-                  ? "Working…"
+                  ? "Opening payment…"
                   : current.status === "expired" || current.status === "pastDue"
-                    ? "Renew"
-                    : `Subscribe — ${formatMoney(period === "yearly" ? plan.yearly : plan.monthly)}`}
+                    ? `Renew — ${formatMoney(period === "yearly" ? plan.yearly : plan.monthly)}`
+                    : `Pay ${formatMoney(period === "yearly" ? plan.yearly : plan.monthly)}`}
               </Button>
             }
           />

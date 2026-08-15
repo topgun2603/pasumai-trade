@@ -17,7 +17,7 @@ export const metadata: Metadata = { title: "Subscription · Farmer" };
 export default async function FarmSubscriptionPage() {
   await connection();
 
-  const { subscription } = await requireFarmer();
+  const { farmer, email, subscription } = await requireFarmer();
   const now = new Date();
   const plan = subscription ? planById(subscription.planId) : undefined;
 
@@ -43,7 +43,11 @@ export default async function FarmSubscriptionPage() {
         description="Looking is free. Posting produce and bargaining need a plan."
       />
       <div className="flex flex-col gap-6 p-5">
-        <SubscribePanel plans={plansForRole("farmer")} current={current} />
+        <SubscribePanel
+          plans={plansForRole("farmer")}
+          current={current}
+          payer={{ name: farmer.name, email, mobile: farmer.mobile }}
+        />
       </div>
     </>
   );

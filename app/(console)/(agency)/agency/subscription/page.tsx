@@ -27,7 +27,7 @@ export const metadata: Metadata = { title: "Subscription · Agency" };
 export default async function AgencySubscriptionPage() {
   await connection();
 
-  const { agency } = await requireAgency();
+  const { agency, email } = await requireAgency();
   const session = await verifySession();
   const role = session!.claims.role;
   const now = new Date();
@@ -62,7 +62,11 @@ export default async function AgencySubscriptionPage() {
         }
       />
       <div className="flex flex-col gap-6 p-5">
-        <SubscribePanel plans={plansForRole(role)} current={current} />
+        <SubscribePanel
+          plans={plansForRole(role)}
+          current={current}
+          payer={{ name: agency.name, email, mobile: agency.mobile }}
+        />
       </div>
     </>
   );
