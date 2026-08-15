@@ -20,7 +20,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { HOME_FOR_ROLE } from "@/lib/auth/claims";
 import { signIn } from "@/lib/auth/sign-in";
-import { checkMobile } from "@/lib/domain/registration";
 import type { Dictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n/config";
 import type { Role } from "@/lib/auth/claims";
@@ -63,7 +62,7 @@ export function SignInForm({
       value: "farmer",
       label: t.doors.farmer,
       blurb: t.signin.farmerBlurb,
-      destination: `/${locale}`,
+      destination: "/farm",
       icon: SmartphoneIcon,
     },
     {
@@ -97,32 +96,35 @@ export function SignInForm({
   ];
 
   const active = audiences.find((a) => a.value === audience)!;
-  const isFarmer = audience === "farmer";
+
+  /*
+   * Every door takes an email and a password, farmers included.
+   *
+   * This form used to show farmers a mobile-and-OTP flow that was wired to
+   * nothing: it validated the number, then said the farmer app did not exist.
+   * Phone sign-in needs Firebase Phone auth, a reCAPTCHA and a billing
+   * account, none of which are set up — and signup already issues farmers an
+   * email and a password. Mobile OTP is worth having; refusing the credential
+   * they already hold was not the way to wait for it.
+   */
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
 
     const found: { identifier?: string; password?: string } = {};
 
-    if (isFarmer) {
-      found.identifier = checkMobile(identifier);
-    } else if (identifier.trim() === "") {
+    if (identifier.trim() === "") {
       found.identifier = `${t.signin.email} — ${t.common.required}`;
     } else if (!EMAIL.test(identifier.trim())) {
       found.identifier = "That does not look like an email address";
     }
 
-    if (!isFarmer && password === "") {
+    if (password === "") {
       found.password = `${t.signin.password} — ${t.common.required}`;
     }
 
     setErrors(found);
     if (Object.values(found).some(Boolean)) return;
-
-    if (isFarmer) {
-      toast.info("The farmer app is not available yet");
-      return;
-    }
 
     setSubmitting(true);
     const result = await signIn(identifier.trim(), password);
@@ -167,14 +169,14 @@ export function SignInForm({
       <form onSubmit={submit} noValidate className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="identifier" className="text-sm">
-            {isFarmer ? t.signin.mobile : t.signin.email}
+            {t.signin.email}
           </Label>
           <Input
             id="identifier"
             key={audience}
-            type={isFarmer ? "tel" : "email"}
-            inputMode={isFarmer ? "tel" : "email"}
-            autoComplete={isFarmer ? "tel" : "email"}
+            type="email"
+            inputMode="email"
+            autoComplete="email"
             value={identifier}
             onChange={(e) => {
               setIdentifier(e.target.value);
@@ -182,7 +184,7 @@ export function SignInForm({
             }}
             aria-invalid={Boolean(errors.identifier)}
             aria-describedby={errors.identifier ? "identifier-error" : undefined}
-            placeholder={isFarmer ? "98430 11204" : "you@company.in"}
+            placeholder="you@company.in"
           />
           {errors.identifier ? (
             <p id="identifier-error" className="text-destructive flex items-center gap-1 text-xs">
@@ -192,49 +194,41 @@ export function SignInForm({
           ) : null}
         </div>
 
-        {!isFarmer ? (
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-baseline justify-between gap-2">
-              <Label htmlFor="password" className="text-sm">
-                {t.signin.password}
-              </Label>
-              <button
-                type="button"
-                onClick={() => toast.info(t.signin.forgotten)}
-                className="text-muted-foreground hover:text-foreground text-xs underline-offset-2 hover:underline"
-              >
-                {t.signin.forgotten}
-              </button>
-            </div>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                setErrors((x) => ({ ...x, password: undefined }));
-              }}
-              aria-invalid={Boolean(errors.password)}
-              aria-describedby={errors.password ? "password-error" : undefined}
-            />
-            {errors.password ? (
-              <p id="password-error" className="text-destructive flex items-center gap-1 text-xs">
-                <TriangleAlertIcon className="size-3 shrink-0" />
-                {errors.password}
-              </p>
-            ) : null}
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-baseline justify-between gap-2">
+            <Label htmlFor="password" className="text-sm">
+              {t.signin.password}
+            </Label>
+            <button
+              type="button"
+              onClick={() => toast.info(t.signin.forgotten)}
+              className="text-muted-foreground hover:text-foreground text-xs underline-offset-2 hover:underline"
+            >
+              {t.signin.forgotten}
+            </button>
           </div>
-        ) : null}
+          <Input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setErrors((x) => ({ ...x, password: undefined }));
+            }}
+            aria-invalid={Boolean(errors.password)}
+            aria-describedby={errors.password ? "password-error" : undefined}
+          />
+          {errors.password ? (
+            <p id="password-error" className="text-destructive flex items-center gap-1 text-xs">
+              <TriangleAlertIcon className="size-3 shrink-0" />
+              {errors.password}
+            </p>
+          ) : null}
+        </div>
 
         <Button type="submit" disabled={submitting} className="mt-1">
-          {submitting
-            ? isFarmer
-              ? t.signin.sendingCode
-              : t.signin.signingIn
-            : isFarmer
-              ? t.signin.sendCode
-              : t.signin.submit}
+          {submitting ? t.signin.signingIn : t.signin.submit}
           {!submitting ? <ArrowRightIcon className="size-4" /> : null}
         </Button>
       </form>

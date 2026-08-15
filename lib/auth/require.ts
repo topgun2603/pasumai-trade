@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 import { hasAdminCredentials } from "@/lib/firebase/admin";
 
-import { hasConsole, HOME_FOR_ROLE, type Role } from "./claims";
+import { HOME_FOR_ROLE, type Role } from "./claims";
 import { verifySession, type Session } from "./session";
 
 /**
@@ -37,16 +37,13 @@ export async function requireConsole(roles: readonly Role[]): Promise<Session> {
 
   if (!roles.includes(session.claims.role)) {
     // Signed in, but not for this console. Sent to their own rather than shown
-    // a refusal they can do nothing about — except a role with no console at
-    // all, which would be a redirect loop.
+    // a refusal they can do nothing about.
     //
     // The destination comes from the one table that knows where each role
     // lives; hardcoding "/market" sent an agency to a page that refused them
-    // one redirect later.
-    if (hasConsole(session.claims.role)) {
-      redirect(HOME_FOR_ROLE[session.claims.role]);
-    }
-    redirect("/en/signin?error=noConsole");
+    // one redirect later. Every role now has a console, so there is no longer
+    // a "nowhere to send you" branch — farmers have /farm.
+    redirect(HOME_FOR_ROLE[session.claims.role]);
   }
 
   return session;

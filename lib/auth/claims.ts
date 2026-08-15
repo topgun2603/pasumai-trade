@@ -85,8 +85,8 @@ export interface Claims {
 /**
  * Where each role lands after signing in.
  *
- * A buyer sent to `/admin` would get a refusal, and a farmer has no console at
- * all yet — sending them somewhere that 404s would be worse than saying so.
+ * A buyer sent to `/admin` would get a refusal, so each role names its own
+ * landing page and nothing hardcodes one.
  */
 export const HOME_FOR_ROLE: Record<Role, string> = {
   admin: "/admin",
@@ -94,13 +94,8 @@ export const HOME_FOR_ROLE: Record<Role, string> = {
   buyer: "/market",
   transport: "/agency",
   manpower: "/agency",
-  farmer: "/",
+  farmer: "/farm",
 };
-
-/** Roles with a console to sign into. The rest have accounts but nowhere to go. */
-export function hasConsole(role: Role): boolean {
-  return role !== "farmer";
-}
 
 /**
  * Reads claims off a decoded token, refusing anything unrecognised.
@@ -137,5 +132,6 @@ export function mayAccess(role: Role, pathname: string): boolean {
   if (role === "admin") return true;
   if (isBuyingRole(role)) return !pathname.startsWith("/admin");
   if (isAgencyRole(role)) return pathname.startsWith("/agency");
+  if (role === "farmer") return pathname.startsWith("/farm");
   return false;
 }
