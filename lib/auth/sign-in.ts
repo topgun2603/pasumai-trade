@@ -61,10 +61,24 @@ function readable(code: string): string {
       return "Too many codes sent today. Sign in with your email and password instead.";
     case "auth/captcha-check-failed":
     case "auth/missing-app-credential":
-      // Almost always an unauthorised domain: reCAPTCHA refuses to run on a
-      // host that is not in the Firebase authorised-domains list, and the SDK
-      // reports it as a captcha failure rather than as a configuration one.
-      return "Could not verify this device. This site may not be authorised for SMS sign-in yet.";
+    case "auth/invalid-app-credential":
+      /*
+       * Two different configuration faults arrive here wearing the same code,
+       * and neither is anything the person typing can fix:
+       *
+       *  - the host is not in Firebase's authorised-domains list, so reCAPTCHA
+       *    refuses to run at all;
+       *  - the project's SMS region policy does not allow the destination.
+       *    New projects default to allowlist-only with an *empty* list, which
+       *    blocks every country including India, and the REST call comes back
+       *    a bare 400.
+       *
+       * Both are said plainly rather than as "try again", which would send
+       * somebody round the same loop for an hour.
+       */
+      return "SMS sign-in is not configured for this site yet. Use your email and password, and tell operations.";
+    case "auth/unsupported-region":
+      return "SMS sign-in is not available for that number's country.";
     default:
       return "Could not sign in. Try again.";
   }
