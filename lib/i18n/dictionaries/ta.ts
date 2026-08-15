@@ -17,6 +17,7 @@ export const ta: Dictionary = {
     coverage: "பரப்பளவு",
     signIn: "உள்நுழைக",
     requestAccount: "கணக்கு கோருங்கள்",
+    registerFree: "இலவசமாகப் பதிவு செய்யுங்கள்",
     menu: "பட்டி",
     language: "மொழி",
     theme: "நிற அமைப்பு",

@@ -2,6 +2,7 @@
 
 import {
   BuildingIcon,
+  CreditCardIcon,
   GaugeIcon,
   HardHatIcon,
   LeafIcon,
@@ -62,6 +63,7 @@ const LINKS: Array<{
     service: "transport",
   },
   { href: "/agency/profile", label: "Agency", icon: BuildingIcon },
+  { href: "/agency/subscription", label: "Subscription", icon: CreditCardIcon },
 ];
 
 function ThemeToggle() {

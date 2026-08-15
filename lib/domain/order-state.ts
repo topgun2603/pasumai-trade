@@ -23,6 +23,7 @@
  * gates stand between produce and money, so "unknown" must never mean "yes".
  */
 import {
+  blocked,
   canTransact,
   DOCUMENT_LABELS,
   expiryState,
@@ -31,6 +32,7 @@ import {
   type Vehicle,
 } from "./admin";
 import type { OrderStatus } from "./enums";
+import { checkCapability, type Subscription } from "./subscription";
 
 /* -------------------------------------------------------------------------
    Actors and results
@@ -49,7 +51,8 @@ export type RefusalCode =
   | "wrongState"
   | "notPermitted"
   | "terminal"
-  | "buyerNotVerified"
+  | "buyerBlocked"
+  | "buyerNotSubscribed"
   | "vehicleNotDispatchable"
   | "driverNotDispatchable"
   | "gradeDisputed"
@@ -176,14 +179,44 @@ export function driverDispatchable(
   return ALLOWED;
 }
 
-/** Only a verified account may place an order. */
-export function buyerMayOrder(account: BuyerAccount): TransitionResult {
-  if (!canTransact(account.status)) {
+/**
+ * Ordering is gated on the subscription, not on verification.
+ *
+ * It used to be verification: nobody could order until operations had checked
+ * their documents. That was the right gate when accounts were issued by hand,
+ * and the wrong one once anyone can register — it made "sign up and start
+ * buying" a two-day wait with nothing happening in between.
+ *
+ * Verification did not go away, it moved to where the risk actually is. A
+ * vehicle on the road with a lapsed policy is a safety and insurance matter and
+ * is still refused on documents alone. A buyer placing an order is a
+ * commercial matter, and the platform's answer to a buyer it does not know is
+ * to take their subscription and hold settlement, not to refuse the order.
+ *
+ * `blocked` still stops everything. An account operations rejected or
+ * suspended does not get to buy its way back in.
+ */
+export function buyerMayOrder(
+  account: BuyerAccount,
+  subscription: Subscription | null | undefined,
+  now: Date,
+): TransitionResult {
+  if (blocked(account.status)) {
     return refuse(
-      "buyerNotVerified",
+      "buyerBlocked",
       `${account.name} is ${account.status} and cannot place orders.`,
     );
   }
+
+  const check = checkCapability("order", {
+    role: "buyer",
+    subscription,
+    now,
+  });
+  if (!check.allowed) {
+    return refuse("buyerNotSubscribed", `${account.name}: ${check.reason}`);
+  }
+
   return ALLOWED;
 }
 

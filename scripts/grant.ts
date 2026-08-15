@@ -12,9 +12,10 @@
  * credentials — which is exactly why it is a script run by whoever holds the
  * service account, and not a page anybody can reach.
  *
- * Accounts are created here rather than by self-signup on purpose. A buyer is
- * verified against a GST number before they may order and a farmer is onboarded
- * by a franchise, so "anyone can register" is the wrong shape for this platform.
+ * Self-signup exists now, so this is no longer how ordinary accounts are made.
+ * What it is still for: minting the first operations login, and repairing an
+ * account whose claims and document have drifted apart. Both need Admin
+ * credentials, which is why it stays a script rather than a page.
  *
  * Idempotent: run it again to change a role, reset a password, or re-point an
  * account id. It never deletes a user.

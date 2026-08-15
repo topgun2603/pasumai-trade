@@ -11,6 +11,7 @@ export const te: Dictionary = {
     coverage: "సేవా ప్రాంతం",
     signIn: "సైన్ ఇన్",
     requestAccount: "ఖాతా కోరండి",
+    registerFree: "ఉచితంగా నమోదు చేసుకోండి",
     menu: "మెనూ",
     language: "భాష",
     theme: "రంగు థీమ్",

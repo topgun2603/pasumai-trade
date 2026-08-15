@@ -44,6 +44,18 @@ export function canTransact(status: VerificationStatus): boolean {
   return status === "verified";
 }
 
+/**
+ * Operations have said no.
+ *
+ * Distinct from `!canTransact`, and the distinction now matters. A pending
+ * account is simply one nobody has looked at yet — it browses, subscribes and
+ * trades. A rejected or suspended one has been refused by a person, and no
+ * subscription buys past that.
+ */
+export function blocked(status: VerificationStatus): boolean {
+  return status === "rejected" || status === "suspended";
+}
+
 /* -------------------------------------------------------------------------
    Documents
    ------------------------------------------------------------------------- */

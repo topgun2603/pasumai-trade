@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { rupees } from "./money";
+import type { Subscription } from "./subscription";
+
 import type {
   BuyerAccount,
   ComplianceDocument,
@@ -182,19 +185,48 @@ describe("driverDispatchable", () => {
 });
 
 describe("buyerMayOrder", () => {
-  it("allows a verified account", () => {
-    expect(buyerMayOrder(buyer()).allowed).toBe(true);
+  const CLOCK = new Date(NOW);
+  const live: Subscription = {
+    planId: "buyer-trade",
+    status: "active",
+    startedAt: new Date(NOW - 86_400_000),
+    renewsAt: new Date(NOW + 30 * 86_400_000),
+    reference: "PT-ABC234",
+    amount: rupees(499),
+    period: "monthly",
+  };
+
+  it("allows a subscribed account", () => {
+    expect(buyerMayOrder(buyer(), live, CLOCK).allowed).toBe(true);
   });
 
-  it.each(["pending", "suspended", "rejected"] as const)(
-    "refuses a %s account",
-    (status) => {
-      expect(buyerMayOrder(buyer({ status }))).toMatchObject({
-        allowed: false,
-        refusal: { code: "buyerNotVerified" },
-      });
-    },
-  );
+  it("refuses an account with no subscription", () => {
+    expect(buyerMayOrder(buyer(), null, CLOCK)).toMatchObject({
+      allowed: false,
+      refusal: { code: "buyerNotSubscribed" },
+    });
+  });
+
+  it("refuses a subscription whose period has run out", () => {
+    expect(
+      buyerMayOrder(buyer(), { ...live, renewsAt: new Date(NOW - 60 * 86_400_000) }, CLOCK),
+    ).toMatchObject({ allowed: false, refusal: { code: "buyerNotSubscribed" } });
+  });
+
+  // Verification no longer gates ordering — a pending account is one nobody has
+  // reviewed yet, and making it wait was the thing that stopped anyone
+  // registering and getting started the same day.
+  it("allows a subscribed account that is still pending review", () => {
+    expect(buyerMayOrder(buyer({ status: "pending" }), live, CLOCK).allowed).toBe(true);
+  });
+
+  // A refusal by a person is not something a subscription buys past.
+  it.each(["suspended", "rejected"] as const)("refuses a %s account", (status) => {
+    expect(buyerMayOrder(buyer({ status }), live, CLOCK)).toMatchObject({
+      allowed: false,
+      refusal: { code: "buyerBlocked" },
+    });
+  });
 });
 
 describe("procurement lifecycle", () => {

@@ -11,6 +11,7 @@ export const kn: Dictionary = {
     coverage: "ಸೇವಾ ಪ್ರದೇಶ",
     signIn: "ಸೈನ್ ಇನ್",
     requestAccount: "ಖಾತೆ ಕೋರಿ",
+    registerFree: "ಉಚಿತವಾಗಿ ನೋಂದಾಯಿಸಿ",
     menu: "ಮೆನು",
     language: "ಭಾಷೆ",
     theme: "ಬಣ್ಣದ ಶೈಲಿ",

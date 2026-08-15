@@ -11,6 +11,7 @@ export const ml: Dictionary = {
     coverage: "സേവന മേഖല",
     signIn: "സൈൻ ഇൻ",
     requestAccount: "അക്കൗണ്ട് അഭ്യർത്ഥിക്കുക",
+    registerFree: "സൗജന്യമായി രജിസ്റ്റർ ചെയ്യുക",
     menu: "മെനു",
     language: "ഭാഷ",
     theme: "നിറ ശൈലി",

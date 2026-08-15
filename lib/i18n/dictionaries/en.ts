@@ -15,6 +15,7 @@ export const en = {
     coverage: "Coverage",
     signIn: "Sign in",
     requestAccount: "Request an account",
+    registerFree: "Register free",
     menu: "Menu",
     language: "Language",
     theme: "Colour theme",

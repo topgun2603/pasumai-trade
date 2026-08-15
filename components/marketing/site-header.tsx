@@ -50,7 +50,9 @@ export function SiteHeader({
   const [open, setOpen] = useState(false);
 
   const links = [
-    { href: "#bargaining", label: t.nav.pricing },
+    // A real page now, not an anchor — so it renders as a Link rather than an
+    // in-page jump. The rest of the nav is still same-page scrolling.
+    { href: `/${locale}/pricing`, label: t.nav.pricing, page: true },
     { href: "#languages", label: t.nav.languages },
     { href: "#how-it-works", label: t.nav.howItWorks },
     { href: "#farmers", label: t.nav.forFarmers },
@@ -79,22 +81,32 @@ export function SiteHeader({
         </Link>
 
         <nav className="ml-6 hidden items-center gap-1 lg:flex">
-          {links.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="text-muted-foreground hover:text-foreground hover:bg-secondary focus-visible:ring-ring rounded-md px-3 py-1.5 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
-            >
-              {link.label}
-            </a>
-          ))}
+          {links.map((link) =>
+            link.page ? (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="text-muted-foreground hover:text-foreground hover:bg-secondary focus-visible:ring-ring rounded-md px-3 py-1.5 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
+              >
+                {link.label}
+              </Link>
+            ) : (
+              <a
+                key={link.href}
+                href={link.href}
+                className="text-muted-foreground hover:text-foreground hover:bg-secondary focus-visible:ring-ring rounded-md px-3 py-1.5 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
+              >
+                {link.label}
+              </a>
+            ),
+          )}
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
           <LanguageSwitcher current={locale} label={t.common.changeLanguage} />
           <ThemeToggle label={t.nav.theme} />
           <Button asChild className="hidden md:inline-flex">
-            <a href="#apply">{t.nav.requestAccount}</a>
+            <Link href={`/${locale}/signup?as=farmer`}>{t.nav.registerFree}</Link>
           </Button>
           <Button
             variant="outline"
@@ -111,24 +123,35 @@ export function SiteHeader({
 
       <div className={cn("border-t lg:hidden", open ? "block" : "hidden")}>
         <nav className="mx-auto flex w-full max-w-6xl flex-col gap-1 px-5 py-3">
-          {links.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              onClick={() => setOpen(false)}
-              className="text-muted-foreground hover:text-foreground hover:bg-secondary rounded-md px-3 py-2 text-sm"
-            >
-              {link.label}
-            </a>
-          ))}
+          {links.map((link) =>
+            link.page ? (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setOpen(false)}
+                className="text-muted-foreground hover:text-foreground hover:bg-secondary rounded-md px-3 py-2 text-sm"
+              >
+                {link.label}
+              </Link>
+            ) : (
+              <a
+                key={link.href}
+                href={link.href}
+                onClick={() => setOpen(false)}
+                className="text-muted-foreground hover:text-foreground hover:bg-secondary rounded-md px-3 py-2 text-sm"
+              >
+                {link.label}
+              </a>
+            ),
+          )}
           <div className="mt-2 flex flex-col gap-2">
             {/* No generic sign-in here: the strip below the bar is visible on
                 mobile too and names all six doors, which beats one that makes
                 everyone work out which they are afterwards. */}
             <Button asChild>
-              <a href="#apply" onClick={() => setOpen(false)}>
-                {t.nav.requestAccount}
-              </a>
+              <Link href={`/${locale}/signup?as=farmer`} onClick={() => setOpen(false)}>
+                {t.nav.registerFree}
+              </Link>
             </Button>
           </div>
         </nav>

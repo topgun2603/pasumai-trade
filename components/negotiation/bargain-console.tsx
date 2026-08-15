@@ -90,6 +90,22 @@ export function BargainConsole({
           .json()
           .then((d: { error?: string }) => d.error)
           .catch(() => null);
+
+        // 402 is the one refusal the person can clear themselves, so it gets a
+        // way out rather than an apology. The button that reached here was
+        // deliberately not hidden — seeing what bargaining looks like is how
+        // someone decides the plan is worth it.
+        if (response.status === 402) {
+          toast.error("Subscription needed", {
+            description: detail ?? "Bargaining needs an active plan.",
+            action: {
+              label: "See plans",
+              onClick: () => router.push("/subscription"),
+            },
+          });
+          return false;
+        }
+
         toast.error("Not sent", {
           description: detail ?? `Server returned ${response.status}.`,
         });

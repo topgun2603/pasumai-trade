@@ -9,7 +9,7 @@ import {
 } from "@/lib/domain/negotiation";
 import { adminDb } from "@/lib/firebase/admin";
 import { shapeNegotiation } from "@/lib/firebase/negotiations-read";
-import { requireRole } from "@/lib/api/write-guard";
+import { requireCapability } from "@/lib/api/capability";
 
 /**
  * Append a message to a bargain.
@@ -45,7 +45,11 @@ export async function POST(
 ) {
   // Operations are deliberately not permitted here. They may read a bargain;
   // they may not speak in one.
-  const gate = await requireRole("farmer", "buyer", "franchise");
+  //
+  // Bargaining is a paid capability, so the same call also checks the
+  // subscription and answers 402 if it is missing. Reading a bargain stays
+  // free — it is speaking in one that costs.
+  const gate = await requireCapability("bargain", "farmer", "buyer", "franchise");
   if (!gate.ok) return gate.response;
 
   const { id } = await context.params;

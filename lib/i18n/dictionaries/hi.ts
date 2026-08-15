@@ -11,6 +11,7 @@ export const hi: Dictionary = {
     coverage: "सेवा क्षेत्र",
     signIn: "साइन इन",
     requestAccount: "खाता माँगें",
+    registerFree: "मुफ़्त रजिस्टर करें",
     menu: "मेन्यू",
     language: "भाषा",
     theme: "रंग शैली",

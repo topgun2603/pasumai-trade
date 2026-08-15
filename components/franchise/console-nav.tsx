@@ -2,6 +2,7 @@
 
 import {
   ClipboardListIcon,
+  CreditCardIcon,
   HandshakeIcon,
   LeafIcon,
   MoonIcon,
@@ -38,6 +39,7 @@ const LINKS = [
   { href: "/orders", label: "Orders", icon: PackageIcon },
   { href: "/dispatch", label: "Dispatch", icon: TruckIcon },
   { href: "/farmers", label: "Farmers", icon: UsersIcon },
+  { href: "/subscription", label: "Subscription", icon: CreditCardIcon },
 ];
 
 /**
