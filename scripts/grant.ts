@@ -3,6 +3,7 @@
  *
  *   npm run grant -- admin ops@srirealtime.com
  *   npm run grant -- buyer  purchasing@kongu.in  B-1001
+ *   npm run grant -- agency ops@kaverilabour.in  AG-101
  *   npm run grant -- farmer murugan@example.in   F-201
  *
  * This exists because of a chicken and egg: the console is closed to anyone
@@ -94,7 +95,7 @@ async function main() {
   if (!(ROLES as readonly string[]).includes(role)) {
     usage(`Unknown role "${role}".`);
   }
-  if ((role === "buyer" || role === "farmer") && !accountId) {
+  if ((role === "buyer" || role === "farmer" || role === "agency") && !accountId) {
     usage(`A ${role} needs an account id — their record on the platform.`);
   }
 
@@ -107,7 +108,8 @@ async function main() {
   // produces a console where every scoped query returns empty and nothing
   // explains why.
   if (accountId) {
-    const collection = role === "buyer" ? "buyers" : "farmers";
+    const collection =
+      role === "buyer" ? "buyers" : role === "agency" ? "agencies" : "farmers";
     const doc = await db.collection(collection).doc(accountId).get();
     if (!doc.exists) {
       console.error(
@@ -136,9 +138,16 @@ async function main() {
     console.log(`Created ${email}`);
   }
 
+  // Districts come off the account record so a claim can never disagree with
+  // it. A buyer sources from these; an agency sends crew and vehicles to them.
   const districts =
-    role === "buyer"
-      ? ((await db.collection("buyers").doc(accountId!).get()).data()?.districts ?? [])
+    role === "buyer" || role === "agency"
+      ? ((
+          await db
+            .collection(role === "buyer" ? "buyers" : "agencies")
+            .doc(accountId!)
+            .get()
+        ).data()?.districts ?? [])
       : undefined;
 
   // Replaces the whole claim set rather than merging: a user demoted from admin

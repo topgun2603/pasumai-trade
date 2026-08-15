@@ -1,9 +1,10 @@
 ﻿import type {
+  Agency,
   BuyerAccount,
   ComplianceDocument,
   DriverAccount,
   FarmerAccount,
-  ManpowerAccount,
+  Worker,
   Vehicle,
 } from "@/lib/domain/admin";
 import { money, rupees } from "@/lib/domain/money";
@@ -252,6 +253,7 @@ export function driverAccounts(now: Date): DriverAccount[] {
   return [
     {
       id: "D-301",
+      agencyId: "AG-102",
       name: "S. Mani",
       mobile: "+91 98404 22190",
       district: "Krishnagiri",
@@ -264,6 +266,7 @@ export function driverAccounts(now: Date): DriverAccount[] {
     },
     {
       id: "D-308",
+      agencyId: "AG-105",
       name: "P. Rajkumar",
       mobile: "+91 94422 77801",
       district: "Erode",
@@ -278,6 +281,7 @@ export function driverAccounts(now: Date): DriverAccount[] {
     },
     {
       id: "D-315",
+      agencyId: "AG-102",
       name: "A. Vetrivel",
       mobile: "+91 90031 88220",
       district: "Salem",
@@ -290,6 +294,7 @@ export function driverAccounts(now: Date): DriverAccount[] {
     },
     {
       id: "D-322",
+      agencyId: "AG-105",
       name: "M. Iyyappan",
       mobile: "+91 97911 40036",
       district: "Thanjavur",
@@ -300,6 +305,7 @@ export function driverAccounts(now: Date): DriverAccount[] {
     },
     {
       id: "D-327",
+      agencyId: "AG-105",
       name: "R. Saravanan",
       mobile: "+91 93601 29954",
       district: "Tiruppur",
@@ -316,6 +322,7 @@ export function vehicles(now: Date): Vehicle[] {
   return [
     {
       id: "V-401",
+      agencyId: "AG-102",
       registration: "TN 20 BA 4471",
       type: "miniTruck",
       capacityKg: 1500,
@@ -335,6 +342,7 @@ export function vehicles(now: Date): Vehicle[] {
     },
     {
       id: "V-408",
+      agencyId: "AG-105",
       registration: "TN 33 AZ 8890",
       type: "truck",
       capacityKg: 9000,
@@ -355,6 +363,7 @@ export function vehicles(now: Date): Vehicle[] {
     },
     {
       id: "V-412",
+      agencyId: "AG-105",
       registration: "TN 30 CD 1120",
       type: "reefer",
       capacityKg: 4000,
@@ -374,6 +383,7 @@ export function vehicles(now: Date): Vehicle[] {
     },
     {
       id: "V-419",
+      agencyId: "AG-102",
       registration: "TN 49 EF 6602",
       type: "tempo",
       capacityKg: 850,
@@ -389,6 +399,7 @@ export function vehicles(now: Date): Vehicle[] {
     },
     {
       id: "V-423",
+      agencyId: "AG-102",
       registration: "TN 39 GH 2044",
       type: "miniTruck",
       capacityKg: 1200,
@@ -416,11 +427,12 @@ export function vehicles(now: Date): Vehicle[] {
  * verified but off the roster — because "cannot be dispatched" has four
  * different causes and the console has to tell them apart.
  */
-export function manpowerAccounts(now: Date): ManpowerAccount[] {
+export function workers(now: Date): Worker[] {
   const t = now.getTime();
   return [
     {
       id: "M-501",
+      agencyId: "AG-101",
       name: "K. Ravi",
       mobile: "+91 90031 44872",
       district: "Krishnagiri",
@@ -440,6 +452,7 @@ export function manpowerAccounts(now: Date): ManpowerAccount[] {
     },
     {
       id: "M-509",
+      agencyId: "AG-101",
       name: "A. Devi",
       mobile: "+91 97865 20114",
       district: "Krishnagiri",
@@ -461,6 +474,7 @@ export function manpowerAccounts(now: Date): ManpowerAccount[] {
     },
     {
       id: "M-514",
+      agencyId: "AG-104",
       name: "M. Sekar",
       mobile: "+91 94438 71209",
       district: "Erode",
@@ -482,6 +496,7 @@ export function manpowerAccounts(now: Date): ManpowerAccount[] {
     },
     {
       id: "M-522",
+      agencyId: "AG-107",
       name: "R. Kalaiselvi",
       mobile: "+91 98651 33076",
       district: "Salem",
@@ -496,7 +511,28 @@ export function manpowerAccounts(now: Date): ManpowerAccount[] {
       documents: [doc("aadhaar", "XXXX XXXX 3307", null, t)],
     },
     {
+      id: "M-527",
+      agencyId: "AG-105",
+      name: "V. Gunasekaran",
+      mobile: "+91 93601 88245",
+      district: "Erode",
+      place: "Gobichettipalayam",
+      skills: ["loading", "coldChain"],
+      basis: "perTrip",
+      rate: 52_000,
+      status: "verified",
+      registeredAt: new Date(t - 150 * DAY),
+      jobsCompleted: 176,
+      available: true,
+      photoUrl: "/mock/portrait.svg",
+      documents: [
+        doc("aadhaar", "XXXX XXXX 8824", null, t),
+        doc("bankProof", "CUB 2201 8824", null, t),
+      ],
+    },
+    {
       id: "M-530",
+      agencyId: "AG-104",
       name: "S. Anbarasan",
       mobile: "+91 90475 66218",
       district: "Thanjavur",
@@ -514,6 +550,114 @@ export function manpowerAccounts(now: Date): ManpowerAccount[] {
         doc("aadhaar", "XXXX XXXX 6621", null, t),
         doc("bankProof", "TMB 8890 6621", -9, t),
       ],
+    },
+  ];
+}
+
+/**
+ * Contracted supplier companies.
+ *
+ * Spread across the states the console has to distinguish: a labour contractor
+ * in good standing, a transport contractor whose own GST has lapsed, one that
+ * does both, and one still awaiting review. An agency's own compliance gates
+ * everything it registers — a verified driver working for a suspended agency
+ * must not be dispatched, and the driver is not the problem.
+ */
+export function agencies(now: Date): Agency[] {
+  const t = now.getTime();
+  return [
+    {
+      id: "AG-101",
+      name: "Kaveri Labour Services",
+      services: ["manpower"],
+      contactName: "N. Selvaraj",
+      mobile: "+91 90031 55420",
+      email: "selvaraj@kaverilabour.in",
+      district: "Krishnagiri",
+      town: "Kaveripattinam",
+      districts: ["Krishnagiri", "Dharmapuri"],
+      status: "verified",
+      registeredAt: new Date(t - 320 * DAY),
+      photoUrl: "/mock/premises.svg",
+      documents: [
+        doc("pan", "AAFCK4471K", null, t),
+        doc("gst", "33AAFCK4471K1ZP", 300, t),
+        doc("bankProof", "KVB 0091 5542", null, t),
+      ],
+    },
+    {
+      id: "AG-102",
+      name: "Hosur Freight Lines",
+      services: ["transport"],
+      contactName: "R. Venkatesan",
+      mobile: "+91 94422 30187",
+      email: "ops@hosurfreight.in",
+      district: "Krishnagiri",
+      town: "Hosur",
+      districts: ["Krishnagiri", "Dharmapuri", "Salem"],
+      status: "verified",
+      registeredAt: new Date(t - 400 * DAY),
+      photoUrl: "/mock/premises.svg",
+      documents: [
+        doc("pan", "AABCH8890M", null, t),
+        doc("gst", "33AABCH8890M1Z4", 210, t),
+        doc("bankProof", "IOB 4410 3018", null, t),
+      ],
+    },
+    {
+      id: "AG-104",
+      name: "Bhavani Crew Contractors",
+      services: ["manpower"],
+      contactName: "P. Anandhi",
+      mobile: "+91 98651 44203",
+      email: "anandhi@bhavanicrew.in",
+      district: "Erode",
+      town: "Bhavani",
+      districts: ["Erode", "Tiruppur"],
+      status: "verified",
+      registeredAt: new Date(t - 210 * DAY),
+      // GST lapsed last week. Everything this agency has registered is
+      // grounded until it is renewed, which is exactly why agency compliance
+      // is checked above the individual record.
+      documents: [
+        doc("pan", "AAGCB2044P", null, t),
+        doc("gst", "33AAGCB2044P1ZQ", -6, t),
+      ],
+    },
+    {
+      id: "AG-105",
+      name: "Kongu Transport & Manpower",
+      // Both. A contractor supplying loaders usually supplies the vehicle they
+      // load onto, and the console has to handle one login seeing two sections.
+      services: ["transport", "manpower"],
+      contactName: "M. Jayaraman",
+      mobile: "+91 90475 71166",
+      email: "jayaraman@kongutm.in",
+      district: "Erode",
+      town: "Gobichettipalayam",
+      districts: ["Erode", "Salem", "Tiruppur"],
+      status: "verified",
+      registeredAt: new Date(t - 260 * DAY),
+      photoUrl: "/mock/premises.svg",
+      documents: [
+        doc("pan", "AADCK7712R", null, t),
+        doc("gst", "33AADCK7712R1ZM", 140, t),
+        doc("bankProof", "TMB 8890 7116", null, t),
+      ],
+    },
+    {
+      id: "AG-107",
+      name: "Attur Farm Crew",
+      services: ["manpower"],
+      contactName: "S. Kumaravel",
+      mobile: "+91 97865 90014",
+      email: "kumaravel@atturfarmcrew.in",
+      district: "Salem",
+      town: "Attur",
+      districts: ["Salem"],
+      status: "pending",
+      registeredAt: new Date(t - 4 * DAY),
+      documents: [doc("pan", "AAHCA9001T", null, t)],
     },
   ];
 }

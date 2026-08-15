@@ -68,14 +68,17 @@ const EMPTY: ManpowerForm = {
 };
 
 /**
- * Registering a crew member.
+ * An agency adding one of its own workers.
  *
- * The same three things every account on this platform needs — who they are,
- * where they work, and how they are paid — plus the one thing specific to
- * crew: what they can actually do. A dispatch is assembled by skill, so a
+ * The agency owns this data — it knows who turned up this season, and
+ * operations does not. What operations owns is the verification that follows.
+ *
+ * The same three things every account on this platform needs: who they are,
+ * where they work, and how they are paid. Plus the one thing specific to crew:
+ * what they can actually do, because a dispatch is assembled by skill and a
  * record with no skills is a record nobody can use.
  */
-export function ManpowerRegistrationForm({
+export function WorkerRegistrationForm({
   districts,
   places,
 }: {
@@ -134,9 +137,9 @@ export function ManpowerRegistrationForm({
     setTimeout(() => {
       setSubmitting(false);
       toast.success(`${values.name} registered`, {
-        description: "Cannot be assigned to a job until the bank proof is verified.",
+        description: "Sent to operations for verification. Cannot be assigned to a job until then.",
       });
-      router.push("/admin/transport/manpower");
+      router.push("/agency/workers");
     }, 500);
   }
 

@@ -223,6 +223,8 @@ export interface FarmerAccount {
 
 export interface DriverAccount {
   readonly id: string;
+  /** The transport agency that registered and is answerable for this driver. */
+  readonly agencyId: string;
   readonly name: string;
   readonly mobile: string;
   readonly district: string;
@@ -234,6 +236,61 @@ export interface DriverAccount {
   /** Portrait, shown to the farmer at pickup so the right person is met. */
   readonly photoUrl?: string;
   readonly documents: readonly ComplianceDocument[];
+}
+
+/**
+ * A supplier company: a labour contractor, a transport contractor, or both.
+ *
+ * The platform does not employ crews or own trucks. It contracts agencies, and
+ * an agency knows its own people and its own vehicles far better than
+ * operations ever could — which is why the agency registers them, under its own
+ * login, and operations sees everything without having to type any of it.
+ *
+ * That split is also where liability sits. The agency vouches for its workers
+ * and its fleet; the platform verifies the agency and audits what it registers.
+ */
+export const AGENCY_SERVICES = ["manpower", "transport"] as const;
+
+export type AgencyService = (typeof AGENCY_SERVICES)[number];
+
+export const AGENCY_SERVICE_LABELS: Record<AgencyService, string> = {
+  manpower: "Manpower",
+  transport: "Transport",
+};
+
+export interface Agency {
+  readonly id: string;
+  readonly name: string;
+  /**
+   * What this agency is contracted for. Both is common — a contractor that
+   * supplies loaders usually supplies the vehicle they load onto.
+   */
+  readonly services: readonly AgencyService[];
+  readonly contactName: string;
+  readonly mobile: string;
+  readonly email: string;
+  readonly district: string;
+  readonly town: string;
+  /** Districts it will actually send crew or vehicles to. */
+  readonly districts: readonly string[];
+  readonly status: VerificationStatus;
+  readonly registeredAt: Date;
+  readonly photoUrl?: string;
+  readonly documents: readonly ComplianceDocument[];
+}
+
+export function offers(agency: Agency, service: AgencyService): boolean {
+  return agency.services.includes(service);
+}
+
+/**
+ * Whether anything this agency registers may be dispatched.
+ *
+ * Checked above the individual record: a verified driver working for a
+ * suspended agency must not be sent out, and the driver is not the problem.
+ */
+export function agencyDispatchable(agency: Agency, now: number): boolean {
+  return canTransact(agency.status) && worstExpiry(agency.documents, now) !== "expired";
 }
 
 /**
@@ -270,19 +327,20 @@ export const ENGAGEMENT_LABELS: Record<EngagementBasis, string> = {
 };
 
 /**
- * A labourer engaged for collection work — loading, grading, weighing.
+ * A labourer on an agency's books.
  *
- * Registered like every other account because the same things matter: they are
- * paid, so bank details are verified; they are at the farm gate representing
- * the platform, so identity is verified; and they work a district, so dispatch
- * needs to know who is available where.
+ * Entered by the agency, not by operations — the agency knows who turned up
+ * this season. Operations sees every worker across every agency and verifies
+ * them, but does not do the data entry.
  *
  * The rate is on the record rather than negotiated per job. A crew that agrees
  * its price at the roadside, with produce waiting and a vehicle running, is a
  * crew paid whatever the pressure of the moment decides.
  */
-export interface ManpowerAccount {
+export interface Worker {
   readonly id: string;
+  /** The agency that registered and is answerable for this person. */
+  readonly agencyId: string;
   readonly name: string;
   readonly mobile: string;
   readonly district: string;
@@ -307,13 +365,10 @@ export interface ManpowerAccount {
 }
 
 /** Whether this hand can be put on a job today. */
-export function manpowerDispatchable(
-  account: ManpowerAccount,
-  now: number,
-): boolean {
-  if (!canTransact(account.status)) return false;
-  if (!account.available) return false;
-  return worstExpiry(account.documents, now) !== "expired";
+export function workerDispatchable(worker: Worker, now: number): boolean {
+  if (!canTransact(worker.status)) return false;
+  if (!worker.available) return false;
+  return worstExpiry(worker.documents, now) !== "expired";
 }
 
 export type VehicleType = "miniTruck" | "tempo" | "truck" | "reefer";
@@ -331,7 +386,9 @@ export interface Vehicle {
   readonly registration: string;
   readonly type: VehicleType;
   readonly capacityKg: number;
-  /** Owning account — a franchise, or the driver themselves. */
+  /** The transport agency that registered it and is answerable for it. */
+  readonly agencyId: string;
+  /** Registered owner on the RC, which is not always the agency. */
   readonly owner: string;
   readonly district: string;
   readonly status: VerificationStatus;

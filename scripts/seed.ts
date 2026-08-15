@@ -22,7 +22,14 @@ import { resolve } from "node:path";
 import { cert, initializeApp, type ServiceAccount } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
-import { buyerAccounts, driverAccounts, farmerAccounts, vehicles } from "@/lib/mock/admin";
+import {
+  agencies,
+  buyerAccounts,
+  driverAccounts,
+  farmerAccounts,
+  vehicles,
+  workers,
+} from "@/lib/mock/admin";
 import { CATALOGUE } from "@/lib/mock/catalogue";
 import { openListings } from "@/lib/mock/listings";
 import { GEOGRAPHY } from "@/lib/mock/locations";
@@ -315,12 +322,59 @@ async function main() {
     }),
   );
 
+  // Agencies before the people and vehicles that belong to them, so a partial
+  // run never leaves a worker pointing at an agency that is not there yet.
+  total += await writeAll(
+    db,
+    "agencies",
+    agencies(now),
+    (a) => a.id,
+    (a) => ({
+      name: a.name,
+      services: a.services,
+      contactName: a.contactName,
+      mobile: a.mobile,
+      email: a.email,
+      district: a.district,
+      town: a.town,
+      districts: a.districts,
+      status: a.status,
+      registeredAt: a.registeredAt,
+      photoUrl: a.photoUrl ?? null,
+      documents: shapeDocuments(a.documents),
+    }),
+  );
+
+  total += await writeAll(
+    db,
+    "workers",
+    workers(now),
+    (w) => w.id,
+    (w) => ({
+      agencyId: w.agencyId,
+      name: w.name,
+      mobile: w.mobile,
+      district: w.district,
+      place: w.place,
+      skills: w.skills,
+      basis: w.basis,
+      rate: w.rate,
+      status: w.status,
+      registeredAt: w.registeredAt,
+      jobsCompleted: w.jobsCompleted,
+      available: w.available,
+      photoUrl: w.photoUrl ?? null,
+      documents: shapeDocuments(w.documents),
+    }),
+  );
+
   total += await writeAll(
     db,
     "drivers",
     driverAccounts(now),
     (d) => d.id,
     (d) => ({
+      agencyId: d.agencyId,
       name: d.name,
       mobile: d.mobile,
       district: d.district,
@@ -339,6 +393,7 @@ async function main() {
     vehicles(now),
     (v) => v.id,
     (v) => ({
+      agencyId: v.agencyId,
       registration: v.registration,
       type: v.type,
       capacityKg: v.capacityKg,

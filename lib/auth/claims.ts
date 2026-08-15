@@ -19,7 +19,7 @@
  * server that mints claims and the client that reads a session.
  */
 
-export const ROLES = ["admin", "buyer", "farmer", "driver"] as const;
+export const ROLES = ["admin", "buyer", "agency", "farmer", "driver"] as const;
 
 export type Role = (typeof ROLES)[number];
 
@@ -30,6 +30,7 @@ export function isRole(value: unknown): value is Role {
 export const ROLE_LABELS: Record<Role, string> = {
   admin: "Operations",
   buyer: "Buyer",
+  agency: "Agency",
   farmer: "Farmer",
   driver: "Driver",
 };
@@ -56,13 +57,14 @@ export interface Claims {
 export const HOME_FOR_ROLE: Record<Role, string> = {
   admin: "/admin",
   buyer: "/market",
+  agency: "/agency",
   farmer: "/",
   driver: "/",
 };
 
 /** Roles with a console to sign into. The rest have accounts but nowhere to go. */
 export function hasConsole(role: Role): boolean {
-  return role === "admin" || role === "buyer";
+  return role === "admin" || role === "buyer" || role === "agency";
 }
 
 /**
@@ -88,7 +90,11 @@ export function readClaims(token: Record<string, unknown>): Claims | null {
   // A buyer with no account is not a usable identity: every read scoped to
   // "their own orders" would match nothing, and the console would show an
   // empty platform rather than an error.
-  if ((role === "buyer" || role === "farmer") && !accountId) return null;
+  // An agency with no account id would see every other agency's workers,
+  // because every query it makes is scoped by exactly this value.
+  if ((role === "buyer" || role === "farmer" || role === "agency") && !accountId) {
+    return null;
+  }
 
   return { role, accountId, districts };
 }
@@ -97,5 +103,6 @@ export function readClaims(token: Record<string, unknown>): Claims | null {
 export function mayAccess(role: Role, pathname: string): boolean {
   if (role === "admin") return true;
   if (role === "buyer") return !pathname.startsWith("/admin");
+  if (role === "agency") return pathname.startsWith("/agency");
   return false;
 }

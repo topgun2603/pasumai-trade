@@ -32,7 +32,7 @@ import {
   buyerAccounts,
   driverAccounts,
   farmerAccounts,
-  manpowerAccounts,
+  workers,
   vehicles,
 } from "@/lib/mock/admin";
 import { openListings } from "@/lib/mock/listings";
@@ -58,7 +58,7 @@ export default async function AdminOverviewPage() {
   const farmers = farmerAccounts(now);
   const drivers = driverAccounts(now);
   const fleet = vehicles(now);
-  const crew = manpowerAccounts(now);
+  const crew = workers(now);
   const listings = openListings(now);
   const offers = stockOffers(now);
 

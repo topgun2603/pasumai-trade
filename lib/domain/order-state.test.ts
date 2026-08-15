@@ -44,6 +44,7 @@ function doc(
 function vehicle(overrides: Partial<Vehicle> = {}): Vehicle {
   return {
     id: "V-1",
+    agencyId: "AG-102",
     registration: "TN 20 BA 4471",
     type: "miniTruck",
     capacityKg: 1500,
@@ -60,6 +61,7 @@ function vehicle(overrides: Partial<Vehicle> = {}): Vehicle {
 function driver(overrides: Partial<DriverAccount> = {}): DriverAccount {
   return {
     id: "D-1",
+    agencyId: "AG-102",
     name: "S. Mani",
     mobile: "+91 98404 22190",
     district: "Krishnagiri",

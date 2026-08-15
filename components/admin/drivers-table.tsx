@@ -22,9 +22,13 @@ function soonestExpiry(documents: readonly ComplianceDocument[]): number {
 export function DriversTable({
   drivers,
   now,
+  agencyNames,
 }: {
   drivers: DriverAccount[];
   now: number;
+  /** Agency id to name. Omitted by an agency's own console, where every
+   *  row belongs to them and the column would say the same thing throughout. */
+  agencyNames?: Record<string, string>;
 }) {
   const columns: Column<DriverAccount>[] = [
     {
@@ -49,6 +53,25 @@ export function DriversTable({
         </div>
       ),
     },
+    ...(agencyNames
+      ? [
+          {
+            key: "agency",
+            header: "Agency",
+            className: "min-w-40",
+            sortValue: (r: { agencyId: string }) =>
+              agencyNames[r.agencyId] ?? r.agencyId,
+            cell: (r: { agencyId: string }) => (
+              <span className="flex flex-col leading-tight">
+                <span className="truncate text-sm">
+                  {agencyNames[r.agencyId] ?? "Unknown agency"}
+                </span>
+                <span className="text-faint font-mono text-xs">{r.agencyId}</span>
+              </span>
+            ),
+          },
+        ]
+      : []),
     {
       key: "district",
       header: "District",
@@ -115,7 +138,7 @@ export function DriversTable({
       searchPlaceholder="Name, mobile, district or vehicle"
       nameOf={(d) => d.name}
       searchText={(d) =>
-        `${d.name} ${d.mobile} ${d.district} ${d.id} ${d.assignedVehicle ?? ""}`
+        `${d.name} ${d.mobile} ${d.district} ${d.id} ${d.assignedVehicle ?? ""} ${agencyNames?.[d.agencyId] ?? ""}`
       }
       card={(d) => (
         <>

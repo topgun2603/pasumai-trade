@@ -2,6 +2,7 @@
 
 import {
   ArrowLeftRightIcon,
+  BuildingIcon,
   ChartColumnIcon,
   ClipboardListIcon,
   GaugeIcon,
@@ -67,6 +68,7 @@ const SECTIONS: Array<{ title?: string; links: NavLink[] }> = [
   {
     title: "Transportation",
     links: [
+      { href: "/admin/transport/agencies", label: "Agencies", icon: BuildingIcon },
       {
         href: "/admin/transport/drivers",
         label: "Drivers",

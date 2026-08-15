@@ -68,6 +68,21 @@ export function checkPincode(value: string): string | undefined {
   return PINCODE.test(value.trim()) ? undefined : "Enter a 6-digit PIN code";
 }
 
+/**
+ * Deliberately loose.
+ *
+ * Enough to catch a typo — a missing @ or a bare domain — and no more. Every
+ * stricter pattern rejects addresses that genuinely work, and an agency turned
+ * away at registration because of a regex is an agency that phones instead.
+ */
+export function checkEmail(value: string, optional = false): string | undefined {
+  const trimmed = value.trim();
+  if (trimmed === "") return optional ? undefined : "Email is required";
+  return /^[^s@]+@[^s@]+.[^s@]{2,}$/.test(trimmed)
+    ? undefined
+    : "That does not look like an email address";
+}
+
 export function checkGstin(value: string, optional = false): string | undefined {
   if (value.trim() === "") return optional ? undefined : "GSTIN is required";
   return GSTIN.test(normalise(value).replace(/\s/g, ""))
@@ -265,6 +280,56 @@ export function validateDriver(values: DriverForm): FieldErrors<DriverForm> {
     licenceNumber: checkDrivingLicence(values.licenceNumber),
     licenceClass: required(values.licenceClass, "Licence class"),
     licenceExpiry: checkFutureDate(values.licenceExpiry, "Licence expiry"),
+  };
+}
+
+export interface AgencyForm {
+  name: string;
+  services: string[];
+  contactName: string;
+  mobile: string;
+  email: string;
+  addressLine: string;
+  town: string;
+  district: string;
+  pincode: string;
+  serviceDistricts: string[];
+  gstin: string;
+  pan: string;
+  bankAccountName: string;
+  bankAccountNumber: string;
+  ifsc: string;
+}
+
+/**
+ * An agency is a business, so it is validated like one: GST and PAN, not
+ * Aadhaar. The service districts matter as much as the address — an agency is
+ * only useful where it will actually send people, and a contract that does not
+ * say where is a contract nobody can dispatch against.
+ */
+export function validateAgency(values: AgencyForm): FieldErrors<AgencyForm> {
+  return {
+    name: required(values.name, "Agency name"),
+    services:
+      values.services.length === 0
+        ? "Pick at least one — manpower, transport, or both"
+        : undefined,
+    contactName: required(values.contactName, "Contact name"),
+    mobile: checkMobile(values.mobile),
+    email: checkEmail(values.email),
+    addressLine: required(values.addressLine, "Address"),
+    town: required(values.town, "Town"),
+    district: required(values.district, "District"),
+    pincode: checkPincode(values.pincode),
+    serviceDistricts:
+      values.serviceDistricts.length === 0
+        ? "Pick the districts this agency will serve"
+        : undefined,
+    gstin: checkGstin(values.gstin),
+    pan: checkPan(values.pan),
+    bankAccountName: required(values.bankAccountName, "Account holder name"),
+    bankAccountNumber: checkBankAccount(values.bankAccountNumber),
+    ifsc: checkIfsc(values.ifsc),
   };
 }
 

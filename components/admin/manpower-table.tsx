@@ -9,8 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import {
   ENGAGEMENT_LABELS,
   MANPOWER_SKILL_LABELS,
-  manpowerDispatchable,
-  type ManpowerAccount,
+  workerDispatchable,
+  type Worker,
 } from "@/lib/domain/admin";
 import { formatMoney, money } from "@/lib/domain/money";
 import { relativeTime } from "@/lib/format";
@@ -27,11 +27,15 @@ import { relativeTime } from "@/lib/format";
 export function ManpowerTable({
   crew,
   now,
+  agencyNames,
 }: {
-  crew: ManpowerAccount[];
+  crew: Worker[];
   now: number;
+  /** Agency id to name. Omitted by an agency's own console, where every
+   *  row belongs to them and the column would say the same thing throughout. */
+  agencyNames?: Record<string, string>;
 }) {
-  const columns: Column<ManpowerAccount>[] = [
+  const columns: Column<Worker>[] = [
     {
       key: "name",
       header: "Name",
@@ -49,6 +53,25 @@ export function ManpowerTable({
         </div>
       ),
     },
+    ...(agencyNames
+      ? [
+          {
+            key: "agency",
+            header: "Agency",
+            className: "min-w-40",
+            sortValue: (r: { agencyId: string }) =>
+              agencyNames[r.agencyId] ?? r.agencyId,
+            cell: (r: { agencyId: string }) => (
+              <span className="flex flex-col leading-tight">
+                <span className="truncate text-sm">
+                  {agencyNames[r.agencyId] ?? "Unknown agency"}
+                </span>
+                <span className="text-faint font-mono text-xs">{r.agencyId}</span>
+              </span>
+            ),
+          },
+        ]
+      : []),
     {
       key: "based",
       header: "Based",
@@ -99,9 +122,9 @@ export function ManpowerTable({
       key: "dispatchable",
       header: "Can work",
       className: "min-w-40",
-      sortValue: (m) => (manpowerDispatchable(m, now) ? 0 : 1),
+      sortValue: (m) => (workerDispatchable(m, now) ? 0 : 1),
       cell: (m) =>
-        manpowerDispatchable(m, now) ? (
+        workerDispatchable(m, now) ? (
           <Badge
             variant="outline"
             className="border-success/40 bg-success-soft text-success"
@@ -162,7 +185,7 @@ export function ManpowerTable({
       searchText={(m) =>
         `${m.name} ${m.mobile} ${m.place} ${m.district} ${m.id} ${m.skills
           .map((s) => MANPOWER_SKILL_LABELS[s])
-          .join(" ")}`
+          .join(" ")} ${agencyNames?.[m.agencyId] ?? ""}`
       }
       card={(m) => (
         <>

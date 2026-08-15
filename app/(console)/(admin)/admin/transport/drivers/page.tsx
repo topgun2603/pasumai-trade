@@ -6,13 +6,15 @@ import { connection } from "next/server";
 import { DriversTable } from "@/components/admin/drivers-table";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { Button } from "@/components/ui/button";
-import { driverAccounts } from "@/lib/mock/admin";
+import { agencies, driverAccounts } from "@/lib/mock/admin";
 
 export const metadata: Metadata = { title: "Drivers · Admin" };
 
 export default async function AdminDriversPage() {
   await connection();
   const now = new Date();
+  // Operations sees every agency's records, so each row says whose it is.
+  const agencyNames = Object.fromEntries(agencies(now).map((a) => [a.id, a.name]));
 
   return (
     <>
@@ -28,7 +30,7 @@ export default async function AdminDriversPage() {
           </Button>
         }
       />
-      <DriversTable drivers={driverAccounts(now)} now={now.getTime()} />
+      <DriversTable drivers={driverAccounts(now)} agencyNames={agencyNames} now={now.getTime()} />
     </>
   );
 }
