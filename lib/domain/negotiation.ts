@@ -39,6 +39,28 @@ import type { GradeBand } from "./models";
 /** Only two parties bargain. The platform never proposes a price. */
 export type Party = "farmer" | "buyer";
 
+/**
+ * Which side of a bargain a signed-in account is on.
+ *
+ * The party must be derived from the session, never accepted from the caller.
+ * A request that names its own author is a request that can accept a price on
+ * a farmer's behalf.
+ *
+ * Operations get `null` deliberately: they can read a thread, and they must not
+ * be able to speak in one. A price nobody at the platform can quietly agree to
+ * is the reason the thread is worth anything as a record.
+ */
+export function partyFor(
+  negotiation: Negotiation,
+  role: string,
+  accountId: string | undefined,
+): Party | null {
+  if (!accountId) return null;
+  if (role === "farmer" && accountId === negotiation.farmerId) return "farmer";
+  if (role === "buyer" && accountId === negotiation.buyerId) return "buyer";
+  return null;
+}
+
 export const PARTY_LABELS: Record<Party, string> = {
   farmer: "Farmer",
   buyer: "Buyer",
@@ -77,6 +99,9 @@ export interface Negotiation {
   readonly id: string;
   readonly listingId: string;
   readonly produceName: string;
+  /** Account ids, so a session can be matched to a side. Names are for display. */
+  readonly farmerId: string;
+  readonly buyerId: string;
   readonly farmerName: string;
   readonly buyerName: string;
   readonly quantity: number;

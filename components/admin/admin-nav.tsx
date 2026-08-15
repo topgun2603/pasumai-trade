@@ -27,6 +27,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
+import { SessionFooter } from "@/components/auth/session-footer";
+import type { Role } from "@/lib/auth/claims";
 import { cn } from "@/lib/utils";
 
 /** Counts of what is waiting, keyed by href. */
@@ -64,7 +66,13 @@ function ThemeToggle() {
   );
 }
 
-export function AdminNav({ pending }: { pending: PendingCounts }) {
+export function AdminNav({
+  pending,
+  session,
+}: {
+  pending: PendingCounts;
+  session: { email?: string; role: Role };
+}) {
   const pathname = usePathname();
 
   return (
@@ -133,10 +141,7 @@ export function AdminNav({ pending }: { pending: PendingCounts }) {
         </Link>
         <ThemeToggle />
         <Separator />
-        <div className="flex flex-col leading-tight">
-          <span className="truncate text-sm font-medium">Operations</span>
-          <span className="text-faint text-xs">Full access</span>
-        </div>
+        <SessionFooter email={session.email} role={session.role} />
       </div>
     </nav>
   );

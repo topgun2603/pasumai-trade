@@ -14,49 +14,66 @@ the automatic deploy off for `main`.
 
 ---
 
-## Read this before the first production deploy
+## Accounts and access
 
-**Authentication is not connected.** Signing in does not verify anyone.
+Every console route is behind a session. Signed out, `/admin`, `/market`,
+`/bargains` and everything under them redirect to sign-in, and every write
+endpoint answers 401.
 
-The write endpoints already refuse in production — `/api/controls/*` and
-`/api/negotiations/*` return 404 there, and the consoles show a read-only
-banner — so nobody can *change* anything. But the console pages still render,
-and `/admin/farmers`, `/admin/buyers` and `/admin/drivers` show names, mobile
-numbers, bank account tails and document references. That is personal data of
-real farmers, readable by anyone with the URL.
+**There is no self sign-up.** A buyer is verified against a GST number before
+they may order, and a farmer is onboarded by a franchise — so accounts are
+issued by operations, not requested by strangers. That also means the first
+account has to be minted from outside the application, because the console that
+grants roles is itself behind the console.
 
-Until `verifySession()` is wired up, put the whole deployment behind Vercel's
-own gate:
+### Enable the sign-in provider
 
-> Vercel → Project → Settings → **Deployment Protection** → Vercel
-> Authentication (team members only), or Password Protection for a shared
-> password.
+Once per project: Firebase console → Authentication → Sign-in method →
+**Email/Password** → enable. Without it every sign-in fails with
+`PASSWORD_LOGIN_DISABLED`, which the form reports as "Sign-in is not
+configured on this deployment."
 
-This covers production and previews together. Turn it off when real auth lands,
-not before.
+### Create accounts
 
-### Why Controls and Bargains reject every save
-
-The pages load, but saving returns a 404 and the console shows a read-only
-banner. That is deliberate: `writeGuard()` closes every write endpoint in
-production, because those handlers hold Admin credentials and cannot yet tell
-who is calling.
-
-Once — and only once — Deployment Protection is on, something *else* is doing
-the authenticating, and the endpoints can be opened for demonstration and
-operations. Add this to the Vercel project's environment variables:
-
-```
-UNSAFE_ALLOW_UNAUTHENTICATED_WRITES = true
+```bash
+npm run grant -- admin  ops@yourdomain.in
+npm run grant -- buyer  purchasing@buyer.in   B-1001
+npm run grant -- farmer murugan@example.in    F-201
 ```
 
-It is named that way on purpose. On a publicly reachable deployment it lets
-anyone who finds the URL rewrite the crop catalogue, rename villages and accept
-a price on a farmer's behalf. Validation still applies — the guards and
-refusals all run — but nothing checks *who* is asking.
+Needs `FIREBASE_SERVICE_ACCOUNT_KEY`, so it is run by whoever holds the service
+account. It creates the user if absent, prints a generated password **once**,
+sets the role and account id as custom claims, and ends any existing sessions.
 
-Do not set it until Deployment Protection is confirmed on, and delete it the
-day `verifySession()` lands.
+Buyers and farmers must pass the id of their record on the platform — every
+Security Rule scoped to "your own records" compares against it, and the script
+refuses an id that matches no document rather than issuing a claim that points
+at nothing.
+
+Re-run it to change a role or issue a new password. It never deletes a user.
+
+### Who may do what
+
+| | Operations | Buyer |
+| --- | --- | --- |
+| `/admin/*` | yes | redirected to `/market` |
+| `/market`, `/bargains`, `/orders` | yes | yes |
+| Edit Controls | yes | 403 |
+| Speak in a bargain | **no** | only their own |
+
+Operations are deliberately barred from posting in a bargain. They can read
+every thread — a price the platform itself could quietly agree to is a price
+the written record could not vouch for.
+
+The party to a bargain is derived from the session, never from the request. A
+buyer posting `author: "farmer"` is recorded as the buyer.
+
+### Deployment protection
+
+Vercel → Project → Settings → **Deployment Protection** is no longer the only
+thing standing between the internet and farmer personal data, but it is still
+worth having on previews: a preview deploy of a branch is a full copy of the
+console pointed at the same Firestore project.
 
 ---
 

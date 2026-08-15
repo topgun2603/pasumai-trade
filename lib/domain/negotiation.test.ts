@@ -10,6 +10,7 @@ import {
   isSettled,
   lastProposalBy,
   NegotiationError,
+  partyFor,
   roundCount,
   standingProposal,
   valueAt,
@@ -41,8 +42,10 @@ function fresh(): Negotiation {
     id: "N-1",
     listingId: "L-1",
     produceName: "Tomato",
-    farmerName: "Murugan",
-    buyerName: "Anbu Traders",
+    farmerId: "F-201",
+    buyerId: "B-1001",
+    farmerName: "R. Murugan",
+    buyerName: "Kongu Agri Traders",
     quantity: 800,
     unit: "kg",
     status: "open",
@@ -252,6 +255,45 @@ describe("settling", () => {
     } catch (error) {
       expect((error as NegotiationError).code).toBe("ownProposal");
     }
+  });
+});
+
+describe("partyFor", () => {
+  /**
+   * The single most dangerous decision in the module: it is what stops one
+   * side accepting a price on the other's behalf. Every refusal has a case.
+   */
+  it("matches each side to their own account", () => {
+    expect(partyFor(fresh(), "farmer", "F-201")).toBe("farmer");
+    expect(partyFor(fresh(), "buyer", "B-1001")).toBe("buyer");
+  });
+
+  it("refuses a farmer who is not this farmer", () => {
+    expect(partyFor(fresh(), "farmer", "F-999")).toBeNull();
+  });
+
+  it("refuses a buyer who is not this buyer", () => {
+    expect(partyFor(fresh(), "buyer", "B-9999")).toBeNull();
+  });
+
+  it("refuses a farmer holding the buyer's id, and the reverse", () => {
+    // The role and the id must agree. Either alone would let the wrong side
+    // speak: a farmer presenting the buyer's account id, or a buyer presenting
+    // the farmer's, are both exactly the attack this prevents.
+    expect(partyFor(fresh(), "farmer", "B-1001")).toBeNull();
+    expect(partyFor(fresh(), "buyer", "F-201")).toBeNull();
+  });
+
+  it("refuses operations", () => {
+    // They may read a thread and must not speak in one. A price the platform
+    // can quietly agree to is a price the record cannot vouch for.
+    expect(partyFor(fresh(), "admin", "F-201")).toBeNull();
+    expect(partyFor(fresh(), "admin", undefined)).toBeNull();
+  });
+
+  it("refuses an account with no id at all", () => {
+    expect(partyFor(fresh(), "farmer", undefined)).toBeNull();
+    expect(partyFor(fresh(), "farmer", "")).toBeNull();
   });
 });
 

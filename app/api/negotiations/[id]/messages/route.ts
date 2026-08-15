@@ -5,30 +5,21 @@ import {
   NegotiationError,
   type DraftMessage,
   type MessageKind,
-  type Party,
+  partyFor,
 } from "@/lib/domain/negotiation";
 import { adminDb } from "@/lib/firebase/admin";
 import { shapeNegotiation } from "@/lib/firebase/negotiations-read";
-import { writeGuard } from "@/lib/api/write-guard";
+import { requireRole } from "@/lib/api/write-guard";
 
 /**
  * Append a message to a bargain.
  *
- * ─────────────────────────────────────────────────────────────────────────
- *  NOT PROTECTED YET — see `writeGuard`, which closes this in production.
- *
- *  `author` comes from the request body, so anyone reaching this endpoint can
- *  claim to be the farmer and accept a price on their behalf. When auth lands:
- *
- *      const session = await verifySession();
- *      const author = partyFor(session, negotiation);   // never from the body
- * ─────────────────────────────────────────────────────────────────────────
- *
- * The guards run **here**, on the server, against the document as it stands in
- * Firestore. The client runs the same functions to decide what to enable, but
- * that is a courtesy to the person using it — a client that has been tampered
- * with, or is simply stale because the other side just countered, must not be
- * able to talk this endpoint into a price nobody agreed to.
+ * The author is taken from the session, never from the request body, and the
+ * guards run here against the document as it stands in Firestore. The client
+ * runs the same functions to decide what to enable, but that is a courtesy to
+ * the person using it — a client that is stale because the other side just
+ * countered must not be able to talk this endpoint into a price nobody agreed
+ * to.
  */
 const KINDS: MessageKind[] = ["note", "proposal", "accept", "withdraw"];
 
@@ -52,8 +43,10 @@ export async function POST(
   request: Request,
   context: RouteContext<"/api/negotiations/[id]/messages">,
 ) {
-  const blocked = writeGuard();
-  if (blocked) return blocked;
+  // Operations are deliberately not permitted here. They may read a bargain;
+  // they may not speak in one.
+  const gate = await requireRole("farmer", "buyer");
+  if (!gate.ok) return gate.response;
 
   const { id } = await context.params;
 
@@ -69,11 +62,6 @@ export async function POST(
     return Response.json({ error: "Unknown message kind." }, { status: 422 });
   }
 
-  const author = body.author as Party;
-  if (author !== "farmer" && author !== "buyer") {
-    return Response.json({ error: "Unknown party." }, { status: 422 });
-  }
-
   const text = typeof body.text === "string" ? body.text.trim() : undefined;
   if (kind === "note" && !text) {
     return Response.json({ error: "A message needs some text." }, { status: 422 });
@@ -87,6 +75,21 @@ export async function POST(
   }
 
   const negotiation = shapeNegotiation(snapshot.id, snapshot.data()!);
+
+  // Derived from the session, never read from the body. This is the line that
+  // decides whether someone can accept a price on a farmer's behalf.
+  const author = partyFor(
+    negotiation,
+    gate.session.claims.role,
+    gate.session.claims.accountId,
+  );
+  if (!author) {
+    return Response.json(
+      { error: "You are not a party to this bargain.", code: "notAParty" },
+      { status: 403 },
+    );
+  }
+
   const sentAt = new Date();
 
   const draft: DraftMessage = {

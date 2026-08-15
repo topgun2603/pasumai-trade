@@ -23,6 +23,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
+import { SessionFooter } from "@/components/auth/session-footer";
+import type { Role } from "@/lib/auth/claims";
 import { cn } from "@/lib/utils";
 
 /**
@@ -72,8 +74,10 @@ function ThemeToggle() {
 
 export function ConsoleNav({
   franchise,
+  session,
 }: {
   franchise: { name: string; code: string };
+  session: { email?: string; role: Role };
 }) {
   const pathname = usePathname();
 
@@ -123,6 +127,8 @@ export function ConsoleNav({
           <span className="truncate text-sm font-medium">{franchise.name}</span>
           <span className="text-faint font-mono text-xs">{franchise.code}</span>
         </div>
+        <Separator />
+        <SessionFooter email={session.email} role={session.role} />
       </div>
     </nav>
   );

@@ -1,61 +1,67 @@
 import "server-only";
 
+import type { Role } from "@/lib/auth/claims";
+import { verifySession, type Session } from "@/lib/auth/session";
+
 /**
  * The gate on every write endpoint, in one place.
  *
- * ─────────────────────────────────────────────────────────────────────────
- *  THERE IS NO AUTHENTICATION YET.
+ * These handlers write with Admin credentials, which bypass Security Rules
+ * entirely. Until recently there was no way for them to know who was calling,
+ * so they were closed in production outright. Now they ask.
  *
- *  Security Rules deny every client write, so mutations have to come through a
- *  route handler holding Admin credentials — and the Admin SDK bypasses rules
- *  entirely. Until Firebase Auth and session cookies exist, these handlers
- *  cannot tell who is calling. An unauthenticated endpoint writing with Admin
- *  credentials is a hole, not a feature, so it is closed in production.
+ * Returns either the session or the refusal to return. Callers write:
  *
- *  When auth lands, this function becomes:
+ *     const gate = await requireRole("admin");
+ *     if (!gate.ok) return gate.response;
+ *     // gate.session is a verified operations user
  *
- *      const session = await verifySession();
- *      if (!session) return unauthorized();
- *      if (session.role !== "admin") return forbidden();
- *
- *  and both the environment check and the escape hatch below are deleted.
- * ─────────────────────────────────────────────────────────────────────────
- *
- * `UNSAFE_ALLOW_UNAUTHENTICATED_WRITES` opens the endpoints in production.
- *
- * It is named so that nobody sets it without knowing what they are doing, and
- * it is only defensible when something *else* is doing the authenticating —
- * in practice, Vercel Deployment Protection, which requires a team login or a
- * password before any request reaches the app at all. With that on, the
- * platform is the gate and this flag lets a real deployment be used for
- * demonstration and operations.
- *
- * With it off — a publicly reachable deployment — anyone who finds the URL can
- * rewrite the crop catalogue, retitle villages, and accept a price on a
- * farmer's behalf. Do not set it on a public deployment.
+ * A single return value rather than a throw, because a route handler that
+ * forgets a try/catch would leak a stack trace as a 500 and, worse, would have
+ * run the write first.
  */
-export function writeGuard(): Response | null {
-  if (process.env.NODE_ENV !== "production") return null;
 
-  if (process.env.UNSAFE_ALLOW_UNAUTHENTICATED_WRITES === "true") return null;
+export type Gate =
+  | { readonly ok: true; readonly session: Session }
+  | { readonly ok: false; readonly response: Response };
 
-  // JSON rather than a bare 404 body: the consoles read `error` from the
-  // response and show it. A plain-text 404 left the bargaining screen saying
-  // "Server returned 404.", which tells the person nothing about why.
+/** 401 and 403 say different things, and the difference is useful. */
+function unauthorized(): Response {
   return Response.json(
-    {
-      error:
-        "Editing is disabled on this deployment. The write endpoints hold Admin credentials and cannot yet tell who is calling, so they are closed until authentication is connected.",
-      code: "writesDisabled",
-    },
-    { status: 404 },
+    { error: "Sign in to continue.", code: "signedOut" },
+    { status: 401 },
   );
 }
 
-/** Whether a write would be accepted, for rendering the console read-only. */
-export function writesEnabled(): boolean {
-  return (
-    process.env.NODE_ENV !== "production" ||
-    process.env.UNSAFE_ALLOW_UNAUTHENTICATED_WRITES === "true"
+function forbidden(): Response {
+  return Response.json(
+    {
+      error: "Your account does not have permission to do that.",
+      code: "forbidden",
+    },
+    { status: 403 },
   );
+}
+
+/** Any signed-in user. */
+export async function requireSession(): Promise<Gate> {
+  const session = await verifySession();
+  if (!session) return { ok: false, response: unauthorized() };
+  return { ok: true, session };
+}
+
+/**
+ * A signed-in user holding one of these roles.
+ *
+ * Operations is *not* implicitly allowed everywhere. It is listed where it
+ * belongs, so reading a handler tells you who may call it without also knowing
+ * a rule kept somewhere else.
+ */
+export async function requireRole(...roles: readonly Role[]): Promise<Gate> {
+  const session = await verifySession();
+  if (!session) return { ok: false, response: unauthorized() };
+  if (!roles.includes(session.claims.role)) {
+    return { ok: false, response: forbidden() };
+  }
+  return { ok: true, session };
 }

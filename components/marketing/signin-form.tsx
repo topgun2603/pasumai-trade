@@ -9,7 +9,6 @@ import {
   UserRoundIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -17,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { HOME_FOR_ROLE } from "@/lib/auth/claims";
+import { signIn } from "@/lib/auth/sign-in";
 import { checkMobile } from "@/lib/domain/registration";
 import type { Dictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n/config";
@@ -34,7 +35,6 @@ export function SignInForm({
   locale: Locale;
   t: Dictionary;
 }) {
-  const router = useRouter();
   const [audience, setAudience] = useState<Audience>(initial);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -74,7 +74,7 @@ export function SignInForm({
   const active = audiences.find((a) => a.value === audience)!;
   const isFarmer = audience === "farmer";
 
-  function submit(event: React.FormEvent) {
+  async function submit(event: React.FormEvent) {
     event.preventDefault();
 
     const found: { identifier?: string; password?: string } = {};
@@ -94,22 +94,34 @@ export function SignInForm({
     setErrors(found);
     if (Object.values(found).some(Boolean)) return;
 
+    if (isFarmer) {
+      toast.info("The farmer app is not available yet");
+      return;
+    }
+
     setSubmitting(true);
+    const result = await signIn(identifier.trim(), password);
 
-    setTimeout(() => {
+    if (!result.ok) {
       setSubmitting(false);
+      // On the password field rather than as a toast alone: the error belongs
+      // beside the thing that has to change.
+      setErrors({ password: result.error });
+      toast.error(result.error ?? "Could not sign in.");
+      return;
+    }
 
-      if (isFarmer) {
-        toast.info("The farmer app is not available yet");
-        return;
-      }
+    // Where the account is entitled to go, not the tab that was clicked. A
+    // buyer who signed in under the operations tab still lands on the market
+    // rather than on a page that would refuse them.
+    const destination =
+      result.role && result.role in HOME_FOR_ROLE
+        ? HOME_FOR_ROLE[result.role as keyof typeof HOME_FOR_ROLE]
+        : active.destination;
 
-      // Authentication is not connected yet — see the notice below the form.
-      // This routes to the console so the surfaces can be reviewed; it does
-      // not verify anybody.
-      toast.warning(t.signin.notConnectedTitle);
-      router.push(active.destination);
-    }, 450);
+    // The console reads the session on the server, so a full navigation is
+    // needed — a client-side push would render against the old cache.
+    window.location.assign(destination);
   }
 
   return (
@@ -211,16 +223,18 @@ export function SignInForm({
       </form>
 
       {/*
-        Stated plainly rather than buried. Anyone reviewing these surfaces
-        should know the door is open, and it must be closed before this is
-        put anywhere public.
+        Accounts are created by operations, not by signing up. A buyer is
+        verified against a GST number before they may order and a farmer is
+        onboarded by a franchise, so there is no self-registration to offer —
+        and saying so beats leaving someone hunting for a button that does not
+        exist.
       */}
-      <div className="border-warning/40 bg-warning-soft rounded-lg border px-3.5 py-3">
-        <p className="flex items-start gap-2 text-sm">
-          <InfoIcon className="text-warning mt-0.5 size-4 shrink-0" />
+      <div className="bg-secondary rounded-lg px-3.5 py-3">
+        <p className="text-muted-foreground flex items-start gap-2 text-sm">
+          <InfoIcon className="mt-0.5 size-4 shrink-0" />
           <span>
-            <span className="font-medium">{t.signin.notConnectedTitle}</span>{" "}
-            {t.signin.notConnectedBody}
+            Accounts are issued by operations. If you do not have one, ask them
+            to create it — there is no self sign-up.
           </span>
         </p>
       </div>

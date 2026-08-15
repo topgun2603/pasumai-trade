@@ -1,19 +1,20 @@
 import { adminDb } from "@/lib/firebase/admin";
 import { isEditable, validate } from "@/lib/domain/controls";
-import { writeGuard } from "@/lib/api/write-guard";
+import { requireRole } from "@/lib/api/write-guard";
 
 /**
  * Create a reference-data record.
  *
- * NOT PROTECTED YET — `writeGuard` closes this in production and carries the
- * full explanation, plus the one place `verifySession()` goes when auth lands.
+ * Operations only, and every field is copied explicitly — nothing arrives from
+ * the request body and lands in Firestore unread.
  */
 export async function POST(
   request: Request,
   context: RouteContext<"/api/controls/[collection]">,
 ) {
-  const blocked = writeGuard();
-  if (blocked) return blocked;
+  // Reference data feeds every dropdown on the platform. Operations only.
+  const gate = await requireRole("admin");
+  if (!gate.ok) return gate.response;
 
   const { collection } = await context.params;
   if (!isEditable(collection)) {

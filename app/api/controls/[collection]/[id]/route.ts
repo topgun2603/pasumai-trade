@@ -1,5 +1,5 @@
 import { adminDb } from "@/lib/firebase/admin";
-import { writeGuard } from "@/lib/api/write-guard";
+import { requireRole } from "@/lib/api/write-guard";
 import {
   DEPENDENTS,
   isDeletable,
@@ -10,15 +10,15 @@ import {
 /**
  * Update or delete a reference-data record.
  *
- * Same caveat as the create handler: **not protected yet**. See `writeGuard`,
- * which closes both in production and is the one place `verifySession()` goes.
+ * Operations only. Delete refuses rather than cascades — see DEPENDENTS.
  */
 export async function PATCH(
   request: Request,
   context: RouteContext<"/api/controls/[collection]/[id]">,
 ) {
-  const blocked = writeGuard();
-  if (blocked) return blocked;
+  // Reference data feeds every dropdown on the platform. Operations only.
+  const gate = await requireRole("admin");
+  if (!gate.ok) return gate.response;
 
   const { collection, id } = await context.params;
   if (!isEditable(collection)) {
@@ -55,8 +55,9 @@ export async function DELETE(
   _request: Request,
   context: RouteContext<"/api/controls/[collection]/[id]">,
 ) {
-  const blocked = writeGuard();
-  if (blocked) return blocked;
+  // Reference data feeds every dropdown on the platform. Operations only.
+  const gate = await requireRole("admin");
+  if (!gate.ok) return gate.response;
 
   const { collection, id } = await context.params;
   if (!isEditable(collection)) {

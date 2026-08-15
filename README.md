@@ -76,25 +76,35 @@ Crop names are held per language *as data* for the same reason — the same crop
 genuinely goes by different names across Tamil Nadu, and `regional` overrides
 let a district use the word its farmers actually use.
 
+## Signing in
+
+Every console route is behind a session, and there is no self sign-up —
+accounts are issued by operations. Enable Email/Password in the Firebase
+console once, then:
+
+```bash
+npm run grant -- admin ops@yourdomain.in        # prints a password, once
+npm run grant -- buyer purchasing@buyer.in B-1001
+```
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for who may do what.
+
 ## Deploying
 
 Every push and pull request runs lint, type check, tests and a build; only if
 all four pass does anything deploy. Pull requests get a preview URL, `main`
-goes to production. See [DEPLOYMENT.md](DEPLOYMENT.md) for setup — **read the
-warning at the top of it before the first production deploy**, because the
-consoles show farmer personal data and nothing authenticates yet.
+goes to production. See [DEPLOYMENT.md](DEPLOYMENT.md) for setup.
 
 ## Known gaps
 
 Read these before deploying anything.
 
-- **Authentication is not connected.** Signing in does not verify anyone. The
-  write endpoints under `/api/controls` and `/api/negotiations` hold Admin
-  credentials and cannot yet tell who is calling, so they return 404 in
-  production and the consoles show a read-only banner. Each has a marked place
-  to add `verifySession()`.
+- **Farmers and drivers have accounts but no console.** `grant` will issue them
+  a role; there is nowhere for them to sign in to yet, so the sign-in page says
+  so rather than sending them to a page that would refuse them.
 - **Agreement does not yet create an order.** A settled bargain is recorded and
-  flagged, but wiring it to money needs auth first.
+  flagged with `orderPending`, but nothing yet turns it into a procurement
+  order.
 - **Bargains never expire.** The silence timeout is configurable and nothing
   sweeps on it yet.
 - Translations need review by native speakers before release.

@@ -59,6 +59,8 @@ export function shapeNegotiation(
     id,
     listingId: String(data.listingId ?? ""),
     produceName: String(data.produceName ?? ""),
+    farmerId: String(data.farmerId ?? ""),
+    buyerId: String(data.buyerId ?? ""),
     farmerName: String(data.farmerName ?? ""),
     buyerName: String(data.buyerName ?? ""),
     quantity: Number(data.quantity ?? 0),

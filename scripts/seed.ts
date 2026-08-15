@@ -444,6 +444,8 @@ async function main() {
     (n) => ({
       listingId: n.listingId,
       produceName: n.produceName,
+      farmerId: n.farmerId,
+      buyerId: n.buyerId,
       farmerName: n.farmerName,
       buyerName: n.buyerName,
       quantity: n.quantity,
