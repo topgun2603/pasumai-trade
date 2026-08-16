@@ -285,6 +285,35 @@ export const en = {
     rights: "All rights reserved.",
     rateNote:
       "Prices shown are agreed between farmers and buyers on the platform. They are not a published index and the platform does not set them.",
+
+    /* The terms, said plainly. Each of these is a rule the code enforces —
+       see the note in components/marketing/site-footer.tsx. */
+    joinTitle: "Anyone can register.",
+    joinBody:
+      "Browsing the market is free. Posting produce, bargaining and booking transport need a plan.",
+    registerCta: "Register free",
+    seePlans: "See plans",
+
+    terms: "Terms",
+    termsHeading: "How this works",
+    termFree: "Registering and browsing the market costs nothing.",
+    termPlan: "A plan is needed to post produce, bargain, or arrange transport.",
+    termVerify:
+      "Accounts are verified before trading. eKYC clears at once; documents checked by hand wait for operations.",
+    termPrice:
+      "Every price is settled between a farmer and a buyer. The platform never quotes, sets or guarantees one.",
+    termGrade:
+      "Grading happens at the farm gate with both sides present, and a grade priced in a bargain is not reopened there.",
+    termBinding: "Nothing binds either side until one of them accepts.",
+    termPartial:
+      "A lot may be sold in parts. What nobody takes stays on the market.",
+    termLanguage:
+      "Bargain messages come from a fixed list, so each side reads them in their own language.",
+
+    languages: "Spoken here",
+    address: "Coimbatore, Tamil Nadu, India",
+    email: "org@srirealtime.com",
+    writeToUs: "Write to us",
   },
 
   common: {
