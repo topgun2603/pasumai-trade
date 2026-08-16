@@ -92,6 +92,15 @@
       ]
     },
     {
+      "//": "Operations reading across every account's notifications — a collection-group query, which is the one shape a subcollection still needs declaring. The consoles never use it: they read accounts/{id}/notifications directly, where the path is the filter and a single-field index on createdAt is automatic.",
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "accountId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "//": "Reconciliation: ledger entries for one order, in the order they happened. Append-only, so ascending is the audit order.",
       "collectionGroup": "ledger",
       "queryScope": "COLLECTION",

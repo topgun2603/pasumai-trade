@@ -7,6 +7,13 @@ import { defineConfig } from "vitest/config";
  * Everything under test here is pure logic — money arithmetic, transition
  * guards, validators — so it runs in Node with no DOM and no Next runtime.
  * Component tests, when they come, will need their own environment.
+ *
+ * `functions/src` is included for the same reason. The notification triggers
+ * are adapters, but the decision they apply — who hears about a settled
+ * bargain, which buyers hear about a new lot — is a rule, and it is pure. It
+ * would be untestable sitting inside a trigger closure, so it does not sit
+ * there; `functions/src/events.ts` imports nothing from Firebase and runs here
+ * with everything else.
  */
 export default defineConfig({
   resolve: {
@@ -23,6 +30,6 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["lib/**/*.test.ts"],
+    include: ["lib/**/*.test.ts", "functions/src/**/*.test.ts"],
   },
 });

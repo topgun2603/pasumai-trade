@@ -2,6 +2,12 @@
 
 # dependencies
 /node_modules
+# The functions package installs its own. `/node_modules` above is anchored to
+# the repo root and does not cover it.
+/functions/node_modules
+# Compiled output. `firebase deploy` builds it from source on the way up, so a
+# committed copy is only ever a stale one.
+/functions/lib
 /.pnp
 .pnp.*
 .yarn/*

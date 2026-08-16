@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    /*
+      CommonJS, unlike the app. The functions runtime loads `main` with
+      `require`, and an ESM build here fails at cold start rather than at build
+      time — which is the worst place to find out.
+    */
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "es2022",
+    "lib": ["es2022"],
+    "outDir": "lib",
+    "rootDir": "src",
+    "sourceMap": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src"],
+  /* Tests run from the repo root under Vitest and must never reach the
+     deployed bundle — a Cloud Functions cold start should not be loading
+     assertions. */
+  "exclude": ["lib", "node_modules", "src/**/*.test.ts"]
+}

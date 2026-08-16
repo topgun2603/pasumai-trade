@@ -10,7 +10,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "seed": "tsx scripts/seed.ts",
-    "grant": "tsx scripts/grant.ts"
+    "grant": "tsx scripts/grant.ts",
+    "check:region": "tsx scripts/check-functions-region.ts",
+    "functions:build": "npm --prefix functions run build",
+    "functions:typecheck": "npm --prefix functions run typecheck"
   },
   "dependencies": {
     "@tanstack/react-table": "^8.21.3",

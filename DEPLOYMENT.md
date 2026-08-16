@@ -159,12 +159,79 @@ to be refused.
 
 ## Region
 
-`vercel.json` pins functions to `bom1` (Mumbai). The Firestore database is in
-`asia-south1`, and every server render reads from it — running the functions in
-the default US region would add roughly 250 ms of round trip to each query, on
-top of the distance to users who are all in India.
+`vercel.json` pins functions to `bom1` (Mumbai), which is right: every user is
+in India.
 
-If you move the Firestore region, move this too. They must stay together.
+**The Firestore database is not.** It is in `nam5`, a US multi-region — this
+document previously said `asia-south1`, and that was wrong. Check it rather
+than trust either claim:
+
+```bash
+npm run check:region
+```
+
+That reads the live project and prints the location. It matters twice over:
+
+- **Every server render crosses the Pacific.** A page in Mumbai reading a
+  database in Iowa pays roughly 250 ms per round trip, and the consoles make
+  several. This is the cost the paragraph above believed it had avoided.
+- **It decides where the notification triggers can run.** See below.
+
+A Firestore location is fixed for the life of the database. Moving to
+`asia-south1` means creating a database there and migrating the data — not a
+setting to flip, and worth planning rather than discovering.
+
+---
+
+## Notification functions
+
+The bell on both consoles is fed by Cloud Functions in [`functions/`](functions/),
+triggered by writes to `listings`, `negotiations` and `buyerOrders`. They watch
+documents rather than being called by the application, so a bargain settled by a
+script or by an operator reaches the notification list the same as one settled
+in the console.
+
+```bash
+npm run check:region          # which region the triggers must be in, and why
+npm --prefix functions ci     # first time only
+npx firebase-tools deploy --only functions
+```
+
+### The region, and why it is not Mumbai
+
+A 2nd-gen Firestore trigger is an [Eventarc](https://firebase.google.com/docs/functions/firestore-events)
+trigger, and Eventarc delivers a Firestore event **in the database's own
+location**. Multi-regions are not supported directly; each maps to one region:
+
+| Firestore location | Trigger region |
+| --- | --- |
+| `nam5` (US multi) | `us-central1` |
+| `eur3` (EU multi) | `europe-west1` |
+| `asia-south1` (Mumbai) | `asia-south1` |
+
+So while `asia-south1` is a perfectly good Cloud Functions region — Tier 2,
+2nd-gen only, which is all these need — a trigger cannot be put there while the
+data it watches is in `nam5`. Deploying it there does not run slowly; it fails.
+
+The region lives in one place, [`functions/src/region.ts`](functions/src/region.ts),
+with `INTENDED` recording where we want to be. When the database moves, change
+`REGION` and every trigger follows. `npm run check:region` fails loudly if the
+two disagree.
+
+### What the handlers must guarantee
+
+Firestore events are delivered **at least once** and in **no guaranteed order**.
+Both are handled and both matter:
+
+- Duplicates are absorbed by making the event id part of the document id, and
+  writing with `create` rather than `set` — a redelivery collides and is
+  ignored, rather than overwriting a notification somebody has already read.
+- Nothing reasons about history beyond the `before`/`after` pair the event
+  carries, so an out-of-order delivery cannot produce a wrong conclusion.
+
+Notifications are written to `accounts/{accountId}/notifications`. The account
+is the path rather than a field, so the Security Rule cannot be widened by a
+cleverer query, and one account's feed needs no composite index.
 
 ---
 

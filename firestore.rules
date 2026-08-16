@@ -175,6 +175,25 @@ service cloud.firestore {
     }
 
     /* --------------------------------------------------------------------
+       Notifications
+       -------------------------------------------------------------------- */
+
+    match /accounts/{ownerId}/notifications/{notificationId} {
+      // Yours and nobody else's, and the account is the *path* rather than a
+      // field to compare. That distinction is the point: Firestore evaluates a
+      // `list` against the query, not the documents, so scoping by a field
+      // means a query that forgets the filter is refused — but only if
+      // somebody wrote the filter. Here there is nothing to forget. A
+      // notification names a counterparty, a crop and a quantity, and the
+      // wrong scoping turns one query into a feed of the platform's business.
+      allow read: if isAdmin() || ownerId == accountId();
+
+      // Written by the notification triggers on Admin credentials, and marked
+      // read through a route handler. Never by a client — see the write ban
+      // below.
+    }
+
+    /* --------------------------------------------------------------------
        Money
        -------------------------------------------------------------------- */
 

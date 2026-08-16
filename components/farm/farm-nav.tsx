@@ -2,6 +2,7 @@
 
 import {
   BadgeCheckIcon,
+  BellIcon,
   ChartColumnIcon,
   CreditCardIcon,
   GaugeIcon,
@@ -26,7 +27,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Separator } from "@/components/ui/separator";
+import type { Notification } from "@/lib/domain/notification";
 import { cn } from "@/lib/utils";
 
 /**
@@ -42,6 +45,7 @@ const LINKS = [
   { href: "/farm", label: "Today", icon: GaugeIcon, exact: true },
   { href: "/farm/listings", label: "My produce", icon: SproutIcon },
   { href: "/farm/bargains", label: "Bargains", icon: HandshakeIcon },
+  { href: "/farm/notifications", label: "Notifications", icon: BellIcon },
   { href: "/farm/account", label: "Account", icon: UserRoundIcon },
 ];
 
@@ -75,12 +79,15 @@ export function FarmNav({
   role,
   session,
   pending,
+  notifications,
 }: {
   farmer: { name: string; id: string; village: string };
   role: "farmer";
   session: { email?: string };
   /** Counts shown as badges, e.g. bargains waiting on a reply. */
   pending: Record<string, number>;
+  /** The bell in the rail header, read once for the whole console. */
+  notifications: { rows: Notification[]; unread: number; capped: boolean };
 }) {
   const pathname = usePathname();
 
@@ -91,10 +98,18 @@ export function FarmNav({
           <span className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-md">
             <LeafIcon className="size-4" />
           </span>
-          <span className="flex min-w-0 flex-col leading-tight">
+          <span className="flex min-w-0 flex-1 flex-col leading-tight">
             <span className="truncate text-sm font-semibold">Pasumai Trade</span>
             <span className="text-faint text-xs">Farmer</span>
           </span>
+          {/* Read in Tamil, like the rest of this surface. */}
+          <NotificationBell
+            notifications={notifications.rows}
+            unread={notifications.unread}
+            capped={notifications.capped}
+            locale="ta"
+            href="/farm/notifications"
+          />
         </div>
 
         <Separator />

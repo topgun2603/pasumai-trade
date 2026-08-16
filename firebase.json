@@ -3,9 +3,20 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "functions": [
+    {
+      "//": "Notification triggers. The deploy region is NOT set here — it is set per-function in functions/src/region.ts, because a Firestore trigger has to sit where the database does and that is a decision with a reason attached. Read that file before changing it.",
+      "source": "functions",
+      "codebase": "notifications",
+      "runtime": "nodejs22",
+      "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run build"],
+      "ignore": ["node_modules", ".git", "lib/**/*.map", "*.local"]
+    }
+  ],
   "emulators": {
     "firestore": { "port": 8080 },
     "auth": { "port": 9099 },
+    "functions": { "port": 5001 },
     "ui": { "enabled": true, "port": 4000 },
     "singleProjectMode": true
   }

@@ -2,6 +2,7 @@
 
 import {
   BadgeCheckIcon,
+  BellIcon,
   CreditCardIcon,
   HandshakeIcon,
   LeafIcon,
@@ -23,7 +24,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Separator } from "@/components/ui/separator";
+import type { Notification } from "@/lib/domain/notification";
 import { SessionFooter } from "@/components/auth/session-footer";
 import type { Role } from "@/lib/auth/claims";
 import { cn } from "@/lib/utils";
@@ -35,6 +38,7 @@ import { cn } from "@/lib/utils";
 const LINKS = [
   { href: "/listings", label: "Produce", icon: StoreIcon },
   { href: "/bargains", label: "Bargains", icon: HandshakeIcon },
+  { href: "/notifications", label: "Notifications", icon: BellIcon },
   { href: "/orders", label: "Orders", icon: PackageIcon },
   { href: "/dispatch", label: "Dispatch", icon: TruckIcon },
   { href: "/farmers", label: "Farmers", icon: UsersIcon },
@@ -77,9 +81,15 @@ function ThemeToggle() {
 export function ConsoleNav({
   franchise,
   session,
+  pending = {},
+  notifications,
 }: {
   franchise: { name: string; code: string };
   session: { email?: string; role: Role };
+  /** Counts shown as badges on the rail, keyed by href. */
+  pending?: Record<string, number>;
+  /** The bell in the rail header, read once for the whole console. */
+  notifications: { rows: Notification[]; unread: number; capped: boolean };
 }) {
   const pathname = usePathname();
 
@@ -91,10 +101,19 @@ export function ConsoleNav({
         <span className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-md">
           <LeafIcon className="size-4" />
         </span>
-        <span className="flex min-w-0 flex-col leading-tight">
+        <span className="flex min-w-0 flex-1 flex-col leading-tight">
           <span className="truncate text-sm font-semibold">Pasumai Trade</span>
           <span className="text-faint text-xs">Franchise console</span>
         </span>
+        {/* English on this surface, off the same records the farmer reads in
+            Tamil — the row stores facts, not a sentence. */}
+        <NotificationBell
+          notifications={notifications.rows}
+          unread={notifications.unread}
+          capped={notifications.capped}
+          locale="en"
+          href="/notifications"
+        />
       </div>
 
       <Separator />
@@ -102,6 +121,7 @@ export function ConsoleNav({
       <ul className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2">
         {LINKS.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
+          const waiting = pending[href] ?? 0;
           return (
             <li key={href}>
               <Link
@@ -116,6 +136,13 @@ export function ConsoleNav({
               >
                 <Icon className="size-4 shrink-0" />
                 {label}
+                {waiting > 0 ? (
+                  // Capped, because past a point the number stops being a
+                  // figure anybody acts on and starts being a smudge.
+                  <span className="bg-primary text-primary-foreground ml-auto min-w-5 rounded-full px-1.5 py-0.5 text-center text-[11px] leading-none font-medium tabular-nums">
+                    {waiting > 49 ? "50+" : waiting}
+                  </span>
+                ) : null}
               </Link>
             </li>
           );

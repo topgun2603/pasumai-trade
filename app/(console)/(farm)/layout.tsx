@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { FarmNav } from "@/components/farm/farm-nav";
 import { requireFarmer } from "@/lib/auth/farm";
+import { isCapped, readNotifications } from "@/lib/firebase/notifications-read";
 import { negotiations } from "@/lib/mock/negotiations";
 
 /**
@@ -27,13 +28,24 @@ export default async function FarmLayout({ children }: { children: ReactNode }) 
     return last?.author === "buyer";
   }).length;
 
+  // The unread count rides the same badge mechanism as the bargain one, so a
+  // farmer sees a number on the rail without opening anything. Read here rather
+  // than per page: the rail is on every screen, and a count that only appears
+  // on the notifications page is a count nobody sees.
+  const feed = await readNotifications(farmer.id);
+
   return (
     <div className="flex min-h-svh w-full">
       <FarmNav
         farmer={{ name: farmer.name, id: farmer.id, village: farmer.village }}
         role="farmer"
         session={{ email }}
-        pending={{ "/farm/bargains": waiting }}
+        pending={{ "/farm/bargains": waiting, "/farm/notifications": feed.unread }}
+        notifications={{
+          rows: feed.notifications,
+          unread: feed.unread,
+          capped: isCapped(feed),
+        }}
       />
       <div className="flex min-w-0 flex-1 flex-col pb-20 md:pb-0">{children}</div>
     </div>
