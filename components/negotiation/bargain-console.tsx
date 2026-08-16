@@ -39,6 +39,7 @@ export function BargainConsole({
   validForMinutes,
   editable,
   compact = false,
+  initialThreadId,
 }: {
   threads: Negotiation[];
   viewer: Party;
@@ -59,9 +60,17 @@ export function BargainConsole({
    * Several buyers on one lot become a strip of names instead.
    */
   compact?: boolean;
+  /** Which thread to open first. Ignored if it is not in `threads`. */
+  initialThreadId?: string;
 }) {
   const router = useRouter();
-  const [selectedId, setSelectedId] = useState(threads[0]?.id ?? null);
+  const [selectedId, setSelectedId] = useState(
+    // Checked against the list rather than trusted: a thread id in a URL that
+    // is not one of theirs must not select anything.
+    (initialThreadId && threads.some((t) => t.id === initialThreadId)
+      ? initialThreadId
+      : threads[0]?.id) ?? null,
+  );
   const [pending, setPending] = useState(false);
 
   const selected = threads.find((t) => t.id === selectedId) ?? threads[0];

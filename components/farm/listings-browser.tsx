@@ -9,11 +9,11 @@ import {
   Trash2Icon,
   VideoIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { BargainPanel } from "@/components/farm/bargain-panel";
 import { EditListingDialog } from "@/components/farm/edit-listing-dialog";
 import { DataTable, type Column, type FilterTab } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +28,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { QuickReply } from "@/components/negotiation/bargain-thread";
 import { formatMoney } from "@/lib/domain/money";
 import type { Negotiation } from "@/lib/domain/negotiation";
 import type { FarmListing } from "@/lib/firebase/listings-read";
@@ -44,23 +43,14 @@ import type { FarmListing } from "@/lib/firebase/listings-read";
 export function ListingsBrowser({
   listings,
   threadsByListing,
-  now,
-  quickReplies,
-  validForMinutes,
-  editable,
   crops,
 }: {
   listings: FarmListing[];
-  /** Open bargains only, keyed by listing id. History lives on its own page. */
+  /** Open bargains only, keyed by listing id, so a row can link to the right one. */
   threadsByListing: Record<string, Negotiation[]>;
-  now: number;
-  quickReplies: readonly QuickReply[];
-  validForMinutes: number;
-  editable: boolean;
   crops: Array<{ id: string; en: string; ta: string; unit: string }>;
 }) {
   const router = useRouter();
-  const [bargaining, setBargaining] = useState<FarmListing | null>(null);
   const [editing, setEditing] = useState<FarmListing | null>(null);
   const [deleting, setDeleting] = useState<FarmListing | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -100,15 +90,6 @@ export function ListingsBrowser({
 
   const openCount = (listing: FarmListing) => threadsByListing[listing.id]?.length ?? 0;
 
-  /*
-    Every listing with someone bargaining on it, in the order they appear.
-
-    A farmer with offers on four lots answers them one after another. Handing
-    the panel the whole set lets it step between them in place — closing and
-    reopening four times, hunting the right row each time, is the version of
-    this that gets abandoned halfway.
-  */
-  const withBargains = listings.filter((l) => openCount(l) > 0);
 
   const gradeChips = (listing: FarmListing) =>
     listing.grades.length > 0 ? (
@@ -224,15 +205,21 @@ export function ListingsBrowser({
 
   const actions = (l: FarmListing) => (
     <span className="flex items-center justify-end gap-1">
-      <Button
-        size="sm"
-        variant={openCount(l) > 0 ? "default" : "outline"}
-        disabled={busy === l.id}
-        onClick={() => setBargaining(l)}
-      >
-        <HandshakeIcon className="size-3.5" />
-        Bargain
-        {openCount(l) > 0 ? ` (${openCount(l)})` : ""}
+      {/* Through to the Bargains section rather than a panel over this one.
+          Bargaining is what a farmer opens the app to do, not a detail of a
+          row — and the thread id opens the right lot on arrival. */}
+      <Button asChild size="sm" variant={openCount(l) > 0 ? "default" : "outline"}>
+        <Link
+          href={
+            threadsByListing[l.id]?.[0]
+              ? `/farm/bargains?thread=${threadsByListing[l.id][0].id}`
+              : "/farm/bargains"
+          }
+        >
+          <HandshakeIcon className="size-3.5" />
+          Bargain
+          {openCount(l) > 0 ? ` (${openCount(l)})` : ""}
+        </Link>
       </Button>
 
       <DropdownMenu>
@@ -295,23 +282,6 @@ export function ListingsBrowser({
         searchText={(l) =>
           `${l.produceName} ${l.status} ${l.grades.map((g) => g.grade).join(" ")} ${l.quantity}`
         }
-      />
-
-      <BargainPanel
-        listing={bargaining}
-        threads={bargaining ? (threadsByListing[bargaining.id] ?? []) : []}
-        // Only offered when the one being viewed is itself in the set. Opening
-        // a listing with no offers is a dead end by definition, and stepping
-        // "next" from it would jump somewhere unrelated.
-        siblings={bargaining && openCount(bargaining) > 0 ? withBargains : []}
-        onSelect={setBargaining}
-        now={now}
-        quickReplies={quickReplies}
-        validForMinutes={validForMinutes}
-        editable={editable}
-        onOpenChange={(open) => {
-          if (!open) setBargaining(null);
-        }}
       />
 
       {/*

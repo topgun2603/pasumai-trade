@@ -10,13 +10,10 @@ import { Button } from "@/components/ui/button";
 import { requireFarmer } from "@/lib/auth/farm";
 import { produceName } from "@/lib/domain/models";
 import { isReady, nextStep } from "@/lib/domain/readiness";
-import { readControls } from "@/lib/firebase/controls-read";
 import { farmTotals, readFarmerListings } from "@/lib/firebase/listings-read";
 import { readNegotiations } from "@/lib/firebase/negotiations-read";
 import { CATALOGUE } from "@/lib/mock/catalogue";
-import { GEOGRAPHY } from "@/lib/mock/locations";
 import { negotiations } from "@/lib/mock/negotiations";
-import { DOCUMENT_RULES, PACKS, PHRASES } from "@/lib/mock/reference";
 
 export const metadata: Metadata = { title: "My produce · Farmer" };
 
@@ -29,16 +26,9 @@ export default async function FarmListingsPage() {
   // mock catalogue, so a farmer could post, get a 201, and watch nothing
   // appear.
   const clock = new Date().getTime();
-  const [listings, { threads }, controls] = await Promise.all([
+  const [listings, { threads }] = await Promise.all([
     readFarmerListings(farmer.id),
     readNegotiations(negotiations(clock)),
-    readControls({
-      crops: Object.values(CATALOGUE),
-      geo: GEOGRAPHY,
-      packs: PACKS,
-      phrases: PHRASES,
-      documentRules: DOCUMENT_RULES,
-    }),
   ]);
   const totals = farmTotals(listings);
 
@@ -146,10 +136,6 @@ export default async function FarmListingsPage() {
           <ListingsBrowser
             listings={listings}
             threadsByListing={threadsByListing}
-            now={clock}
-            quickReplies={controls.phrases}
-            validForMinutes={controls.policy.proposalValidityMinutes}
-            editable={ready}
             crops={crops}
           />
         )}

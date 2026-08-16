@@ -7,6 +7,7 @@ import {
   GaugeIcon,
   HandshakeIcon,
   LeafIcon,
+  ReceiptIcon,
   MoonIcon,
   SproutIcon,
   SunIcon,
@@ -40,8 +41,7 @@ import { cn } from "@/lib/utils";
 const LINKS = [
   { href: "/farm", label: "Today", icon: GaugeIcon, exact: true },
   { href: "/farm/listings", label: "My produce", icon: SproutIcon },
-  { href: "/farm/bargains", label: "Sales", icon: HandshakeIcon },
-  { href: "/farm/analytics", label: "Prices", icon: ChartColumnIcon },
+  { href: "/farm/bargains", label: "Bargains", icon: HandshakeIcon },
   { href: "/farm/account", label: "Account", icon: UserRoundIcon },
 ];
 
@@ -130,6 +130,36 @@ export function FarmNav({
               </li>
             );
           })}
+          <li>
+            <Link
+              href="/farm/sales"
+              aria-current={isActive(pathname, "/farm/sales") ? "page" : undefined}
+              className={cn(
+                "focus-visible:ring-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
+                isActive(pathname, "/farm/sales")
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+              )}
+            >
+              <ReceiptIcon className="size-4 shrink-0" />
+              Sales
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/farm/analytics"
+              aria-current={isActive(pathname, "/farm/analytics") ? "page" : undefined}
+              className={cn(
+                "focus-visible:ring-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
+                isActive(pathname, "/farm/analytics")
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+              )}
+            >
+              <ChartColumnIcon className="size-4 shrink-0" />
+              Prices
+            </Link>
+          </li>
           <li>
             <Link
               href="/farm/verification"
