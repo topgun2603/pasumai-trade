@@ -9,6 +9,7 @@ import { OpenBargainDialog } from "@/components/market/open-bargain-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Carousel } from "@/components/ui/carousel";
+import type { VocabularyEntry } from "@/lib/domain/bargain-vocabulary";
 import { formatMoney } from "@/lib/domain/money";
 import type { MarketListing } from "@/lib/firebase/listings-read";
 import { mediaItems } from "@/lib/media";
@@ -28,10 +29,13 @@ import { mediaItems } from "@/lib/media";
 export function ProduceMarket({
   listings,
   openThreads,
+  vocabulary,
 }: {
   listings: MarketListing[];
   /** Listing ids this buyer already has a live bargain on. */
   openThreads: Record<string, string>;
+  /** What a buyer may say when opening a bargain, from Controls. */
+  vocabulary: readonly VocabularyEntry[];
 }) {
   const [bargaining, setBargaining] = useState<MarketListing | null>(null);
 
@@ -199,6 +203,7 @@ export function ProduceMarket({
 
       <OpenBargainDialog
         listing={bargaining}
+        vocabulary={vocabulary}
         onOpenChange={(open) => {
           if (!open) setBargaining(null);
         }}

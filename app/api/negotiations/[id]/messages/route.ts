@@ -53,12 +53,15 @@ function readBands(value: unknown, quantities: unknown): GradeBand[] | undefined
       // into a money calculation that is integer all the way down.
       ratePerUnit: Math.round(rate),
       grade,
-      // Left undefined rather than defaulted, so "no quantity given" stays
-      // distinguishable from "asked for zero" — the guard refuses the latter.
+      // Passed through unrounded, unlike the rate. A fractional paisa is
+      // meaningless so rounding it is safe; a fractional quantity is somebody
+      // asking for 12.5 kg, and quietly turning that into 13 changes a
+      // commercial term without telling them. The guard refuses it instead.
+      //
+      // Left undefined where none was given, so "no quantity" stays
+      // distinguishable from "asked for zero" — which the guard also refuses.
       quantity:
-        typeof quantity === "number" && Number.isFinite(quantity)
-          ? Math.round(quantity)
-          : undefined,
+        typeof quantity === "number" && Number.isFinite(quantity) ? quantity : undefined,
     });
   }
   return bands.length > 0 ? bands : undefined;

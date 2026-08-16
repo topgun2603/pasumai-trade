@@ -1,9 +1,11 @@
 import { requireCapability } from "@/lib/api/capability";
+import { canSay, phraseById } from "@/lib/domain/bargain-vocabulary";
 import { GRADES, type Grade } from "@/lib/domain/enums";
 import type { GradeBand } from "@/lib/domain/models";
 import { applyMessage, NegotiationError } from "@/lib/domain/negotiation";
 import { canStart, startNegotiation } from "@/lib/domain/negotiation-start";
 import { adminDb } from "@/lib/firebase/admin";
+import { readBargainVocabulary } from "@/lib/firebase/bargain-vocabulary-read";
 import { readMarketListings } from "@/lib/firebase/listings-read";
 import { shapeNegotiation } from "@/lib/firebase/negotiations-read";
 
@@ -20,18 +22,43 @@ import { shapeNegotiation } from "@/lib/firebase/negotiations-read";
  * proposal on the platform that skipped the ordering and expiry rules.
  */
 
-/** Rates arrive as `{ a: 2200, b: 1800 }` in paise, the same shape as a reply. */
-function readBands(value: unknown): GradeBand[] | undefined {
+/**
+ * Rates arrive as `{ a: 2200 }` in paise and quantities as `{ a: 200 }`, the
+ * same shape as a reply.
+ *
+ * A grade with a quantity and no rate is not an offer and is dropped; a grade
+ * with a rate and no quantity is an offer for all of what is available, which
+ * is what an opening offer has always meant.
+ */
+function readBands(value: unknown, quantities: unknown): GradeBand[] | undefined {
   if (!value || typeof value !== "object") return undefined;
-  const source = value as Record<string, unknown>;
+  const rates = value as Record<string, unknown>;
+  const wanted =
+    quantities && typeof quantities === "object"
+      ? (quantities as Record<string, unknown>)
+      : {};
 
   const bands: GradeBand[] = [];
   for (const grade of GRADES) {
-    const rate = source[grade];
+    const rate = rates[grade];
     if (typeof rate !== "number" || !Number.isFinite(rate) || rate <= 0) continue;
-    // Paise are integers. A fractional rate puts a fraction of a paisa into
-    // every total computed from it.
-    bands.push({ grade: grade as Grade, ratePerUnit: Math.round(rate) });
+
+    const quantity = wanted[grade];
+    bands.push({
+      grade: grade as Grade,
+      // Paise are integers. A fractional rate puts a fraction of a paisa into
+      // every total computed from it.
+      ratePerUnit: Math.round(rate),
+      // Passed through unrounded, unlike the rate. A fractional paisa is
+      // meaningless so rounding it is safe; a fractional quantity is somebody
+      // asking for 12.5 kg, and quietly turning that into 13 changes a
+      // commercial term without telling them. The guard refuses it instead.
+      //
+      // Left undefined where none was given, so "no quantity" stays
+      // distinguishable from "asked for zero" — which the guard also refuses.
+      quantity:
+        typeof quantity === "number" && Number.isFinite(quantity) ? quantity : undefined,
+    });
   }
   return bands.length > 0 ? bands : undefined;
 }
@@ -112,28 +139,65 @@ export async function POST(request: Request) {
     now,
   });
 
-  const bands = readBands(body.bands);
-  const text = typeof body.text === "string" ? body.text.trim() : undefined;
+  const bands = readBands(body.bands, body.quantities);
 
-  if (bands || text) {
-    try {
-      negotiation = applyMessage(negotiation, {
+  // An opening message comes from the vocabulary, by id, exactly as every later
+  // one does. `body.text` is read nowhere — the first message on a thread is
+  // where a phone number would be most useful to somebody who wanted the trade
+  // off the platform, so it is the last place to accept free text.
+  const phraseId = typeof body.phraseId === "string" ? body.phraseId : undefined;
+  const { vocabulary } = await readBargainVocabulary();
+  const phrase = phraseId ? phraseById(vocabulary, phraseId) : undefined;
+
+  if (phraseId && !canSay(vocabulary, "buyer", phraseId)) {
+    return Response.json(
+      { error: "That is not a message you can send.", code: "unknownPhrase" },
+      { status: 422 },
+    );
+  }
+
+  // A thread with nothing in it is not an opening move — the farmer would be
+  // notified of a bargain that says nothing. Refused rather than created empty,
+  // which is what a body carrying only free text used to produce: the text was
+  // correctly ignored, and the buyer got a silent thread they thought carried
+  // their message.
+  if (!bands && !phrase) {
+    return Response.json(
+      {
+        error: "Offer a price on at least one grade, or pick a message.",
+        code: "emptyOpening",
+      },
+      { status: 422 },
+    );
+  }
+
+  try {
+    negotiation = applyMessage(
+      negotiation,
+      {
         id: `${ref.id}-M1`,
         // From the session's role, not from the body. A request claiming to be
         // the farmer would be a buyer speaking in the farmer's voice.
         author: "buyer",
         kind: bands ? "proposal" : "note",
-        text,
+        phraseId: phrase?.id,
+        // Resolved from the vocabulary, never taken from the body.
+        text: phrase?.text.en,
         bands,
         sentAt: now,
-      });
-    } catch (error) {
-      if (error instanceof NegotiationError) {
-        // The domain's refusal is written for the person who tried it.
-        return Response.json({ error: error.message, code: error.code }, { status: 409 });
-      }
-      throw error;
+      },
+      // What is left on the lot. `readMarketListings` already subtracts every
+      // agreed bargain, so the grades on the listing *are* the remainder — and
+      // a bid for more than that is refused here rather than discovered when
+      // the farmer tries to accept it.
+      listing.grades,
+    );
+  } catch (error) {
+    if (error instanceof NegotiationError) {
+      // The domain's refusal is written for the person who tried it.
+      return Response.json({ error: error.message, code: error.code }, { status: 409 });
     }
+    throw error;
   }
 
   await ref.set({
@@ -154,9 +218,17 @@ export async function POST(request: Request) {
       id: m.id,
       author: m.author,
       kind: m.kind,
+      phraseId: m.phraseId ?? null,
       text: m.text ?? null,
       locale: m.locale ?? null,
-      bands: m.bands ?? null,
+      // Explicit nulls, never undefined: Firestore refuses undefined outright,
+      // and a band with no quantity means all of that grade.
+      bands:
+        m.bands?.map((b) => ({
+          grade: b.grade,
+          ratePerUnit: b.ratePerUnit,
+          quantity: b.quantity ?? null,
+        })) ?? null,
       expiresAt: m.expiresAt ?? null,
       sentAt: m.sentAt,
     })),

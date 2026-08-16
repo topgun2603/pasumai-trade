@@ -6,6 +6,7 @@ import { ProduceMarket } from "@/components/market/produce-market";
 import { PageHeader } from "@/components/page-header";
 import { BUYING_ROLES } from "@/lib/auth/claims";
 import { requireConsole } from "@/lib/auth/require";
+import { readBargainVocabulary } from "@/lib/firebase/bargain-vocabulary-read";
 import { readMarketListings } from "@/lib/firebase/listings-read";
 import { readNegotiations } from "@/lib/firebase/negotiations-read";
 import { negotiations } from "@/lib/mock/negotiations";
@@ -26,9 +27,12 @@ export default async function ListingsPage() {
   const session = await requireConsole([...BUYING_ROLES, "admin"]);
   const clock = new Date().getTime();
 
-  const [listings, { threads }] = await Promise.all([
+  const [listings, { threads }, { vocabulary }] = await Promise.all([
     readMarketListings(),
     readNegotiations(negotiations(clock)),
+    // The opening message comes from the same fixed list the bargaining screen
+    // uses, so this page needs it too.
+    readBargainVocabulary(),
   ]);
 
   // Which lots this buyer is already talking about, so the row offers to
@@ -61,7 +65,11 @@ export default async function ListingsPage() {
             </p>
           </div>
         ) : (
-          <ProduceMarket listings={listings} openThreads={openThreads} />
+          <ProduceMarket
+            listings={listings}
+            openThreads={openThreads}
+            vocabulary={vocabulary}
+          />
         )}
       </div>
     </>
