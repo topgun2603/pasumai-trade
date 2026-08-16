@@ -1,8 +1,9 @@
-import { HandshakeIcon, ImageOffIcon, VideoIcon } from "lucide-react";
+import { HandshakeIcon } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Carousel, mediaItems } from "@/components/ui/carousel";
 import type { FarmListing } from "@/lib/firebase/listings-read";
 
 /**
@@ -17,34 +18,15 @@ import type { FarmListing } from "@/lib/firebase/listings-read";
  * what they posted.
  */
 export function ListingCard({ listing }: { listing: FarmListing }) {
-  const cover = listing.imageUrls[0];
-
   return (
     <li className="border-border bg-card flex gap-4 rounded-lg border p-3">
-      <div className="bg-secondary relative size-24 shrink-0 overflow-hidden rounded-md">
-        {cover ? (
-          /* A signed, short-lived storage URL. next/image would need the host
-             allow-listed and would cache a URL that expires within the hour. */
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={cover} alt={listing.produceName} className="size-full object-cover" />
-        ) : (
-          <span className="text-muted-foreground flex size-full items-center justify-center">
-            <ImageOffIcon className="size-5" />
-          </span>
-        )}
-
-        {listing.imageUrls.length > 1 ? (
-          <span className="bg-background/85 absolute right-1 bottom-1 rounded px-1.5 text-[11px] tabular-nums">
-            +{listing.imageUrls.length - 1}
-          </span>
-        ) : null}
-
-        {listing.videoUrl ? (
-          <span className="bg-background/85 absolute top-1 left-1 rounded p-1">
-            <VideoIcon className="size-3" />
-          </span>
-        ) : null}
-      </div>
+      <Carousel
+        items={mediaItems(listing.imageUrls, listing.videoUrl)}
+        alt={listing.produceName}
+        aspect="size-24"
+        className="shrink-0"
+        compact
+      />
 
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">

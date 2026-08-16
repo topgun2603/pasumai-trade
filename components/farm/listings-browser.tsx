@@ -18,6 +18,7 @@ import { EditListingDialog } from "@/components/farm/edit-listing-dialog";
 import { DataTable, type Column, type FilterTab } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Carousel, mediaItems } from "@/components/ui/carousel";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -262,26 +263,7 @@ export function ListingsBrowser({
 
   const card = (l: FarmListing) => (
     <div className="flex flex-col gap-3">
-      <div className="bg-secondary relative aspect-[4/3] overflow-hidden rounded-md">
-        {l.imageUrls[0] ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={l.imageUrls[0]} alt={l.produceName} className="size-full object-cover" />
-        ) : (
-          <span className="text-muted-foreground flex size-full items-center justify-center">
-            <ImageOffIcon className="size-6" />
-          </span>
-        )}
-        {l.imageUrls.length > 1 ? (
-          <span className="bg-background/85 absolute right-1.5 bottom-1.5 rounded px-1.5 text-[11px] tabular-nums">
-            +{l.imageUrls.length - 1}
-          </span>
-        ) : null}
-        {l.videoUrl ? (
-          <span className="bg-background/85 absolute top-1.5 left-1.5 rounded p-1">
-            <VideoIcon className="size-3" />
-          </span>
-        ) : null}
-      </div>
+      <Carousel items={mediaItems(l.imageUrls, l.videoUrl)} alt={l.produceName} />
 
       <div className="flex items-baseline justify-between gap-2">
         <span className="font-medium">{l.produceName}</span>
