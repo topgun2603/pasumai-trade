@@ -5,10 +5,10 @@ import { COLLECTION_FOR_SIGNUP, canSelfSignup } from "@/lib/domain/signup";
 import {
   effectiveStatus,
   isSubscribed,
-  planById,
+  isTerm,
   requestSubscription,
   subscriptionReference,
-  type BillingPeriod,
+  termOption,
 } from "@/lib/domain/subscription";
 import { adminDb } from "@/lib/firebase/admin";
 import { readAccountState } from "@/lib/firebase/subscription-read";
@@ -46,25 +46,24 @@ export async function POST(request: Request) {
     return Response.json({ error: "Body must be JSON." }, { status: 400 });
   }
 
-  const plan = planById(typeof body.planId === "string" ? body.planId : "");
-  if (!plan) {
-    return Response.json({ error: "Unknown plan." }, { status: 422 });
+  const term = typeof body.term === "string" && isTerm(body.term) ? body.term : null;
+  if (!term) {
+    return Response.json({ error: "Unknown term." }, { status: 422 });
   }
 
-  // The plan has to be one sold to this role. Otherwise a farmer could request
-  // the ₹99 grower plan and be granted a buyer's capabilities by the plan id
-  // alone — capabilities come from the role, but the price would be wrong and
-  // the record would be a lie about what was bought.
-  if (plan.role !== role) {
+  const state = await readAccountState(role, accountId);
+
+  // Whether they have paid before, which is what franchise pricing turns on.
+  // Read from the record, never from the request.
+  const renewal = state.subscription?.renewal === true || state.subscription?.paidAt !== undefined;
+
+  const option = termOption(role, term, renewal);
+  if (!option) {
     return Response.json(
-      { error: "That plan is not for this kind of account." },
+      { error: "That term is not offered for this kind of account." },
       { status: 422 },
     );
   }
-
-  const period: BillingPeriod = body.period === "yearly" ? "yearly" : "monthly";
-
-  const state = await readAccountState(role, accountId);
   if (!state.exists) {
     return Response.json({ error: "Account not found." }, { status: 404 });
   }
@@ -92,11 +91,11 @@ export async function POST(request: Request) {
   // A lapsed subscription on the same plan keeps its reference, so the person
   // paying quotes the one they already have written down.
   const reference =
-    state.subscription && state.subscription.planId === plan.id && state.subscription.reference
+    state.subscription?.term === term && state.subscription.reference
       ? state.subscription.reference
       : subscriptionReference(randomBytes(8).toString("hex"));
 
-  const requested = requestSubscription(plan, period, reference, now);
+  const requested = requestSubscription(option, reference, now, renewal);
 
   await adminDb().collection(COLLECTION_FOR_SIGNUP[role]).doc(accountId).set(
     {
@@ -108,7 +107,8 @@ export async function POST(request: Request) {
         paidAt: null,
         reference: requested.reference,
         amount: requested.amount,
-        period: requested.period,
+        term: requested.term,
+        renewal: requested.renewal ?? false,
       },
     },
     { merge: true },
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
       status: requested.status,
       reference: requested.reference,
       amount: requested.amount,
-      period: requested.period,
+      term: requested.term,
       planId: requested.planId,
     },
     { status: 201 },

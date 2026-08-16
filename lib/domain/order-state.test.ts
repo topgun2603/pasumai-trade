@@ -187,13 +187,13 @@ describe("driverDispatchable", () => {
 describe("buyerMayOrder", () => {
   const CLOCK = new Date(NOW);
   const live: Subscription = {
-    planId: "buyer-trade",
+    planId: "y1",
     status: "active",
     startedAt: new Date(NOW - 86_400_000),
     renewsAt: new Date(NOW + 30 * 86_400_000),
     reference: "PT-ABC234",
     amount: rupees(499),
-    period: "monthly",
+    term: "y1",
   };
 
   it("allows a subscribed account", () => {

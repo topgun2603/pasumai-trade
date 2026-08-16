@@ -4,23 +4,25 @@ import { ROLES } from "@/lib/auth/claims";
 import { rupees } from "./money";
 import {
   activate,
+  badgeFor,
   CAPABILITIES,
   CAPABILITIES_FOR_ROLE,
   CAPABILITY_LABELS,
   checkCapability,
   daysRemaining,
-  DEFAULT_PLANS,
   effectiveStatus,
   FREE_CAPABILITIES,
   GRACE_DAYS,
   isSubscribed,
-  planById,
-  plansForRole,
-  priceFor,
+  perMonth,
   renew,
   requestSubscription,
+  savingPercent,
+  STANDARD_TERMS,
   subscriptionReference,
-  yearlySaving,
+  termOption,
+  termsFor,
+  TERMS,
   type Subscription,
 } from "./subscription";
 
@@ -30,13 +32,13 @@ const at = (days: number) => new Date(NOW.getTime() + days * DAY);
 
 function sub(over: Partial<Subscription> = {}): Subscription {
   return {
-    planId: "buyer-trade",
+    planId: "y1",
     status: "active",
     startedAt: NOW,
     renewsAt: at(30),
     reference: "PT-ABC234",
     amount: rupees(499),
-    period: "monthly",
+    term: "y1",
     ...over,
   };
 }
@@ -181,41 +183,6 @@ describe("the clock, not just the status", () => {
   });
 });
 
-describe("starting and paying", () => {
-  const plan = planById("buyer-trade")!;
-
-  it("creates a request that grants nothing", () => {
-    const requested = requestSubscription(plan, "monthly", "PT-ABC234", NOW);
-    expect(requested.status).toBe("requested");
-    expect(isSubscribed(requested, NOW)).toBe(false);
-    expect(requested.paidAt).toBeUndefined();
-  });
-
-  it("runs the paid period from payment, not from the click", () => {
-    const requested = requestSubscription(plan, "monthly", "PT-ABC234", NOW);
-    const paid = activate(requested, at(4));
-    // Four days waiting on a bank transfer are not deducted from the month.
-    expect(daysRemaining(paid, at(4))).toBe(30);
-    expect(isSubscribed(paid, at(4))).toBe(true);
-  });
-
-  it("extends a renewal from the end date, so paying early loses nothing", () => {
-    const current = sub({ renewsAt: at(10) });
-    const renewed = renew(current, NOW);
-    expect(daysRemaining(renewed, NOW)).toBe(40);
-  });
-
-  it("renews from today when it already lapsed", () => {
-    const renewed = renew(sub({ renewsAt: at(-10) }), NOW);
-    expect(daysRemaining(renewed, NOW)).toBe(30);
-  });
-
-  it("charges a year for a yearly plan", () => {
-    const yearly = requestSubscription(plan, "yearly", "PT-ABC234", NOW);
-    expect(yearly.amount).toEqual(plan.yearly);
-    expect(daysRemaining(yearly, NOW)).toBe(365);
-  });
-});
 
 describe("payment references", () => {
   it("never contains a character that is misread down a phone line", () => {
@@ -228,48 +195,146 @@ describe("payment references", () => {
   });
 });
 
-describe("plans", () => {
-  it("gives every self-registering role something to buy", () => {
-    for (const role of ROLES) {
-      if (role === "admin") continue;
-      expect(plansForRole(role).length).toBeGreaterThan(0);
-    }
-  });
-
-  it("sells operations nothing", () => {
-    expect(plansForRole("admin")).toEqual([]);
-  });
-
-  it("makes a year cheaper than twelve months, or there is no reason to pick it", () => {
-    for (const plan of DEFAULT_PLANS) {
-      expect(plan.yearly.minorUnits).toBeLessThan(plan.monthly.minorUnits * 12);
-      expect(yearlySaving(plan)).toBeGreaterThan(0);
-    }
-  });
-
-  it("prices in whole paise, in rupees", () => {
-    for (const plan of DEFAULT_PLANS) {
-      expect(Number.isInteger(plan.monthly.minorUnits)).toBe(true);
-      expect(plan.monthly.currency).toBe("INR");
-    }
-  });
-
-  it("picks the period asked for", () => {
-    const plan = DEFAULT_PLANS[0];
-    expect(priceFor(plan, "monthly")).toEqual(plan.monthly);
-    expect(priceFor(plan, "yearly")).toEqual(plan.yearly);
-  });
-
-  it("has unique ids", () => {
-    const ids = DEFAULT_PLANS.map((p) => p.id);
-    expect(new Set(ids).size).toBe(ids.length);
-  });
-});
 
 describe("every capability is classified", () => {
   it("has a label, because the refusal text is built from it", () => {
     for (const capability of CAPABILITIES) {
       expect(CAPABILITY_LABELS[capability]).toBeTruthy();
     }
+  });
+});
+
+describe("the term ladder", () => {
+  it("prices exactly what was asked for", () => {
+    const expected: Array<[string, number]> = [
+      ["m1", 199_00],
+      ["m3", 349_00],
+      ["m6", 599_00],
+      ["y1", 999_00],
+      ["y2", 1499_00],
+      ["y3", 1999_00],
+      ["lifetime", 4999_00],
+    ];
+    for (const [term, paise] of expected) {
+      expect(STANDARD_TERMS.find((t) => t.term === term)?.price.minorUnits).toBe(paise);
+    }
+  });
+
+  it("gets cheaper per month the longer it runs", () => {
+    const rates = STANDARD_TERMS.filter((t) => t.months !== null).map((t) => perMonth(t)!);
+    for (let i = 1; i < rates.length; i++) {
+      // Every rung must beat the one before, or it is a rung nobody should take.
+      expect(rates[i]).toBeLessThan(rates[i - 1]);
+    }
+  });
+
+  it("marks one year and lifetime as recommended, and nothing else", () => {
+    expect(STANDARD_TERMS.filter((t) => t.recommended).map((t) => t.term)).toEqual([
+      "y1",
+      "lifetime",
+    ]);
+  });
+
+  it("highlights lifetime alone", () => {
+    expect(STANDARD_TERMS.filter((t) => t.highlight).map((t) => t.term)).toEqual(["lifetime"]);
+  });
+
+  it("computes the saving against the monthly price", () => {
+    // ₹999 for twelve months is ₹83 a month against ₹199.
+    expect(savingPercent(STANDARD_TERMS.find((t) => t.term === "y1")!)).toBe(58);
+    expect(savingPercent(STANDARD_TERMS.find((t) => t.term === "m1")!)).toBe(0);
+    // Lifetime has no month to divide by and is not sold on a monthly saving.
+    expect(savingPercent(STANDARD_TERMS.find((t) => t.term === "lifetime")!)).toBe(0);
+  });
+
+  it("gives the same ladder to every role except franchise", () => {
+    for (const role of ["farmer", "buyer", "transport", "manpower"] as const) {
+      expect(termsFor(role)).toEqual(STANDARD_TERMS);
+    }
+  });
+
+  it("sells operations nothing", () => {
+    expect(termsFor("admin")).toEqual([]);
+  });
+});
+
+describe("franchise pricing", () => {
+  it("charges more for the first year than for the next", () => {
+    expect(termsFor("franchise", false)[0].price.minorUnits).toBe(125_000_00);
+    expect(termsFor("franchise", true)[0].price.minorUnits).toBe(99_000_00);
+  });
+
+  it("offers a franchise one term and not the ladder", () => {
+    expect(termsFor("franchise").length).toBe(1);
+    expect(termsFor("franchise")[0].term).toBe("y1");
+    // Notably no lifetime: a franchise agreement is renewed, not bought out.
+    expect(termsFor("franchise").some((t) => t.term === "lifetime")).toBe(false);
+  });
+
+  it("refuses a term the franchise ladder does not have", () => {
+    expect(termOption("franchise", "m1")).toBeUndefined();
+    expect(termOption("franchise", "lifetime")).toBeUndefined();
+    expect(termOption("franchise", "y1")).toBeDefined();
+  });
+});
+
+describe("lifetime", () => {
+  const forever = sub({ term: "lifetime", status: "active", renewsAt: at(-5000) });
+
+  it("never lapses, however stale the date on it is", () => {
+    // The date is decades in the past here. It must not matter.
+    expect(isSubscribed(forever, NOW)).toBe(true);
+    expect(effectiveStatus(forever, NOW)).toBe("active");
+  });
+
+  it("still respects a cancellation", () => {
+    expect(isSubscribed({ ...forever, status: "cancelled" }, NOW)).toBe(false);
+  });
+
+  it("grants nothing before it is paid for", () => {
+    expect(isSubscribed({ ...forever, status: "requested" }, NOW)).toBe(false);
+  });
+});
+
+describe("badges", () => {
+  it("gives every term one", () => {
+    for (const term of TERMS) {
+      expect(badgeFor(term).label).toBeTruthy();
+      expect(badgeFor(term).className).toBeTruthy();
+    }
+  });
+
+  it("names them distinctly, so a ladder reads as a ladder", () => {
+    const labels = TERMS.map((t) => badgeFor(t).label);
+    expect(new Set(labels).size).toBe(labels.length);
+  });
+
+  it("calls the lifetime one Founder", () => {
+    expect(badgeFor("lifetime").label).toBe("Founder");
+  });
+});
+
+describe("buying a term", () => {
+  it("runs a fixed term from payment, not from the click", () => {
+    const option = STANDARD_TERMS.find((t) => t.term === "m3")!;
+    const requested = requestSubscription(option, "PT-ABC234", NOW);
+    expect(requested.status).toBe("requested");
+    expect(isSubscribed(requested, NOW)).toBe(false);
+
+    const paid = activate(requested, at(4));
+    // Ninety days from payment, not eighty-six from the request.
+    expect(daysRemaining(paid, at(4))).toBe(90);
+  });
+
+  it("marks a renewal, which is what franchise pricing turns on", () => {
+    const option = termsFor("franchise", false)[0];
+    const first = activate(requestSubscription(option, "PT-ABC234", NOW), NOW);
+    expect(first.renewal ?? false).toBe(false);
+    expect(renew(first, at(360)).renewal).toBe(true);
+  });
+
+  it("extends a renewal from the end date, so paying early loses nothing", () => {
+    const current = sub({ term: "y1", renewsAt: at(10) });
+    expect(daysRemaining(renew(current, NOW), NOW)).toBe(370);
   });
 });

@@ -15,13 +15,13 @@ const NOW = new Date("2026-08-16T09:00:00+05:30");
 const DAY = 86_400_000;
 
 const live: Subscription = {
-  planId: "farmer-grower",
+  planId: "m1",
   status: "active",
   startedAt: NOW,
   renewsAt: new Date(NOW.getTime() + 30 * DAY),
   reference: "PT-ABC234",
-  amount: rupees(99),
-  period: "monthly",
+  amount: rupees(199),
+  term: "m1",
 };
 
 const cleared: Check[] = [

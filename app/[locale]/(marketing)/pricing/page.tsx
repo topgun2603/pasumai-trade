@@ -1,17 +1,19 @@
-import { ArrowRightIcon, EyeIcon } from "lucide-react";
+import { ArrowRightIcon, EyeIcon, InfinityIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PlanCard } from "@/components/billing/plan-card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ROLE_LABELS, type Role } from "@/lib/auth/claims";
+import { formatMoney } from "@/lib/domain/money";
 import {
+  BADGES,
   CAPABILITY_LABELS,
-  CAPABILITIES_FOR_ROLE,
-  DEFAULT_PLANS,
+  FRANCHISE_FIRST_YEAR,
+  FRANCHISE_RENEWAL,
   FREE_CAPABILITIES,
-  isFree,
+  STANDARD_TERMS,
 } from "@/lib/domain/subscription";
 import { isLocale } from "@/lib/i18n";
 
@@ -25,12 +27,9 @@ export async function generateMetadata({
   return {
     title: "Pricing · Pasumai Trade",
     description:
-      "Looking is free — every listing, every settled price. A plan is what lets you post, bargain and order.",
+      "Looking is free — every listing, every settled price. From ₹199 a month to trade, or ₹4,999 once and never again.",
   };
 }
-
-/** Ordered so the two sides of the trade lead, and the services follow. */
-const ORDER: Role[] = ["farmer", "buyer", "franchise", "transport", "manpower"];
 
 export default async function PricingPage({
   params,
@@ -40,6 +39,9 @@ export default async function PricingPage({
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
 
+  const ladder = STANDARD_TERMS.filter((t) => !t.highlight);
+  const lifetime = STANDARD_TERMS.find((t) => t.highlight)!;
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-14 px-5 py-16">
       <header className="flex max-w-2xl flex-col gap-4">
@@ -47,15 +49,15 @@ export default async function PricingPage({
           Looking is free. Trading is what you pay for.
         </h1>
         <p className="text-muted-foreground text-lg">
-          Register and see everything — what is growing, what it graded at, what it settled for,
-          which agencies cover your district. Take a plan when you want to act on it.
+          One price list for farmers, buyers, transport and crew. The longer the term, the less it
+          costs a month — and every term buys exactly the same thing.
         </p>
       </header>
 
       {/*
-        The free tier stated before any price. Someone deciding whether to
+        The free tier stated before any price. Somebody deciding whether to
         register needs to know what they get for nothing, and burying it under
-        five plan cards would read as though registration itself costs money.
+        seven cards would read as though registration itself costs money.
       */}
       <section className="border-primary/25 bg-accent flex flex-col gap-3 rounded-xl border p-6">
         <span className="flex items-center gap-2 font-medium">
@@ -77,61 +79,112 @@ export default async function PricingPage({
 
       <section className="flex flex-col gap-8">
         <div className="flex flex-col gap-2">
-          <h2 className="text-2xl font-semibold tracking-tight">Plans</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Choose a term</h2>
           <p className="text-muted-foreground text-sm">
-            Priced per kind of account, because a grower with two acres and a franchise sourcing
-            across six districts are not the same customer. Yearly saves roughly two months.
+            Posting, bargaining, ordering and dispatch — all of it, on every term. A longer term is
+            cheaper per month and carries a higher badge, and buys nothing else.
           </p>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {ORDER.flatMap((role) =>
-            DEFAULT_PLANS.filter((plan) => plan.role === role).map((plan) => (
-              <div key={plan.id} className="flex flex-col gap-2">
-                <span className="text-faint text-xs tracking-wide uppercase">
-                  {ROLE_LABELS[role]}
-                </span>
-                <PlanCard
-                  plan={plan}
-                  period="monthly"
-                  footer={
-                    <Button asChild variant="outline" className="w-full">
-                      <Link href={`/${locale}/signup?as=${role}`}>
-                        Start free
-                        <ArrowRightIcon className="size-4" />
-                      </Link>
-                    </Button>
-                  }
-                />
-                <p className="text-muted-foreground text-xs">
-                  Unlocks:{" "}
-                  {CAPABILITIES_FOR_ROLE[role]
-                    .filter((c) => !isFree(c))
-                    .map((c) => CAPABILITY_LABELS[c].toLowerCase())
-                    .join(", ")}
-                  .
-                </p>
-              </div>
-            )),
-          )}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {ladder.map((option) => (
+            <PlanCard
+              key={option.term}
+              option={option}
+              footer={
+                <Button asChild variant="outline" className="w-full">
+                  <Link href={`/${locale}/signup?as=farmer`}>Start free</Link>
+                </Button>
+              }
+            />
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <span className="bg-border h-px flex-1" />
+            <span className="text-muted-foreground text-xs">or stop paying altogether</span>
+            <span className="bg-border h-px flex-1" />
+          </div>
+          <div className="sm:max-w-sm">
+            <PlanCard
+              option={lifetime}
+              footer={
+                <Button asChild className="w-full">
+                  <Link href={`/${locale}/signup?as=farmer`}>
+                    Start free
+                    <ArrowRightIcon className="size-4" />
+                  </Link>
+                </Button>
+              }
+            />
+          </div>
         </div>
       </section>
 
-      {/*
-        How payment actually works today, said plainly. There is no gateway
-        yet, and a pricing page implying instant card checkout would be a
-        promise the platform cannot keep at the moment somebody tries to pay.
-      */}
+      {/* Badges, shown together so the ladder reads as a ladder. */}
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-medium">What you wear</h2>
+        <p className="text-muted-foreground max-w-2xl text-sm">
+          Your badge shows on your listings and in every bargain, so the other side of the trade
+          can see how long you have been here. It says what you paid for — never that you are
+          verified, which is a separate check and a separate mark.
+        </p>
+        <div className="flex flex-wrap gap-2 pt-1">
+          {STANDARD_TERMS.map((option) => (
+            <Badge key={option.term} variant="outline" className={option.badge.className}>
+              {option.badge.label}
+              <span className="ml-1 opacity-70">{option.label}</span>
+            </Badge>
+          ))}
+        </div>
+      </section>
+
+      {/* Franchise, apart from the ladder, because it genuinely is. */}
+      <section className="border-border bg-card flex flex-col gap-4 rounded-xl border p-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 className="text-lg font-medium">Franchise</h2>
+          <Badge variant="outline" className={BADGES.y1.className}>
+            Franchise Partner
+          </Badge>
+        </div>
+        <p className="text-muted-foreground max-w-2xl text-sm">
+          A franchise runs outlets, sources across a district and onboards farmers, so it is
+          priced as a partnership rather than a subscription. The first year covers the work of
+          coming on — connecting outlets, training staff, covering a district — which happens once.
+        </p>
+        <div className="flex flex-wrap gap-6 pt-1">
+          <div className="flex flex-col">
+            <span className="text-3xl font-semibold tracking-tight tabular-nums">
+              {formatMoney(FRANCHISE_FIRST_YEAR)}
+            </span>
+            <span className="text-muted-foreground text-xs">first year</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-3xl font-semibold tracking-tight tabular-nums">
+              {formatMoney(FRANCHISE_RENEWAL)}
+            </span>
+            <span className="text-muted-foreground text-xs">every year after</span>
+          </div>
+        </div>
+        <Button asChild variant="outline" className="self-start">
+          <Link href={`/${locale}/signup?as=franchise`}>
+            Register as a franchise
+            <ArrowRightIcon className="size-4" />
+          </Link>
+        </Button>
+      </section>
+
       <section className="bg-secondary flex flex-col gap-2 rounded-xl px-6 py-5">
         <h2 className="font-medium">How you pay</h2>
         <p className="text-muted-foreground text-sm">
-          Choose a plan in your console and you are given a payment reference. Transfer the amount
-          quoting that reference and operations switch the plan on, usually the same working day.
-          Card and UPI checkout are not live yet.
+          Card and UPI through Razorpay, in your console, and you are on immediately. Paying by
+          bank transfer works too — you are given a reference and operations switch you on once it
+          clears, usually the same working day.
         </p>
       </section>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Button asChild size="lg">
           <Link href={`/${locale}/signup?as=farmer`}>
             Register free
@@ -141,6 +194,10 @@ export default async function PricingPage({
         <Button asChild size="lg" variant="outline">
           <Link href={`/${locale}/signin`}>Sign in</Link>
         </Button>
+        <span className="text-muted-foreground flex items-center gap-1.5 text-sm">
+          <InfinityIcon className="size-4 text-violet-600" />
+          {formatMoney(lifetime.price)} once, and never again
+        </span>
       </div>
     </div>
   );

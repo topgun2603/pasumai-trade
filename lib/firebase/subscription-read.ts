@@ -1,7 +1,7 @@
 import "server-only";
 
 import { COLLECTION_FOR_SIGNUP, canSelfSignup } from "@/lib/domain/signup";
-import type { Subscription, SubscriptionStatus } from "@/lib/domain/subscription";
+import { isTerm, type Subscription, type SubscriptionStatus, type Term } from "@/lib/domain/subscription";
 import type { Role } from "@/lib/auth/claims";
 import { money } from "@/lib/domain/money";
 
@@ -31,6 +31,11 @@ function toDate(value: unknown): Date | undefined {
   if (value instanceof Date) return value;
   const stamp = value as { toDate?: () => Date };
   return typeof stamp.toDate === "function" ? stamp.toDate() : undefined;
+}
+
+function readTerm(data: Record<string, unknown>): Term {
+  if (typeof data.term === "string" && isTerm(data.term)) return data.term;
+  return data.period === "yearly" ? "y1" : "m1";
 }
 
 export function shapeSubscription(raw: unknown): Subscription | null {
@@ -66,7 +71,11 @@ export function shapeSubscription(raw: unknown): Subscription | null {
       typeof amount?.minorUnits === "number" ? amount.minorUnits : 0,
       typeof amount?.currency === "string" ? amount.currency : "INR",
     ),
-    period: data.period === "yearly" ? "yearly" : "monthly",
+    // Records written before the term ladder carry `period: "monthly" | "yearly"`.
+    // Mapped rather than dropped, so an existing subscriber keeps what they paid
+    // for instead of silently reading as a one-month plan.
+    term: readTerm(data),
+    renewal: data.renewal === true,
   };
 }
 

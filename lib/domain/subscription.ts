@@ -107,17 +107,30 @@ export interface Subscription {
   readonly planId: string;
   readonly status: SubscriptionStatus;
   readonly startedAt: Date;
-  /** When the paid period ends. Access survives to here, then to the grace window. */
+  /**
+   * When the paid term ends. Access survives to here, then to the grace window.
+   *
+   * Set on a lifetime subscription too, far out, but nothing reads it — see
+   * `isLifetime`. A date is kept rather than left null so every query, sort and
+   * display that touches this field keeps working without a special case.
+   */
   readonly renewsAt: Date;
   /** Set when payment is confirmed. Absent while `requested`. */
   readonly paidAt?: Date;
   /** What operations quotes on the phone, and what the payer puts in the reference. */
   readonly reference: string;
   readonly amount: Money;
-  readonly period: BillingPeriod;
+  readonly term: Term;
+  /**
+   * True when this account has held a subscription before.
+   *
+   * Only franchise pricing reads it, where the first year costs more than
+   * every year after. Stored on the record rather than inferred from dates,
+   * because "have they paid us before" is a fact about the account and not
+   * something to re-derive from whatever history happens to survive.
+   */
+  readonly renewal?: boolean;
 }
-
-export type BillingPeriod = "monthly" | "yearly";
 
 /**
  * Days a lapsed subscription keeps working.
@@ -151,6 +164,9 @@ export function isSubscribed(
   switch (subscription.status) {
     case "trialing":
     case "active":
+      // Lifetime is the one term a date cannot end. Checked before the clock
+      // so a stored renewsAt going stale can never take it away.
+      if (isLifetime(subscription.term)) return true;
       return now.getTime() <= subscription.renewsAt.getTime();
     case "pastDue":
       return isWithinGrace(subscription, now);
@@ -167,6 +183,7 @@ export function effectiveStatus(
   now: Date,
 ): SubscriptionStatus | "none" {
   if (!subscription) return "none";
+  if (isLifetime(subscription.term) && subscription.status === "active") return "active";
   if (
     (subscription.status === "active" || subscription.status === "trialing") &&
     now.getTime() > subscription.renewsAt.getTime()
@@ -259,124 +276,179 @@ export function checkCapability(
 }
 
 /* -------------------------------------------------------------------------
-   Plans
+   Terms
    ------------------------------------------------------------------------- */
 
-export interface Plan {
-  readonly id: string;
-  readonly role: Role;
-  readonly name: string;
-  readonly blurb: string;
-  /** Per month, in paise. */
-  readonly monthly: Money;
-  /** Per year, in paise. Cheaper than twelve months or there is no reason to pick it. */
-  readonly yearly: Money;
-  readonly includes: readonly string[];
+/**
+ * How long somebody is buying, not what they are buying.
+ *
+ * Every role gets the same capabilities from any term — a farmer on one month
+ * can do exactly what a farmer on lifetime can. What a longer term buys is a
+ * lower effective monthly cost and a badge, and nothing else. Tiering the
+ * *features* would mean a farmer who paid less cannot sell properly, which on a
+ * marketplace means fewer listings, which is worse for everyone including the
+ * platform.
+ */
+export const TERMS = ["m1", "m3", "m6", "y1", "y2", "y3", "lifetime"] as const;
+
+export type Term = (typeof TERMS)[number];
+
+export function isTerm(value: string): value is Term {
+  return (TERMS as readonly string[]).includes(value);
+}
+
+export function isLifetime(term: Term): boolean {
+  return term === "lifetime";
 }
 
 /**
- * Opening prices.
+ * A badge, earned by term.
  *
- * Deliberately low, and deliberately different per role: a farmer with two
- * acres and a buyer running six outlets are not the same customer, and one
- * price for both would be too much for the first or nothing to the second.
- *
- * These are a starting point for operations to change, not a decision the code
- * owns — same reasoning as the policy dials. They are editable in Controls.
+ * The visible half of the ladder. Somebody on a three-year plan has backed the
+ * platform in a way a monthly subscriber has not, and a marketplace where the
+ * other side of the trade can see that is a marketplace where it is worth
+ * doing. Deliberately about commitment and never about trust — a Founder badge
+ * says they paid, not that they are honest. Verification says that, and the two
+ * must not be confusable.
  */
-export const DEFAULT_PLANS: readonly Plan[] = [
-  {
-    id: "farmer-grower",
-    role: "farmer",
-    name: "Grower",
-    blurb: "List what you grow and bargain on your own price.",
-    monthly: rupees(99),
-    yearly: rupees(999),
-    includes: [
-      "Unlimited listings",
-      "Bargain directly with buyers",
-      "See what every grade settled at",
-      "Payment on delivery, tracked",
-    ],
+export interface Badge {
+  readonly id: string;
+  readonly label: string;
+  /** Tailwind classes. Kept with the badge so every surface renders it alike. */
+  readonly className: string;
+}
+
+export const BADGES: Record<Term, Badge> = {
+  m1: { id: "member", label: "Member", className: "border-border text-muted-foreground" },
+  m3: { id: "bronze", label: "Bronze", className: "border-[#a1662f]/40 text-[#a1662f]" },
+  m6: { id: "silver", label: "Silver", className: "border-slate-400/50 text-slate-500" },
+  y1: { id: "gold", label: "Gold", className: "border-amber-500/50 text-amber-600" },
+  y2: { id: "platinum", label: "Platinum", className: "border-teal-500/50 text-teal-600" },
+  y3: { id: "diamond", label: "Diamond", className: "border-sky-500/50 text-sky-600" },
+  lifetime: {
+    id: "founder",
+    label: "Founder",
+    className: "border-violet-500/60 bg-violet-500/10 text-violet-600 dark:text-violet-400",
   },
+};
+
+export function badgeFor(term: Term): Badge {
+  return BADGES[term];
+}
+
+export interface TermOption {
+  readonly term: Term;
+  readonly label: string;
+  /** Null for lifetime, which is the whole point of it. */
+  readonly months: number | null;
+  readonly price: Money;
+  /** Marked in the interface as the one most people should take. */
+  readonly recommended?: boolean;
+  /** Rendered apart from the ladder, in its own colour. */
+  readonly highlight?: boolean;
+  readonly badge: Badge;
+}
+
+/**
+ * The ladder everyone except a franchise pays.
+ *
+ * One price list for farmers, buyers, transport and manpower. They were priced
+ * separately before, on the theory that a farmer and a buyer are different
+ * customers — true, but the difference was not worth four price lists to
+ * maintain and explain, and the cheap monthly entry point matters more to the
+ * farmer than a discount would.
+ *
+ * A franchise is genuinely a different business and keeps its own list below.
+ */
+export const STANDARD_TERMS: readonly TermOption[] = [
+  { term: "m1", label: "1 month", months: 1, price: rupees(199), badge: BADGES.m1 },
+  { term: "m3", label: "3 months", months: 3, price: rupees(349), badge: BADGES.m3 },
+  { term: "m6", label: "6 months", months: 6, price: rupees(599), badge: BADGES.m6 },
   {
-    id: "buyer-trade",
-    role: "buyer",
-    name: "Trade",
-    blurb: "Buy direct from farmers, graded and traceable.",
-    monthly: rupees(499),
-    yearly: rupees(4999),
-    includes: [
-      "Bargain with any farmer on the platform",
-      "Place orders and track them to delivery",
-      "Grade-by-grade price history",
-      "Book transport and crew",
-    ],
+    term: "y1",
+    label: "1 year",
+    months: 12,
+    price: rupees(999),
+    // The one most people should take: half the effective monthly cost of the
+    // monthly plan, without asking for a commitment nobody can judge yet.
+    recommended: true,
+    badge: BADGES.y1,
   },
+  { term: "y2", label: "2 years", months: 24, price: rupees(1499), badge: BADGES.y2 },
+  { term: "y3", label: "3 years", months: 36, price: rupees(1999), badge: BADGES.y3 },
   {
-    id: "franchise-outlet",
-    role: "franchise",
-    name: "Outlet",
-    blurb: "Source for a franchise, across districts.",
-    monthly: rupees(999),
-    yearly: rupees(9999),
-    includes: [
-      "Everything in Trade",
-      "Source across every district you cover",
-      "Onboard farmers to the platform",
-      "Consolidated settlement",
-    ],
-  },
-  {
-    id: "transport-fleet",
-    role: "transport",
-    name: "Fleet",
-    blurb: "Put your vehicles in front of every buyer.",
-    monthly: rupees(799),
-    yearly: rupees(7999),
-    includes: [
-      "Unlimited vehicles and drivers",
-      "Dispatch jobs across your districts",
-      "Document expiry warnings before they bite",
-      "Paid per completed trip",
-    ],
-  },
-  {
-    id: "manpower-crew",
-    role: "manpower",
-    name: "Crew",
-    blurb: "Supply harvest and grading labour.",
-    monthly: rupees(799),
-    yearly: rupees(7999),
-    includes: [
-      "Unlimited workers",
-      "Jobs across your districts",
-      "Skill and document tracking",
-      "Paid per completed job",
-    ],
+    term: "lifetime",
+    label: "Lifetime",
+    months: null,
+    price: rupees(4999),
+    recommended: true,
+    highlight: true,
+    badge: BADGES.lifetime,
   },
 ];
 
-export function plansForRole(role: Role, plans: readonly Plan[] = DEFAULT_PLANS): Plan[] {
-  return plans.filter((plan) => plan.role === role);
+/**
+ * A franchise pays yearly, and the first year costs more.
+ *
+ * ₹1,25,000 to come on, ₹99,000 every year after. The gap is onboarding: a
+ * franchise arrives with outlets to connect, staff to train and a district to
+ * cover, and that work happens once. Charging it as a separate fee would be
+ * more honest still, but a single number is what a franchise agreement is
+ * negotiated against.
+ */
+export const FRANCHISE_FIRST_YEAR = rupees(125_000);
+export const FRANCHISE_RENEWAL = rupees(99_000);
+
+export function franchiseTerms(renewal: boolean): readonly TermOption[] {
+  return [
+    {
+      term: "y1",
+      label: renewal ? "1 year — renewal" : "1 year — first year",
+      months: 12,
+      price: renewal ? FRANCHISE_RENEWAL : FRANCHISE_FIRST_YEAR,
+      recommended: true,
+      badge: { id: "franchise", label: "Franchise Partner", className: BADGES.y1.className },
+    },
+  ];
 }
 
-export function planById(
-  id: string,
-  plans: readonly Plan[] = DEFAULT_PLANS,
-): Plan | undefined {
-  return plans.find((plan) => plan.id === id);
+/** The ladder this account sees, which depends on the role and their history. */
+export function termsFor(role: Role, renewal = false): readonly TermOption[] {
+  if (role === "admin") return [];
+  return role === "franchise" ? franchiseTerms(renewal) : STANDARD_TERMS;
 }
 
-export function priceFor(plan: Plan, period: BillingPeriod): Money {
-  return period === "yearly" ? plan.yearly : plan.monthly;
+export function termOption(
+  role: Role,
+  term: Term,
+  renewal = false,
+): TermOption | undefined {
+  return termsFor(role, renewal).find((t) => t.term === term);
 }
 
-/** What a year costs against twelve months of it, as a percentage. */
-export function yearlySaving(plan: Plan): number {
-  const twelve = plan.monthly.minorUnits * 12;
-  if (twelve === 0) return 0;
-  return Math.round(((twelve - plan.yearly.minorUnits) / twelve) * 100);
+/* ---- what a term works out at ---- */
+
+/** Per month, in paise. Undefined for lifetime, which has no month to divide by. */
+export function perMonth(option: TermOption): number | undefined {
+  if (option.months === null) return undefined;
+  return Math.round(option.price.minorUnits / option.months);
+}
+
+/**
+ * How much cheaper per month than paying monthly, as a percentage.
+ *
+ * Against the one-month price, because that is the number somebody is deciding
+ * against. Zero for the monthly term itself and for lifetime, which is not
+ * comparable on a monthly basis and should be sold on being final instead.
+ */
+export function savingPercent(
+  option: TermOption,
+  baseline: readonly TermOption[] = STANDARD_TERMS,
+): number {
+  const monthly = baseline.find((t) => t.term === "m1")?.price.minorUnits;
+  const rate = perMonth(option);
+  if (!monthly || rate === undefined || option.term === "m1") return 0;
+  return Math.max(0, Math.round(((monthly - rate) / monthly) * 100));
 }
 
 /* -------------------------------------------------------------------------
@@ -411,21 +483,37 @@ export function subscriptionReference(random: string): string {
  * asserting a payment it has no way to observe.
  */
 export function requestSubscription(
-  plan: Plan,
-  period: BillingPeriod,
+  option: TermOption,
   reference: string,
   now: Date,
+  renewal = false,
 ): Subscription {
   return {
-    planId: plan.id,
+    planId: option.term,
     status: "requested",
     startedAt: now,
-    renewsAt: new Date(now.getTime() + (period === "yearly" ? YEAR_MS : MONTH_MS)),
+    renewsAt: endOf(option, now),
     reference,
-    amount: priceFor(plan, period),
-    period,
+    amount: option.price,
+    term: option.term,
+    renewal,
   };
 }
+
+/** When a term bought now would run to. Lifetime gets a date nobody reaches. */
+function endOf(option: TermOption, from: Date): Date {
+  if (option.months === null) return new Date(from.getTime() + LIFETIME_MS);
+  return new Date(from.getTime() + option.months * MONTH_MS);
+}
+
+/**
+ * A hundred years.
+ *
+ * Lifetime access is decided by the term, not by this date — `isSubscribed`
+ * short-circuits on it. The date exists so that every sort, filter and "runs
+ * to" label keeps working without each one needing to know about lifetime.
+ */
+const LIFETIME_MS = 100 * YEAR_MS;
 
 /**
  * Payment confirmed.
@@ -440,10 +528,15 @@ export function activate(subscription: Subscription, paidAt: Date): Subscription
     ...subscription,
     status: "active",
     paidAt,
-    renewsAt: new Date(
-      paidAt.getTime() + (subscription.period === "yearly" ? YEAR_MS : MONTH_MS),
-    ),
+    renewsAt: new Date(paidAt.getTime() + termMs(subscription.term)),
   };
+}
+
+/** How long a term lasts, in milliseconds. */
+function termMs(term: Term): number {
+  if (isLifetime(term)) return LIFETIME_MS;
+  const months = STANDARD_TERMS.find((t) => t.term === term)?.months ?? 12;
+  return months * MONTH_MS;
 }
 
 /** Renewal extends from the existing end date, so nobody loses days by paying early. */
@@ -453,7 +546,10 @@ export function renew(subscription: Subscription, paidAt: Date): Subscription {
     ...subscription,
     status: "active",
     paidAt,
-    renewsAt: new Date(from + (subscription.period === "yearly" ? YEAR_MS : MONTH_MS)),
+    // Renewing marks the account as having paid before, which is what franchise
+    // pricing turns on from the second year.
+    renewal: true,
+    renewsAt: new Date(from + termMs(subscription.term)),
   };
 }
 

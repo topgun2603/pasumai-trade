@@ -5,6 +5,7 @@ import {
   ClockIcon,
   CopyIcon,
   FlaskConicalIcon,
+  InfinityIcon,
   ShieldCheckIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -17,16 +18,19 @@ import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/domain/money";
 import {
   SUBSCRIPTION_LABELS,
-  type BillingPeriod,
-  type Plan,
+  type Badge as TermBadge,
   type SubscriptionStatus,
+  type Term,
+  type TermOption,
 } from "@/lib/domain/subscription";
 import { loadCheckout, openCheckout } from "@/lib/payments/checkout";
 
-/** What the server already worked out, so the client does not re-derive it. */
+/** What the server already worked out, so the client re-derives none of it. */
 export interface SubscriptionView {
   readonly status: SubscriptionStatus | "none";
-  readonly planName?: string;
+  readonly termLabel?: string;
+  readonly badge?: TermBadge;
+  readonly lifetime?: boolean;
   readonly reference?: string;
   readonly amountLabel?: string;
   readonly renewsAtLabel?: string;
@@ -44,12 +48,13 @@ const TONE: Record<SubscriptionStatus | "none", string> = {
 };
 
 export function SubscribePanel({
-  plans,
+  options,
   current,
   payer,
   bypassed = false,
 }: {
-  plans: readonly Plan[];
+  /** The ladder this account is offered, priced for their history. */
+  options: readonly TermOption[];
   current: SubscriptionView;
   /** Prefills the checkout so nobody retypes what the platform already knows. */
   payer?: { name?: string; email?: string; mobile?: string };
@@ -57,26 +62,23 @@ export function SubscribePanel({
   bypassed?: boolean;
 }) {
   const router = useRouter();
-  const [period, setPeriod] = useState<BillingPeriod>("monthly");
-  const [pending, setPending] = useState<string | null>(null);
+  const [pending, setPending] = useState<Term | null>(null);
   const [reference, setReference] = useState<string | null>(current.reference ?? null);
 
-  /**
-   * Subscribe, end to end.
-   *
-   * Open an order on the server, take the payment in Razorpay's modal, then
-   * hand what it returns back to the server to be verified. The middle step is
-   * the only one the browser owns, and nothing it says is believed without the
-   * signature check at the end.
-   */
-  async function choose(plan: Plan) {
-    setPending(plan.id);
+  // Lifetime is pulled out of the ladder and given its own row beneath it.
+  // Ranking it as a seventh rung invites a farmer to read it as "three years,
+  // but more", which is not what it is.
+  const ladder = options.filter((o) => !o.highlight);
+  const lifetime = options.find((o) => o.highlight);
+
+  async function choose(option: TermOption) {
+    setPending(option.term);
 
     try {
       const response = await fetch("/api/subscription/checkout", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ planId: plan.id, period }),
+        body: JSON.stringify({ term: option.term }),
       });
 
       const data = (await response.json().catch(() => ({}))) as {
@@ -91,8 +93,7 @@ export function SubscribePanel({
         bypassed?: boolean;
       };
 
-      // Payment is switched off: the server already activated it. Nothing to
-      // open, nothing to verify.
+      // Payment is switched off: the server already activated it.
       if (response.ok && data.bypassed) {
         setPending(null);
         toast.success("Subscription active (payment bypassed)", {
@@ -105,8 +106,6 @@ export function SubscribePanel({
       if (!response.ok || !data.orderId) {
         if (data.alreadyActive) toast.info("That subscription is already running.");
         else if (response.status === 503) {
-          // No payment credentials on this deployment. Said as a fact rather
-          // than as a failure they could retry their way out of.
           toast.error("Card payment is not switched on here yet.", {
             description: "Ask operations for a bank transfer reference instead.",
           });
@@ -132,14 +131,13 @@ export function SubscribePanel({
           amount: data.amount ?? 0,
           currency: data.currency ?? "INR",
           keyId: data.keyId ?? "",
-          planName: data.planName ?? plan.name,
+          planName: data.planName ?? option.label,
           reference: data.reference ?? "",
         },
         { name: payer?.name, email: payer?.email, contact: payer?.mobile },
       );
 
-      // Dismissed. Not an error — the order stays open and Subscribe works
-      // again whenever they come back to it.
+      // Dismissed. Not an error — the order stays open.
       if (!result) {
         setPending(null);
         return;
@@ -155,8 +153,8 @@ export function SubscribePanel({
       setPending(null);
 
       if (!verified.ok) {
-        // The money may well have left their account — the webhook is what
-        // rescues this, so the message must not tell them to pay again.
+        // The money may well have left their account — the webhook rescues
+        // this, so the message must not tell them to pay again.
         toast.error(outcome.error ?? "Payment could not be confirmed.", {
           description:
             "If you were charged, it will be applied automatically within a few minutes.",
@@ -172,21 +170,36 @@ export function SubscribePanel({
     }
   }
 
+  const cta = (option: TermOption) => (
+    <Button
+      type="button"
+      className="w-full"
+      variant={option.highlight ? "default" : option.recommended ? "default" : "outline"}
+      disabled={pending !== null}
+      onClick={() => choose(option)}
+    >
+      {pending === option.term
+        ? bypassed
+          ? "Activating…"
+          : "Opening payment…"
+        : bypassed
+          ? "Activate (no payment)"
+          : current.status === "expired" || current.status === "pastDue"
+            ? "Renew"
+            : `Pay ${formatMoney(option.price)}`}
+    </Button>
+  );
+
   return (
     <div className="flex flex-col gap-6">
-      {/*
-        Loud on purpose, and on every surface that can create a subscription.
-        A payment bypass nobody can see is a payment bypass that survives to
-        production.
-      */}
       {bypassed ? (
         <div className="border-warning/40 bg-warning-soft text-warning flex items-start gap-2.5 rounded-lg border px-4 py-3">
           <FlaskConicalIcon className="mt-0.5 size-4 shrink-0" />
           <span className="flex flex-col gap-0.5 text-sm">
             <span className="font-medium">Payment is bypassed for testing</span>
             <span className="opacity-90">
-              Choosing a plan activates it immediately and charges nothing. Unset
-              PAYMENTS_BYPASS to take real payments.
+              Choosing a term activates it immediately and charges nothing. Unset PAYMENTS_BYPASS
+              to take real payments.
             </span>
           </span>
         </div>
@@ -198,35 +211,44 @@ export function SubscribePanel({
         <div className="flex items-center gap-2.5">
           <ShieldCheckIcon className="size-4 shrink-0" />
           <div className="flex flex-col leading-tight">
-            <span className="text-sm font-medium">
+            <span className="flex items-center gap-2 text-sm font-medium">
               {current.status === "none"
                 ? "No subscription"
                 : SUBSCRIPTION_LABELS[current.status]}
-              {current.planName ? ` · ${current.planName}` : ""}
+              {current.termLabel ? ` · ${current.termLabel}` : ""}
+              {/* The badge they hold, shown wherever their standing is. */}
+              {current.badge && current.status === "active" ? (
+                <Badge variant="outline" className={current.badge.className}>
+                  {current.badge.label}
+                </Badge>
+              ) : null}
             </span>
             <span className="text-xs opacity-80">
               {current.status === "none"
-                ? "Browsing is free. Choose a plan to start trading."
+                ? "Browsing is free. Choose a term to start trading."
                 : current.status === "requested"
                   ? "Starts the moment your payment clears."
-                  : current.renewsAtLabel
-                    ? `Runs to ${current.renewsAtLabel}`
-                    : ""}
+                  : current.lifetime
+                    ? "Yours for good. Nothing to renew."
+                    : current.renewsAtLabel
+                      ? `Runs to ${current.renewsAtLabel}`
+                      : ""}
             </span>
           </div>
         </div>
-        {typeof current.daysLeft === "number" && current.daysLeft > 0 ? (
+
+        {current.lifetime ? (
+          <Badge variant="outline" className="border-violet-500/50 text-violet-600">
+            <InfinityIcon className="size-3" />
+            Lifetime
+          </Badge>
+        ) : typeof current.daysLeft === "number" && current.daysLeft > 0 ? (
           <Badge variant="outline" className="tabular-nums">
             {current.daysLeft} days left
           </Badge>
         ) : null}
       </div>
 
-      {/*
-        The reference is no longer how you pay — card and UPI go through the
-        checkout modal. It stays because it is what operations quote on the
-        phone, and what somebody paying by transfer still needs.
-      */}
       {reference && current.status !== "active" && !bypassed ? (
         <div className="border-border flex flex-col gap-2 rounded-lg border px-4 py-3.5">
           <span className="flex items-center gap-2 text-sm font-medium">
@@ -256,58 +278,38 @@ export function SubscribePanel({
           </div>
           <p className="text-muted-foreground flex items-start gap-1.5 text-xs">
             <ClockIcon className="mt-0.5 size-3.5 shrink-0" />
-            Quote this reference on the transfer. Operations switch you on once it clears — usually
-            the same working day. Paying by card or UPI above is instant.
+            Quote this reference on the transfer. Operations switch you on once it clears —
+            usually the same working day. Paying by card or UPI above is instant.
           </p>
         </div>
       ) : null}
 
-      <div className="flex items-center gap-2">
-        {(["monthly", "yearly"] as const).map((option) => (
-          <button
-            key={option}
-            type="button"
-            onClick={() => setPeriod(option)}
-            aria-pressed={period === option}
-            className={`rounded-full border px-3 py-1 text-sm capitalize transition-colors ${
-              period === option
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border hover:bg-secondary"
-            }`}
-          >
-            {option}
-          </button>
-        ))}
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        {plans.map((plan) => (
+      {/* The ladder. Longer terms cost less per month and nothing else changes
+          — every term buys the same capabilities, because a farmer who paid
+          less should not be a farmer who can sell less. */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {ladder.map((option) => (
           <PlanCard
-            key={plan.id}
-            plan={plan}
-            period={period}
-            highlight={plan.name === current.planName}
-            footer={
-              <Button
-                type="button"
-                className="w-full"
-                disabled={pending !== null}
-                onClick={() => choose(plan)}
-              >
-                {pending === plan.id
-                  ? bypassed
-                    ? "Activating…"
-                    : "Opening payment…"
-                  : bypassed
-                    ? "Activate (no payment)"
-                    : current.status === "expired" || current.status === "pastDue"
-                      ? `Renew — ${formatMoney(period === "yearly" ? plan.yearly : plan.monthly)}`
-                      : `Pay ${formatMoney(period === "yearly" ? plan.yearly : plan.monthly)}`}
-              </Button>
-            }
+            key={option.term}
+            option={option}
+            selected={current.termLabel === option.label}
+            footer={cta(option)}
           />
         ))}
       </div>
+
+      {lifetime ? (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <span className="bg-border h-px flex-1" />
+            <span className="text-muted-foreground text-xs">or stop paying altogether</span>
+            <span className="bg-border h-px flex-1" />
+          </div>
+          <div className="sm:max-w-sm">
+            <PlanCard option={lifetime} footer={cta(lifetime)} />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

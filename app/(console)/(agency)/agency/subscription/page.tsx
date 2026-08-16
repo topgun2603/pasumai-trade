@@ -7,10 +7,12 @@ import { requireAgency } from "@/lib/auth/agency";
 import { verifySession } from "@/lib/auth/session";
 import { formatMoney } from "@/lib/domain/money";
 import {
+  badgeFor,
   daysRemaining,
   effectiveStatus,
-  planById,
-  plansForRole,
+  isLifetime,
+  termOption,
+  termsFor,
 } from "@/lib/domain/subscription";
 import { readAccountState } from "@/lib/firebase/subscription-read";
 import { paymentsBypassed } from "@/lib/payments/bypass";
@@ -35,21 +37,28 @@ export default async function AgencySubscriptionPage() {
 
   const state = await readAccountState(role, agency.id);
   const subscription = state.subscription;
-  const plan = subscription ? planById(subscription.planId) : undefined;
+
+  const renewal = subscription?.renewal === true || subscription?.paidAt !== undefined;
+  const option = subscription ? termOption(role, subscription.term, renewal) : undefined;
+  const lifetime = subscription ? isLifetime(subscription.term) : false;
 
   const current: SubscriptionView = {
     status: effectiveStatus(subscription, now),
-    planName: plan?.name,
+    termLabel: option?.label,
+    badge: subscription ? badgeFor(subscription.term) : undefined,
+    lifetime,
     reference: subscription?.reference,
     amountLabel: subscription ? formatMoney(subscription.amount) : undefined,
-    renewsAtLabel: subscription
-      ? subscription.renewsAt.toLocaleDateString("en-IN", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-        })
-      : undefined,
-    daysLeft: subscription ? Math.max(0, daysRemaining(subscription, now)) : undefined,
+    renewsAtLabel:
+      subscription && !lifetime
+        ? subscription.renewsAt.toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })
+        : undefined,
+    daysLeft:
+      subscription && !lifetime ? Math.max(0, daysRemaining(subscription, now)) : undefined,
   };
 
   return (
@@ -64,7 +73,7 @@ export default async function AgencySubscriptionPage() {
       />
       <div className="flex flex-col gap-6 p-5">
         <SubscribePanel
-          plans={plansForRole(role)}
+          options={termsFor(role, renewal)}
           current={current}
           payer={{ name: agency.name, email, mobile: agency.mobile }}
           bypassed={paymentsBypassed()}
