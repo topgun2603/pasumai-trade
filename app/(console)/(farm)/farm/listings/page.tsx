@@ -3,15 +3,20 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 
-import { ListingCard } from "@/components/farm/listing-card";
+import { ListingsBrowser } from "@/components/farm/listings-browser";
 import { PostProduceDialog } from "@/components/farm/post-produce-dialog";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { requireFarmer } from "@/lib/auth/farm";
 import { produceName } from "@/lib/domain/models";
 import { isReady, nextStep } from "@/lib/domain/readiness";
+import { readControls } from "@/lib/firebase/controls-read";
 import { farmTotals, readFarmerListings } from "@/lib/firebase/listings-read";
+import { readNegotiations } from "@/lib/firebase/negotiations-read";
 import { CATALOGUE } from "@/lib/mock/catalogue";
+import { GEOGRAPHY } from "@/lib/mock/locations";
+import { negotiations } from "@/lib/mock/negotiations";
+import { DOCUMENT_RULES, PACKS, PHRASES } from "@/lib/mock/reference";
 
 export const metadata: Metadata = { title: "My produce · Farmer" };
 
@@ -23,8 +28,30 @@ export default async function FarmListingsPage() {
   // From Firestore, which is where posting writes. This page used to read the
   // mock catalogue, so a farmer could post, get a 201, and watch nothing
   // appear.
-  const listings = await readFarmerListings(farmer.id);
+  const clock = new Date().getTime();
+  const [listings, { threads }, controls] = await Promise.all([
+    readFarmerListings(farmer.id),
+    readNegotiations(negotiations(clock)),
+    readControls({
+      crops: Object.values(CATALOGUE),
+      geo: GEOGRAPHY,
+      packs: PACKS,
+      phrases: PHRASES,
+      documentRules: DOCUMENT_RULES,
+    }),
+  ]);
   const totals = farmTotals(listings);
+
+  /*
+    Only *open* bargains hang off a listing. A settled one is a record, not a
+    decision, and it lives on the history page — mixing them would mean
+    scrolling past last month's sales to answer today's offer.
+  */
+  const threadsByListing: Record<string, typeof threads> = {};
+  for (const thread of threads) {
+    if (thread.farmerId !== farmer.id || thread.status !== "open") continue;
+    (threadsByListing[thread.listingId] ??= []).push(thread);
+  }
 
   // Both flags. The lock names whichever step is actually in the way, because
   // "Subscribe to post" shown to somebody whose verification is pending sends
@@ -116,11 +143,15 @@ export default async function FarmListingsPage() {
             )}
           </div>
         ) : (
-          <ul className="flex flex-col gap-3">
-            {listings.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
-            ))}
-          </ul>
+          <ListingsBrowser
+            listings={listings}
+            threadsByListing={threadsByListing}
+            now={clock}
+            quickReplies={controls.phrases}
+            validForMinutes={controls.policy.proposalValidityMinutes}
+            editable={ready}
+            crops={crops}
+          />
         )}
       </div>
     </>

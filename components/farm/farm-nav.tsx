@@ -39,7 +39,7 @@ import { cn } from "@/lib/utils";
 const LINKS = [
   { href: "/farm", label: "Today", icon: GaugeIcon, exact: true },
   { href: "/farm/listings", label: "My produce", icon: SproutIcon },
-  { href: "/farm/bargains", label: "Bargains", icon: HandshakeIcon },
+  { href: "/farm/bargains", label: "Sales", icon: HandshakeIcon },
   { href: "/farm/account", label: "Account", icon: UserRoundIcon },
 ];
 
