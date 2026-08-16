@@ -9,12 +9,14 @@ import {
 } from "@/components/admin/controls-panels";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import {
+  BargainVocabularyPanel,
   DocumentRulesPanel,
   PacksPanel,
   PhrasesPanel,
   PolicyPanel,
 } from "@/components/admin/reference-panels";
 import { Separator } from "@/components/ui/separator";
+import { readBargainVocabulary } from "@/lib/firebase/bargain-vocabulary-read";
 import { readControls } from "@/lib/firebase/controls-read";
 import { CATALOGUE } from "@/lib/mock/catalogue";
 import { GEOGRAPHY } from "@/lib/mock/locations";
@@ -26,14 +28,22 @@ export const metadata: Metadata = { title: "Controls · Admin" };
 export default async function ControlsPage() {
   await connection();
 
-  const { crops, geo, packs, phrases, documentRules, policy, live } =
-    await readControls({
+  const [
+    { crops, geo, packs, phrases, documentRules, policy, live },
+    { vocabulary, live: vocabularyLive },
+  ] = await Promise.all([
+    readControls({
       crops: Object.values(CATALOGUE),
       geo: GEOGRAPHY,
       packs: PACKS,
       phrases: PHRASES,
       documentRules: DOCUMENT_RULES,
-    });
+    }),
+    // Its own read rather than part of Controls: the bargaining screens need
+    // this list without pulling the whole crop catalogue and geography with it,
+    // so it lives in a reader they can call on their own.
+    readBargainVocabulary(),
+  ]);
 
   // Editing is offered only when a save would actually take: the record has to
   // have come from Firestore, and the write endpoints refuse in production
@@ -75,6 +85,12 @@ export default async function ControlsPage() {
         <PacksPanel packs={packs} editable={editable} />
         <Separator />
         <PhrasesPanel phrases={phrases} editable={editable} />
+        <Separator />
+        <BargainVocabularyPanel
+          vocabulary={vocabulary}
+          live={vocabularyLive}
+          editable={editable}
+        />
         <Separator />
         <DocumentRulesPanel
           rules={documentRules}

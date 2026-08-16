@@ -4,6 +4,7 @@ import { RadioIcon, WifiOffIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { BargainConsole } from "@/components/negotiation/bargain-console";
+import type { VocabularyEntry } from "@/lib/domain/bargain-vocabulary";
 import type { GradeQuantity } from "@/lib/domain/listing-draft";
 import type { Negotiation, Party } from "@/lib/domain/negotiation";
 import { fromWire, type WireNegotiation } from "@/lib/domain/negotiation-wire";
@@ -27,6 +28,7 @@ export function LiveBargains({
   viewer,
   now,
   validForMinutes,
+  vocabulary,
   remaining,
   editable,
   initialThreadId,
@@ -37,6 +39,8 @@ export function LiveBargains({
   viewer: Party;
   now: number;
   validForMinutes: number;
+  /** What either side may say, read from Controls on the server. */
+  vocabulary: readonly VocabularyEntry[];
   /**
    * What is unsold per listing, from the server.
    *
@@ -106,6 +110,7 @@ export function LiveBargains({
         viewer={viewer}
         now={now}
         validForMinutes={validForMinutes}
+        vocabulary={vocabulary}
         remaining={remaining}
         editable={editable}
         initialThreadId={initialThreadId}

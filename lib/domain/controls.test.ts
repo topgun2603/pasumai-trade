@@ -306,6 +306,70 @@ describe("validate phrases", () => {
   });
 });
 
+/**
+ * The bargain vocabulary is the only text that reaches a bargaining screen —
+ * that screen has no input box — so this validator is the whole boundary
+ * between an operator and what two traders can say to each other.
+ */
+describe("validate bargain phrases", () => {
+  const SAYING = {
+    speaker: "buyer",
+    topic: "timing",
+    text: { en: "We can collect on the weekend.", ta: "வார இறுதியில் எடுக்கலாம்." },
+  };
+
+  it("accepts an ordinary phrase and slugs the id from the English", () => {
+    const result = validate("bargainPhrases", SAYING);
+    expect(result.ok).toBe(true);
+    expect(result.id).toBe("we-can-collect-on-the-weekend");
+    expect(result.data).toMatchObject({ speaker: "buyer", topic: "timing", active: true });
+  });
+
+  it("requires English, because every other language falls back to it", () => {
+    const result = validate("bargainPhrases", { ...SAYING, text: { ta: "சரி" } });
+    expect(result.ok).toBe(false);
+    expect(result.errors[0]).toContain("English");
+  });
+
+  it("refuses a phone number, which is the whole point of the fixed list", () => {
+    const result = validate("bargainPhrases", {
+      ...SAYING,
+      text: { en: "Call me on 98430 11204 for a better rate." },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.errors[0]).toContain("number");
+  });
+
+  it("refuses a number hidden in a translation nobody proof-reads", () => {
+    // English clean, Tamil carrying the number. Checking only `en` would ship
+    // it to exactly the reader least able to report it.
+    const result = validate("bargainPhrases", {
+      ...SAYING,
+      text: { en: "Call me about the rate.", ta: "என்னை ௯௮௪௩௦ இல் அழைக்கவும்." },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.errors[0]).toContain("TA");
+  });
+
+  it("refuses an unknown speaker or topic", () => {
+    expect(validate("bargainPhrases", { ...SAYING, speaker: "broker" }).ok).toBe(false);
+    expect(validate("bargainPhrases", { ...SAYING, topic: "weather" }).ok).toBe(false);
+  });
+
+  it("keeps only the six known languages", () => {
+    const result = validate("bargainPhrases", {
+      ...SAYING,
+      text: { ...SAYING.text, fr: "Nous pouvons collecter." },
+    });
+    expect(Object.keys(result.data?.text as object).sort()).toEqual(["en", "ta"]);
+  });
+
+  it("can be switched off rather than deleted", () => {
+    const result = validate("bargainPhrases", { ...SAYING, active: false });
+    expect(result.data?.active).toBe(false);
+  });
+});
+
 describe("validate document rules", () => {
   const RULE = { stateId: "tn", subject: "buyer", required: ["pan", "gst"] };
 

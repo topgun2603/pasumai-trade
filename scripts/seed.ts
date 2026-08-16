@@ -35,6 +35,7 @@ import { openListings } from "@/lib/mock/listings";
 import { GEOGRAPHY } from "@/lib/mock/locations";
 import { stockOffers } from "@/lib/mock/market";
 import { negotiations } from "@/lib/mock/negotiations";
+import { BARGAIN_VOCABULARY } from "@/lib/domain/bargain-vocabulary";
 import { DOCUMENT_RULES, PACKS, PHRASES } from "@/lib/mock/reference";
 import { DEFAULT_POLICY, POLICY_DOC_ID } from "@/lib/domain/policy";
 import { buyerOrders } from "@/lib/mock/orders";
@@ -246,6 +247,22 @@ async function main() {
       channel: p.channel,
       audience: p.audience,
       text: p.text,
+      active: p.active,
+    }),
+  );
+
+  // What either side may say while bargaining. Seeded so operations have
+  // something to edit rather than a blank table, and so the bargaining screens
+  // work on a fresh project before anyone opens Controls.
+  total += await writeAll(
+    db,
+    "bargainPhrases",
+    BARGAIN_VOCABULARY,
+    (p) => p.id,
+    (p) => ({
+      text: p.text,
+      speaker: p.speaker,
+      topic: p.topic,
       active: p.active,
     }),
   );

@@ -26,11 +26,20 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { DOCUMENT_LABELS, type DocumentKind } from "@/lib/domain/admin";
+import {
+  hasDigits,
+  TOPICS,
+  TOPIC_LABELS,
+  type Speaker,
+  type Topic,
+  type VocabularyEntry,
+} from "@/lib/domain/bargain-vocabulary";
 import { QUANTITY_UNITS, type QuantityUnit } from "@/lib/domain/enums";
 import type { State } from "@/lib/domain/location";
 import { POLICY_FIELDS, type PlatformPolicy } from "@/lib/domain/policy";
 import type { DocumentRule, Pack, Phrase } from "@/lib/mock/reference";
 import { LOCALES, LOCALE_META } from "@/lib/i18n/config";
+import { cn } from "@/lib/utils";
 
 /**
  * Editors for the reference data that has no home of its own.
@@ -412,6 +421,202 @@ export function PhraseDialog({
             Cancel
           </Button>
           <Button onClick={save} disabled={pending}>
+            {pending ? "Saving…" : phrase ? "Save changes" : "Add phrase"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* -------------------------------------------------------------------------
+   Bargain phrase
+   ------------------------------------------------------------------------- */
+
+const SPEAKERS: Array<{ id: Speaker; label: string; hint: string }> = [
+  { id: "farmer", label: "Farmer only", hint: "Only the farmer can send it." },
+  { id: "buyer", label: "Buyer only", hint: "Only the buyer can send it." },
+  { id: "both", label: "Either side", hint: "Both can send it." },
+];
+
+/**
+ * A sentence either side of a bargain can send.
+ *
+ * The only way words reach a bargaining screen, which makes this form heavier
+ * than it looks. Two things it does that the notification editor does not:
+ *
+ *  - **Refuses digits before you save.** A number in a phrase is a phone
+ *    number in a bargain — the exact thing the fixed vocabulary exists to
+ *    prevent — and the platform would be translating it six ways and putting
+ *    its own name behind it. Caught here so the mistake is visible while the
+ *    text is on screen, and again on the server so it cannot be posted round.
+ *
+ *  - **Names who may say it.** A farmer does not say "we will collect
+ *    tomorrow", so the phrase appears only on the side that can mean it.
+ */
+export function BargainPhraseDialog({
+  phrase,
+  open,
+  onOpenChange,
+}: {
+  phrase?: VocabularyEntry;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { create, update, pending } = useControls();
+  const [text, setText] = useState<Record<string, string>>(() => ({
+    ...(phrase?.text ?? { en: "" }),
+  }));
+  const [speaker, setSpeaker] = useState<Speaker>(phrase?.speaker ?? "both");
+  const [topic, setTopic] = useState<Topic>(phrase?.topic ?? "price");
+  const [active, setActive] = useState(phrase?.active ?? true);
+
+  const missing = LOCALES.filter((l) => !text[l]?.trim());
+  const numeric = LOCALES.filter((l) => text[l] && hasDigits(text[l]));
+
+  async function save() {
+    if (!text.en?.trim()) {
+      toast.error("English is required");
+      return;
+    }
+    if (numeric.length > 0) {
+      toast.error("Phrases carry no numbers", {
+        description:
+          "A number in a bargain phrase is how a phone number reaches the other side. Say it in words, or leave it to the rate and quantity fields.",
+      });
+      return;
+    }
+
+    const body = { text, speaker, topic, active };
+    const ok = phrase
+      ? await update("bargainPhrases", phrase.id, body)
+      : await create("bargainPhrases", body);
+    if (ok) {
+      toast.success(phrase ? "Phrase updated" : "Phrase added", {
+        description: "Farmers and buyers see it on their next bargain screen.",
+      });
+      onOpenChange(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[90svh] flex-col sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>
+            {phrase ? "Edit bargain phrase" : "Add a bargain phrase"}
+          </DialogTitle>
+          <DialogDescription>
+            Bargains have no text box — this list is everything a farmer or a
+            buyer can say. Write it in all six languages: each side reads it in
+            their own, so a missing translation lands as English in front of
+            someone who may not read English.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="-mx-4 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Who may say it" htmlFor="bargain-speaker" required>
+              <Select value={speaker} onValueChange={(v) => setSpeaker(v as Speaker)}>
+                <SelectTrigger id="bargain-speaker">
+                  <SelectValue>
+                    {SPEAKERS.find((s) => s.id === speaker)?.label ?? speaker}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {SPEAKERS.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+
+            <Field
+              label="Topic"
+              htmlFor="bargain-topic"
+              required
+              hint="Groups the buttons on the bargaining screen. Carries no rule."
+            >
+              <Select value={topic} onValueChange={(v) => setTopic(v as Topic)}>
+                <SelectTrigger id="bargain-topic">
+                  <SelectValue>{TOPIC_LABELS[topic]}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {TOPICS.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {TOPIC_LABELS[t]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {LOCALES.map((locale) => (
+              <div key={locale} className="flex flex-col gap-1.5">
+                <Label htmlFor={`bargain-${locale}`} className="text-sm">
+                  <span lang={LOCALE_META[locale].tag}>
+                    {LOCALE_META[locale].nativeName}
+                  </span>
+                  <span className="text-faint text-xs font-normal">
+                    {LOCALE_META[locale].englishName}
+                  </span>
+                  {locale === "en" ? (
+                    <span className="text-destructive" aria-hidden>
+                      *
+                    </span>
+                  ) : null}
+                </Label>
+                <Textarea
+                  id={`bargain-${locale}`}
+                  lang={LOCALE_META[locale].tag}
+                  rows={2}
+                  value={text[locale] ?? ""}
+                  onChange={(e) =>
+                    setText((t) => ({ ...t, [locale]: e.target.value }))
+                  }
+                  className={cn(
+                    "resize-none",
+                    text[locale] && hasDigits(text[locale])
+                      ? "border-destructive focus-visible:ring-destructive"
+                      : undefined,
+                  )}
+                />
+              </div>
+            ))}
+
+            {numeric.length > 0 ? (
+              <p className="text-destructive text-xs">
+                {numeric.map((l) => LOCALE_META[l].englishName).join(", ")} contain
+                a number. Bargain phrases carry no digits — a number here is how a
+                phone number reaches the other side, and the platform would be
+                translating it into six languages.
+              </p>
+            ) : missing.length > 0 ? (
+              <p className="text-warning text-xs">
+                Missing {missing.map((l) => LOCALE_META[l].englishName).join(", ")}.
+                Those readers get the English text, which in a bargain is a
+                sentence they may not be able to read.
+              </p>
+            ) : null}
+          </div>
+
+          <ActiveSwitch
+            id="bargain-active"
+            active={active}
+            onChange={setActive}
+            label="Inactive phrases are not offered, and the server refuses them"
+          />
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={save} disabled={pending || numeric.length > 0}>
             {pending ? "Saving…" : phrase ? "Save changes" : "Add phrase"}
           </Button>
         </DialogFooter>

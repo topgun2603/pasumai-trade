@@ -7,6 +7,7 @@ import { LiveBargains } from "@/components/negotiation/live-bargains";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { requireFarmer } from "@/lib/auth/farm";
+import { readBargainVocabulary } from "@/lib/firebase/bargain-vocabulary-read";
 import { isReady, nextStep } from "@/lib/domain/readiness";
 import { readControls } from "@/lib/firebase/controls-read";
 import { readNegotiations } from "@/lib/firebase/negotiations-read";
@@ -45,8 +46,11 @@ export default async function FarmBargainsPage({
   ]);
   const clock = new Date().getTime();
 
-  const [{ threads }, controls] = await Promise.all([
+  const [{ threads }, { vocabulary }, controls] = await Promise.all([
     readNegotiations(negotiations(clock)),
+    // What either side may say, as operations maintain it in Controls. Read on
+    // the server so the picker and the write endpoint agree on the list.
+    readBargainVocabulary(),
     readControls({
       crops: Object.values(CATALOGUE),
       geo: GEOGRAPHY,
@@ -124,6 +128,7 @@ export default async function FarmBargainsPage({
             viewer="farmer"
             now={clock}
             validForMinutes={controls.policy.proposalValidityMinutes}
+            vocabulary={vocabulary}
             remaining={remaining}
             // Arriving from a listing opens that lot's bargain rather than
             // whichever happens to sort first.

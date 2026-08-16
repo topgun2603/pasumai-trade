@@ -3,15 +3,19 @@
 import {
   BellIcon,
   MessageSquareIcon,
+  MessagesSquareIcon,
   PencilIcon,
   PlusIcon,
   SettingsIcon,
+  SproutIcon,
+  StoreIcon,
   TrashIcon,
 } from "lucide-react";
 import { useState } from "react";
 
 import { DeleteDialog } from "@/components/admin/location-dialogs";
 import {
+  BargainPhraseDialog,
   DocumentRuleDialog,
   PackDialog,
   PhraseDialog,
@@ -28,6 +32,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DOCUMENT_LABELS, type DocumentKind } from "@/lib/domain/admin";
+import {
+  TOPICS,
+  TOPIC_LABELS,
+  type Speaker,
+  type VocabularyEntry,
+} from "@/lib/domain/bargain-vocabulary";
 import type { State } from "@/lib/domain/location";
 import { formatMoney, money } from "@/lib/domain/money";
 import { POLICY_FIELDS, type PlatformPolicy } from "@/lib/domain/policy";
@@ -424,6 +434,235 @@ export function PhrasesPanel({
       {deleting ? (
         <DeleteDialog
           collection="phrases"
+          id={deleting.id}
+          name={deleting.text.en}
+          open
+          onOpenChange={() => setDeleting(null)}
+        />
+      ) : null}
+    </section>
+  );
+}
+
+/* -------------------------------------------------------------------------
+   Bargain vocabulary
+   ------------------------------------------------------------------------- */
+
+const SPEAKER_LABELS: Record<Speaker, string> = {
+  farmer: "Farmer",
+  buyer: "Buyer",
+  both: "Either side",
+};
+
+/**
+ * Everything a farmer or a buyer can say while bargaining.
+ *
+ * Not the same thing as Phrases above, and worth keeping apart. A notification
+ * is something the platform says; this is what the *people* say, and there is
+ * nothing else — a bargain has no text box, so this table is the complete
+ * vocabulary of every negotiation on the platform.
+ *
+ * That makes adding a row a bigger decision than it looks, and removing one
+ * bigger still: a phrase somebody needs and cannot find is a deal that moves to
+ * a phone call, where no price is recorded and neither side has anything to
+ * point at afterwards.
+ */
+export function BargainVocabularyPanel({
+  vocabulary,
+  live,
+  editable,
+}: {
+  vocabulary: readonly VocabularyEntry[];
+  /** False when these are the shipped defaults rather than stored records. */
+  live: boolean;
+  editable: boolean;
+}) {
+  const [speaker, setSpeaker] = useState<Speaker | "all">("all");
+  const [editing, setEditing] = useState<VocabularyEntry | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [deleting, setDeleting] = useState<VocabularyEntry | null>(null);
+
+  const shown = vocabulary
+    .filter((p) => speaker === "all" || p.speaker === speaker || p.speaker === "both")
+    .sort(
+      (a, b) =>
+        TOPICS.indexOf(a.topic) - TOPICS.indexOf(b.topic) ||
+        a.text.en.localeCompare(b.text.en, "en-IN"),
+    );
+
+  return (
+    <section className="flex flex-col gap-4">
+      <PanelHeading
+        title="Bargain vocabulary"
+        description="Every sentence a farmer or a buyer can send while bargaining. There is no text box on that screen — this list is all of it, which is what keeps phone numbers out of a negotiation and gives both sides the same message in their own language."
+        action={
+          <Button disabled={!editable} onClick={() => setAdding(true)}>
+            <PlusIcon className="size-4" />
+            Add phrase
+          </Button>
+        }
+      />
+
+      {!live ? (
+        <p className="border-warning/40 bg-warning-soft text-warning rounded-lg border px-3 py-2 text-xs">
+          These are the phrases the platform ships with, not stored records —
+          the collection is empty or unreachable. Adding one here writes the
+          first stored phrase, and from then on the stored list is the one both
+          consoles use.
+        </p>
+      ) : null}
+
+      <div className="flex gap-1">
+        {(
+          [
+            { id: "all" as const, label: "All", icon: MessagesSquareIcon },
+            { id: "farmer" as const, label: "Farmer says", icon: SproutIcon },
+            { id: "buyer" as const, label: "Buyer says", icon: StoreIcon },
+          ]
+        ).map(({ id, label, icon: Icon }) => (
+          <Button
+            key={id}
+            variant={speaker === id ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setSpeaker(id)}
+          >
+            <Icon className="size-3.5" />
+            {label}
+            <Badge variant="outline" className="tabular ml-1">
+              {
+                vocabulary.filter(
+                  (p) => id === "all" || p.speaker === id || p.speaker === "both",
+                ).length
+              }
+            </Badge>
+          </Button>
+        ))}
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="min-w-72">English</TableHead>
+              <TableHead className="min-w-32">Topic</TableHead>
+              <TableHead className="min-w-28">Who says it</TableHead>
+              <TableHead className="min-w-32">Coverage</TableHead>
+              <TableHead className="min-w-24">Status</TableHead>
+              <TableHead className="w-0" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {shown.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center">
+                  <span className="text-muted-foreground text-sm">
+                    Nothing here yet.
+                  </span>
+                </TableCell>
+              </TableRow>
+            ) : (
+              shown.map((phrase) => {
+                const named = LOCALES.filter((l) => phrase.text[l]);
+                const missing = LOCALES.filter((l) => !phrase.text[l]);
+                const complete = missing.length === 0;
+
+                return (
+                  <TableRow
+                    key={phrase.id}
+                    className={phrase.active ? undefined : "opacity-60"}
+                  >
+                    <TableCell>
+                      <span className="flex flex-col leading-tight">
+                        <span className="text-sm">{phrase.text.en}</span>
+                        {/* The Tamil, because that is who reads it today and a
+                            wrong translation is invisible in an English-only
+                            table. */}
+                        {phrase.text.ta ? (
+                          <span lang="ta-IN" className="text-faint text-xs">
+                            {phrase.text.ta}
+                          </span>
+                        ) : null}
+                      </span>
+                    </TableCell>
+
+                    <TableCell>
+                      <Badge variant="secondary">{TOPIC_LABELS[phrase.topic]}</Badge>
+                    </TableCell>
+
+                    <TableCell className="text-sm">
+                      {SPEAKER_LABELS[phrase.speaker]}
+                    </TableCell>
+
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "tabular",
+                          complete
+                            ? "border-success/40 bg-success-soft text-success"
+                            : "border-warning/40 bg-warning-soft text-warning",
+                        )}
+                      >
+                        {named.length}/{LOCALES.length}
+                      </Badge>
+                      {missing.length > 0 ? (
+                        <span className="text-faint mt-1 block text-xs">
+                          no {missing.map((l) => LOCALE_META[l].englishName).join(", ")}
+                        </span>
+                      ) : null}
+                    </TableCell>
+
+                    <TableCell>
+                      <ActivePill active={phrase.active} on="Offered" off="Off" />
+                    </TableCell>
+
+                    <TableCell className="pr-4 text-right">
+                      <span className="flex justify-end gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          disabled={!editable}
+                          aria-label={`Edit ${phrase.text.en}`}
+                          onClick={() => setEditing(phrase)}
+                        >
+                          <PencilIcon className="size-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          // A shipped phrase has no stored record to delete, so
+                          // the button would 404. Switching it off is the way
+                          // to retire one, and it is available either way.
+                          disabled={!editable || !live}
+                          aria-label={`Delete ${phrase.text.en}`}
+                          onClick={() => setDeleting(phrase)}
+                        >
+                          <TrashIcon className="size-4" />
+                        </Button>
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {adding ? (
+        <BargainPhraseDialog open onOpenChange={() => setAdding(false)} />
+      ) : null}
+      {editing ? (
+        <BargainPhraseDialog
+          key={editing.id}
+          phrase={editing}
+          open
+          onOpenChange={() => setEditing(null)}
+        />
+      ) : null}
+      {deleting ? (
+        <DeleteDialog
+          collection="bargainPhrases"
           id={deleting.id}
           name={deleting.text.en}
           open

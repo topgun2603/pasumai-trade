@@ -6,6 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { BargainThread } from "@/components/negotiation/bargain-thread";
+import type { VocabularyEntry } from "@/lib/domain/bargain-vocabulary";
 import { Badge } from "@/components/ui/badge";
 import { QUANTITY_UNITS } from "@/lib/domain/enums";
 import type { GradeQuantity } from "@/lib/domain/listing-draft";
@@ -24,14 +25,6 @@ import { rank, type BidLine } from "@/lib/domain/partial-bargain";
 import { relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-/**
- * The bargaining screen: threads down the left, the open one on the right.
- *
- * Sending goes through the API and then `router.refresh()`, so what comes back
- * is what Firestore holds. Optimistically appending would be pleasant and
- * wrong — the other side may have countered or walked away in the meantime,
- * and this screen decides what a farmer is paid.
- */
 /** What the buyer on a thread currently has on the table. */
 function buyerStanding(thread: Negotiation): BidLine[] {
   const offer = lastProposalBy(thread, "buyer");
@@ -43,11 +36,20 @@ function buyerStanding(thread: Negotiation): BidLine[] {
   }));
 }
 
+/**
+ * The bargaining screen: threads down the left, the open one on the right.
+ *
+ * Sending goes through the API and then `router.refresh()`, so what comes back
+ * is what Firestore holds. Optimistically appending would be pleasant and
+ * wrong — the other side may have countered or walked away in the meantime,
+ * and this screen decides what a farmer is paid.
+ */
 export function BargainConsole({
   threads,
   viewer,
   now,
   validForMinutes,
+  vocabulary,
   remaining,
   editable,
   compact = false,
@@ -57,6 +59,8 @@ export function BargainConsole({
   viewer: Party;
   now: number;
   validForMinutes: number;
+  /** What either side may say, from Controls. */
+  vocabulary: readonly VocabularyEntry[];
   /**
    * What is unsold on each listing, keyed by listing id.
    *
@@ -260,6 +264,7 @@ export function BargainConsole({
               viewer={viewer}
               now={now}
               validForMinutes={validForMinutes}
+              vocabulary={vocabulary}
               remaining={remaining?.[selected.listingId]}
               onSend={send}
               pending={pending}
@@ -378,6 +383,7 @@ export function BargainConsole({
             viewer={viewer}
             now={now}
             validForMinutes={validForMinutes}
+            vocabulary={vocabulary}
             remaining={remaining?.[selected.listingId]}
             onSend={send}
             pending={pending}

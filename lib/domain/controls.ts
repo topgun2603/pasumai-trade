@@ -1,5 +1,6 @@
 import "server-only";
 
+import { hasDigits, TOPICS } from "./bargain-vocabulary";
 import { isInIndia } from "./distance";
 import { POLICY_DOC_ID, POLICY_FIELDS } from "./policy";
 
@@ -23,6 +24,7 @@ export const EDITABLE = [
   "places",
   "packs",
   "phrases",
+  "bargainPhrases",
   "documentRules",
   "settings",
 ] as const;
@@ -406,6 +408,61 @@ function validatePhrase(body: Record<string, unknown>): ValidationResult {
   };
 }
 
+/**
+ * A sentence either side of a bargain may send.
+ *
+ * The strictest validation in this file, and the one worth reading. A bargain
+ * has no text box — every message is one of these, chosen by id — so this form
+ * is the *only* way words reach a bargaining screen. Two rules follow from
+ * that:
+ *
+ *  - **Every language, or the reader gets English.** Unlike a notification,
+ *    which is at least sent to somebody who may have chosen English, a bargain
+ *    phrase is read by a farmer who often has not. A missing translation is
+ *    allowed but warned about in the UI; only English is refused outright,
+ *    because everything falls back to it.
+ *
+ *  - **No digits, in any script.** A phrase carrying a number is a phrase
+ *    carrying a phone number, and the platform would be translating it into
+ *    six languages and putting its own authority behind it. This is the rule
+ *    the whole fixed-vocabulary design exists to enforce, so it is enforced
+ *    where phrases are written, not only in the constant that ships.
+ */
+function validateBargainPhrase(body: Record<string, unknown>): ValidationResult {
+  const text = cleanLocaleMap(body.text);
+  if (!text.en) {
+    return fail("English is required — every other language falls back to it.");
+  }
+
+  for (const [locale, value] of Object.entries(text)) {
+    if (hasDigits(value)) {
+      return fail(
+        `The ${locale.toUpperCase()} text contains a number. Bargain phrases carry no digits — a number here is how a phone number reaches the other side.`,
+      );
+    }
+  }
+
+  const speaker = str(body.speaker) || "both";
+  if (!["farmer", "buyer", "both"].includes(speaker)) {
+    return fail("Say who may send it: the farmer, the buyer, or either.");
+  }
+
+  const topic = str(body.topic) || "closing";
+  if (!(TOPICS as readonly string[]).includes(topic)) {
+    return fail(`Topic must be one of: ${TOPICS.join(", ")}.`);
+  }
+
+  return {
+    ok: true,
+    errors: [],
+    // Slugged from the English, like every other phrase. The id ends up in
+    // every message that uses it, so it wants to be readable in a thread read
+    // back as a commercial record.
+    id: str(body.id) || slugify(text.en),
+    data: { text, speaker, topic, active: bool(body.active) },
+  };
+}
+
 const DOCUMENT_KINDS = [
   "aadhaar",
   "pan",
@@ -513,6 +570,8 @@ export function validate(
       return validatePack(body);
     case "phrases":
       return validatePhrase(body);
+    case "bargainPhrases":
+      return validateBargainPhrase(body);
     case "documentRules":
       return validateDocumentRule(body);
     case "settings":
@@ -547,6 +606,11 @@ export const DEPENDENTS: Record<
   // Nothing references a phrase or a rule by id — they are looked up by event
   // and by state. Deleting one is a content decision, not a structural one.
   phrases: [],
+  // Messages do reference a bargain phrase by id, but they also store the
+  // English text alongside it, so a thread stays readable after its phrase is
+  // deleted. Blocking the delete on "used by 400 messages" would mean the
+  // vocabulary could never be tidied.
+  bargainPhrases: [],
   documentRules: [],
   settings: [],
 };

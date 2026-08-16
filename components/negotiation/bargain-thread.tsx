@@ -17,7 +17,13 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { countdown, relativeTime } from "@/lib/format";
 import { GRADES, GRADE_LABELS, QUANTITY_UNITS, type Grade } from "@/lib/domain/enums";
-import { phraseById, phrasesFor } from "@/lib/domain/bargain-vocabulary";
+import {
+  phraseById,
+  phrasesFor,
+  TOPICS,
+  TOPIC_LABELS,
+  type VocabularyEntry,
+} from "@/lib/domain/bargain-vocabulary";
 import type { GradeQuantity } from "@/lib/domain/listing-draft";
 import { formatMoney, formatRate, money } from "@/lib/domain/money";
 import type { GradeBand } from "@/lib/domain/models";
@@ -71,8 +77,9 @@ import { cn } from "@/lib/utils";
 function reading(
   message: NegotiationMessage,
   locale: string,
+  vocabulary: readonly VocabularyEntry[],
 ): { text: string; tag: string } | null {
-  const phrase = message.phraseId ? phraseById(message.phraseId) : undefined;
+  const phrase = message.phraseId ? phraseById(vocabulary, message.phraseId) : undefined;
 
   if (phrase) {
     const translated = phrase.text[locale];
@@ -185,6 +192,7 @@ function Bubble({
   message,
   viewer,
   locale,
+  vocabulary,
   now,
 }: {
   negotiation: Negotiation;
@@ -192,10 +200,11 @@ function Bubble({
   viewer: Party;
   /** The reader's language, not the sender's. */
   locale: string;
+  vocabulary: readonly VocabularyEntry[];
   now: number;
 }) {
   const mine = message.author === viewer;
-  const said = reading(message, locale);
+  const said = reading(message, locale, vocabulary);
 
   if (message.kind === "withdraw") {
     return (
@@ -265,6 +274,7 @@ export function BargainThread({
   viewer,
   now,
   validForMinutes,
+  vocabulary,
   remaining,
   onSend,
   pending,
@@ -274,6 +284,14 @@ export function BargainThread({
   now: number;
   /** How long a proposal holds, from platform policy. */
   validForMinutes: number;
+  /**
+   * Everything either side may say, as operations maintain it in Controls.
+   *
+   * Passed down rather than imported, because it is stored data now — the
+   * server reads it, the page hands it over, and the same list is what the
+   * write endpoint checks against.
+   */
+  vocabulary: readonly VocabularyEntry[];
   /**
    * What is still unsold on this listing, per grade.
    *
@@ -355,7 +373,14 @@ export function BargainThread({
   // phrase exists in both, so the same message renders in whichever the reader
   // uses rather than in whichever the sender typed.
   const viewerLocale = viewer === "farmer" ? "ta" : "en";
-  const vocabulary = phrasesFor(viewer);
+  const sayable = phrasesFor(vocabulary, viewer);
+
+  // The reason attached to walking away. Prefers the shipped "this does not
+  // work for me", but takes any closing phrase, since operations can retire
+  // either.
+  const endPhrase =
+    sayable.find((p) => p.id === "not-interested") ??
+    sayable.find((p) => p.topic === "closing");
 
   // "2h", "45m", "1h 30m" — the policy figure, said the way it reads.
   const hours = Math.floor(validForMinutes / 60);
@@ -429,6 +454,7 @@ export function BargainThread({
             message={message}
             viewer={viewer}
             locale={viewerLocale}
+            vocabulary={vocabulary}
             now={now}
           />
         ))}
@@ -578,35 +604,56 @@ export function BargainThread({
             sent on the tap: nothing is drafted, so nothing has to be
             proof-read, and a farmer holding a phone in a field sends a message
             with one thumb.
+
+            Grouped by topic because the list grows: operations add phrases
+            from Controls, and thirty unsorted buttons is a wall a farmer
+            scrolls past rather than reads.
           */}
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-2">
             <span className="text-faint flex items-center gap-1.5 text-xs">
               <MessageSquareIcon className="size-3.5" />
               Tap to send. Both of you read these in your own language.
             </span>
 
-            <div className="flex flex-wrap gap-1.5">
-              {vocabulary.map((phrase) => {
-                const translated = phrase.text[viewerLocale];
-                const label = translated ?? phrase.text.en;
-                const tag =
-                  translated && viewerLocale in LOCALE_META
-                    ? LOCALE_META[viewerLocale as Locale].tag
-                    : "en-IN";
+            {sayable.length === 0 ? (
+              <p className="text-warning text-xs">
+                No phrases are set up for your side yet. Rates can still be sent.
+              </p>
+            ) : (
+              TOPICS.filter((topic) => sayable.some((p) => p.topic === topic)).map(
+                (topic) => (
+                  <div key={topic} className="flex flex-col gap-1">
+                    <span className="text-faint text-[11px] tracking-wide uppercase">
+                      {TOPIC_LABELS[topic]}
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {sayable
+                        .filter((phrase) => phrase.topic === topic)
+                        .map((phrase) => {
+                          const translated = phrase.text[viewerLocale];
+                          const label = translated ?? phrase.text.en;
+                          const tag =
+                            translated && viewerLocale in LOCALE_META
+                              ? LOCALE_META[viewerLocale as Locale].tag
+                              : "en-IN";
 
-                return (
-                  <Button
-                    key={phrase.id}
-                    variant="secondary"
-                    size="sm"
-                    disabled={pending}
-                    onClick={() => void send("note", { phraseId: phrase.id })}
-                  >
-                    <span lang={tag}>{label}</span>
-                  </Button>
-                );
-              })}
-            </div>
+                          return (
+                            <Button
+                              key={phrase.id}
+                              variant="secondary"
+                              size="sm"
+                              disabled={pending}
+                              onClick={() => void send("note", { phraseId: phrase.id })}
+                            >
+                              <span lang={tag}>{label}</span>
+                            </Button>
+                          );
+                        })}
+                    </div>
+                  </div>
+                ),
+              )
+            )}
           </div>
 
           <button
@@ -616,7 +663,12 @@ export function BargainThread({
               // Ending it says why, and the reason comes from the list like
               // everything else. The other side is owed one — otherwise they
               // are left guessing whether to hold the stock.
-              void send("withdraw", { phraseId: "not-interested" });
+              //
+              // Whichever closing phrase exists, since operations can retire
+              // the one this used to name. Without one it still ends, silently;
+              // refusing to let somebody out of a bargain because the
+              // vocabulary is short would be the worse failure.
+              void send("withdraw", { phraseId: endPhrase?.id });
             }}
             className="text-muted-foreground hover:text-destructive self-start text-xs underline underline-offset-2"
           >

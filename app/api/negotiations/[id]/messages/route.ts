@@ -1,5 +1,6 @@
 import { GRADES } from "@/lib/domain/enums";
 import { canSay, phraseById } from "@/lib/domain/bargain-vocabulary";
+import { readBargainVocabulary } from "@/lib/firebase/bargain-vocabulary-read";
 import type { GradeBand } from "@/lib/domain/models";
 import {
   applyMessage,
@@ -63,6 +64,27 @@ function readBands(value: unknown, quantities: unknown): GradeBand[] | undefined
   return bands.length > 0 ? bands : undefined;
 }
 
+/**
+ * Bands, ready for Firestore.
+ *
+ * Firestore refuses `undefined` outright — it is not "absent", it is an error —
+ * and a band read back from a message written before lots could be split has
+ * exactly that for its quantity. Since appending a message rewrites the whole
+ * thread, one legacy band anywhere in the history made *every* further message
+ * on that thread fail with a 500. Written as an explicit null instead, which
+ * reads back as `undefined` and still means "all of that grade".
+ */
+function writeBands(
+  bands: readonly GradeBand[] | undefined,
+): Array<Record<string, unknown>> | null {
+  if (!bands) return null;
+  return bands.map((b) => ({
+    grade: b.grade,
+    ratePerUnit: b.ratePerUnit,
+    quantity: b.quantity ?? null,
+  }));
+}
+
 export async function POST(
   request: Request,
   context: RouteContext<"/api/negotiations/[id]/messages">,
@@ -90,12 +112,17 @@ export async function POST(
     return Response.json({ error: "Unknown message kind." }, { status: 422 });
   }
 
-  // What is said comes from the fixed vocabulary, by id. `body.text` is read
-  // nowhere — a request carrying `{ phraseId: "collect-today", text: "call me
-  // on 98430 11204" }` gets the words that belong to that id and nothing else,
-  // which is the whole point of the list.
+  // What is said comes from the vocabulary operations maintain, by id.
+  // `body.text` is read nowhere — a request carrying `{ phraseId:
+  // "collect-today", text: "call me on 98430 11204" }` gets the words that
+  // belong to that id and nothing else, which is the whole point of the list.
+  //
+  // Read from Firestore rather than the compiled constant, so a phrase added
+  // in Controls this morning is sayable this morning. Same source the picker
+  // uses; if these two disagreed, every new phrase would be a 422.
   const phraseId = typeof body.phraseId === "string" ? body.phraseId : undefined;
-  const phrase = phraseId ? phraseById(phraseId) : undefined;
+  const { vocabulary } = await readBargainVocabulary();
+  const phrase = phraseId ? phraseById(vocabulary, phraseId) : undefined;
 
   if (phraseId && !phrase) {
     return Response.json(
@@ -137,9 +164,14 @@ export async function POST(
   // A farmer does not say "we will collect tomorrow" and a buyer does not say
   // "I cannot split this lot". Checked against the session-derived party, not
   // against anything the body claims to be.
-  if (phrase && !canSay(author, phrase.id)) {
+  if (phrase && !canSay(vocabulary, author, phrase.id)) {
     return Response.json(
-      { error: "That message is not one your side sends.", code: "wrongSpeaker" },
+      {
+        error: phrase.active
+          ? "That message is not one your side sends."
+          : "That message is no longer offered.",
+        code: phrase.active ? "wrongSpeaker" : "retiredPhrase",
+      },
       { status: 422 },
     );
   }
@@ -184,8 +216,10 @@ export async function POST(
   await ref.set(
     {
       status: next.status,
-      agreedBands: next.agreedBands ?? null,
+      agreedBands: writeBands(next.agreedBands),
       agreedAt: next.agreedAt ?? null,
+      // The whole thread is rewritten on every append, so this maps *old*
+      // messages too — including ones written before bands carried a quantity.
       messages: next.messages.map((m) => ({
         id: m.id,
         author: m.author,
@@ -193,7 +227,7 @@ export async function POST(
         phraseId: m.phraseId ?? null,
         text: m.text ?? null,
         locale: m.locale ?? null,
-        bands: m.bands ?? null,
+        bands: writeBands(m.bands),
         expiresAt: m.expiresAt ?? null,
         sentAt: m.sentAt,
       })),

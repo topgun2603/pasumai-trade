@@ -4,6 +4,7 @@ import { connection } from "next/server";
 
 import { LiveBargains } from "@/components/negotiation/live-bargains";
 import { PageHeader } from "@/components/page-header";
+import { readBargainVocabulary } from "@/lib/firebase/bargain-vocabulary-read";
 import { readControls } from "@/lib/firebase/controls-read";
 import { readNegotiations } from "@/lib/firebase/negotiations-read";
 import { readRemaining } from "@/lib/firebase/remaining-read";
@@ -24,8 +25,11 @@ export default async function BargainsPage() {
   const now = new Date().getTime();
 
   // Both reads hit Firestore; neither depends on the other.
-  const [{ threads, live }, controls] = await Promise.all([
+  const [{ threads, live }, { vocabulary }, controls] = await Promise.all([
     readNegotiations(negotiations(now)),
+    // The same list the farmer's side gets and the same list the endpoint
+    // checks against — see lib/firebase/bargain-vocabulary-read.ts.
+    readBargainVocabulary(),
     readControls({
       crops: Object.values(CATALOGUE),
       geo: GEOGRAPHY,
@@ -75,6 +79,7 @@ export default async function BargainsPage() {
         viewer="buyer"
         now={now}
         validForMinutes={controls.policy.proposalValidityMinutes}
+        vocabulary={vocabulary}
         remaining={remaining}
         editable={editable}
       />
