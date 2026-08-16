@@ -20,6 +20,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Carousel } from "@/components/ui/carousel";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { LotSplit } from "@/components/negotiation/lot-split";
+import type { LotBook } from "@/lib/domain/lot-book";
 import { mediaItems } from "@/lib/media";
 import {
   DropdownMenu,
@@ -43,11 +45,19 @@ import type { FarmListing } from "@/lib/firebase/listings-read";
 export function ListingsBrowser({
   listings,
   threadsByListing,
+  books,
   crops,
 }: {
   listings: FarmListing[];
   /** Open bargains only, keyed by listing id, so a row can link to the right one. */
   threadsByListing: Record<string, Negotiation[]>;
+  /**
+   * Where each lot stands — sold, left, and under bargain — keyed by listing id.
+   *
+   * Computed on the server from *every* bargain on the lot, settled ones
+   * included, which is more than `threadsByListing` carries.
+   */
+  books: Record<string, LotBook>;
   crops: Array<{ id: string; en: string; ta: string; unit: string }>;
 }) {
   const router = useRouter();
@@ -146,6 +156,20 @@ export function ListingsBrowser({
           {l.quantity} {l.unit}
         </span>
       ),
+    },
+    {
+      key: "committed",
+      header: "Sold / left",
+      className: "min-w-56",
+      // Sorted by what is still to sell, because that is the number a farmer
+      // is working down.
+      sortValue: (l) => books[l.id]?.remaining ?? l.quantity,
+      cell: (l) =>
+        books[l.id] ? (
+          <LotSplit book={books[l.id]} unit={l.unit} compact />
+        ) : (
+          <span className="text-faint text-xs">—</span>
+        ),
     },
     {
       key: "media",
@@ -266,6 +290,8 @@ export function ListingsBrowser({
       </div>
 
       {gradeChips(l)}
+
+      {books[l.id] ? <LotSplit book={books[l.id]} unit={l.unit} /> : null}
     </div>
   );
 

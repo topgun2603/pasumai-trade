@@ -6,6 +6,7 @@ import { ProduceMarket } from "@/components/market/produce-market";
 import { PageHeader } from "@/components/page-header";
 import { BUYING_ROLES } from "@/lib/auth/claims";
 import { requireConsole } from "@/lib/auth/require";
+import { lotBooks } from "@/lib/domain/lot-book";
 import { readBargainVocabulary } from "@/lib/firebase/bargain-vocabulary-read";
 import { readMarketListings } from "@/lib/firebase/listings-read";
 import { readNegotiations } from "@/lib/firebase/negotiations-read";
@@ -43,6 +44,24 @@ export default async function ListingsPage() {
     openThreads[thread.listingId] = thread.id;
   }
 
+  /*
+    How much of each lot is gone and how much is being chased. Built from every
+    bargain on the listing, not just this buyer's, because "two other people
+    want this" is the thing a buyer most needs and cannot see.
+
+    Only the totals cross to the browser. `LotBook` carries no rates, so a
+    competitor's price never leaves the server — depth is a market fact, a
+    rival's number is theirs.
+  */
+  const books = lotBooks({
+    // The lot as posted, not `listing.grades` — that is already the remainder,
+    // and the book subtracts the sales itself. Passing the remainder takes them
+    // off twice and draws a market smaller than it is.
+    listings: listings.map((l) => ({ id: l.id, grades: l.posted })),
+    threads,
+    viewerBuyerId: session.claims.accountId,
+  });
+
   return (
     <>
       <PageHeader
@@ -68,6 +87,7 @@ export default async function ListingsPage() {
           <ProduceMarket
             listings={listings}
             openThreads={openThreads}
+            books={books}
             vocabulary={vocabulary}
           />
         )}

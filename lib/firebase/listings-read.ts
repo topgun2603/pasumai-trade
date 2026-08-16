@@ -223,6 +223,16 @@ export function farmTotals(listings: readonly FarmListing[]): FarmTotals {
    ------------------------------------------------------------------------- */
 
 export interface MarketListing extends FarmListing {
+  /**
+   * The grades as the farmer listed them, before anything sold.
+   *
+   * `grades` on this type is the *remainder* — what a buyer can still bid for,
+   * which is what the market is for. Anything that needs to reason about how
+   * much has gone needs the original, and deriving it by adding the sales back
+   * is exactly the arithmetic that goes wrong. So both are carried, named for
+   * what they are.
+   */
+  readonly posted: GradeQuantity[];
   readonly farmerName: string;
   readonly village: string;
   readonly district: string;
@@ -328,6 +338,9 @@ export async function readMarketListings(): Promise<MarketListing[]> {
           (typeof farmer?.district === "string" ? farmer.district : undefined) ??
           (typeof data.district === "string" ? data.district : ""),
         completedOrders: typeof farmer?.completedOrders === "number" ? farmer.completedOrders : 0,
+        // Kept alongside the remainder so callers can tell "how much is left"
+        // from "how much there was" without subtracting the sales twice.
+        posted: posted.grades,
       };
     }),
   );

@@ -24,7 +24,9 @@ import {
   TOPIC_LABELS,
   type VocabularyEntry,
 } from "@/lib/domain/bargain-vocabulary";
+import { LotSplit } from "@/components/negotiation/lot-split";
 import type { GradeQuantity } from "@/lib/domain/listing-draft";
+import type { LotBook } from "@/lib/domain/lot-book";
 import { formatMoney, formatRate, money } from "@/lib/domain/money";
 import type { GradeBand } from "@/lib/domain/models";
 import {
@@ -276,6 +278,7 @@ export function BargainThread({
   validForMinutes,
   vocabulary,
   remaining,
+  book,
   onSend,
   pending,
 }: {
@@ -301,6 +304,15 @@ export function BargainThread({
    * they are typing, not after they press send.
    */
   remaining?: readonly GradeQuantity[];
+  /**
+   * Where the whole lot stands, not just this thread.
+   *
+   * Shown while bargaining because that is when it changes the decision: a
+   * farmer holding out is doing so on the strength of the other three buyers,
+   * and a buyer shaving a rupee should know two other people want the same
+   * sack.
+   */
+  book?: LotBook;
   onSend: (draft: {
     kind: "note" | "proposal" | "accept" | "withdraw";
     phraseId?: string;
@@ -445,6 +457,12 @@ export function BargainThread({
           </div>
         ) : null}
       </header>
+
+      {book ? (
+        <div className="bg-muted/30 border-b px-4 py-2">
+          <LotSplit book={book} unit={unitLabel} you={viewer === "buyer"} compact />
+        </div>
+      ) : null}
 
       <ol className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
         {negotiation.messages.map((message) => (

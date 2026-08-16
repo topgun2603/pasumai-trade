@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { BargainConsole } from "@/components/negotiation/bargain-console";
 import type { VocabularyEntry } from "@/lib/domain/bargain-vocabulary";
 import type { GradeQuantity } from "@/lib/domain/listing-draft";
+import type { LotBook } from "@/lib/domain/lot-book";
 import type { Negotiation, Party } from "@/lib/domain/negotiation";
 import { fromWire, type WireNegotiation } from "@/lib/domain/negotiation-wire";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,7 @@ export function LiveBargains({
   validForMinutes,
   vocabulary,
   remaining,
+  books,
   editable,
   initialThreadId,
   /** Keeps the server-rendered filter — open only, or everything. */
@@ -50,6 +52,15 @@ export function LiveBargains({
    * cost a lot sold twice.
    */
   remaining?: Readonly<Record<string, readonly GradeQuantity[]>>;
+  /**
+   * Where each lot stands, from the server.
+   *
+   * Not recomputed as threads stream in: the browser sees only this account's
+   * bargains, so it cannot know what anybody else has bid. A figure invented
+   * here would understate the competition, which is the one direction that
+   * misleads.
+   */
+  books?: Readonly<Record<string, LotBook>>;
   editable: boolean;
   initialThreadId?: string;
   filter?: "open";
@@ -112,6 +123,7 @@ export function LiveBargains({
         validForMinutes={validForMinutes}
         vocabulary={vocabulary}
         remaining={remaining}
+        books={books}
         editable={editable}
         initialThreadId={initialThreadId}
       />

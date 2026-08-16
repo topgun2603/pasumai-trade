@@ -4,10 +4,11 @@ import { connection } from "next/server";
 
 import { LiveBargains } from "@/components/negotiation/live-bargains";
 import { PageHeader } from "@/components/page-header";
+import { lotBooks } from "@/lib/domain/lot-book";
 import { readBargainVocabulary } from "@/lib/firebase/bargain-vocabulary-read";
 import { readControls } from "@/lib/firebase/controls-read";
 import { readNegotiations } from "@/lib/firebase/negotiations-read";
-import { readRemaining } from "@/lib/firebase/remaining-read";
+import { readLots } from "@/lib/firebase/remaining-read";
 import { CATALOGUE } from "@/lib/mock/catalogue";
 import { GEOGRAPHY } from "@/lib/mock/locations";
 import { negotiations } from "@/lib/mock/negotiations";
@@ -42,9 +43,9 @@ export default async function BargainsPage() {
   // What is unsold on each lot under negotiation, so a buyer bidding for part
   // of one cannot ask for more than is left. Read per listing, and only for the
   // listings actually being bargained over.
-  const lots = Array.from(new Set(threads.map((t) => t.listingId))).filter(Boolean);
+  const lots = await readLots(threads.map((t) => t.listingId));
   const remaining = Object.fromEntries(
-    await Promise.all(lots.map(async (id) => [id, await readRemaining(id)] as const)),
+    Object.entries(lots).map(([id, lot]) => [id, lot.remaining]),
   );
 
   // Operations can read a bargain but never speak in one, which is the same
@@ -52,6 +53,42 @@ export default async function BargainsPage() {
   const session = await verifySession();
   const editable =
     live && session !== null && isBuyingRole(session.claims.role);
+
+  /*
+    How much of each lot is gone, and how much of it other buyers are chasing.
+    Against the lot as posted — the book subtracts the sales itself.
+
+    Needs the session, so it comes after it: `viewerBuyerId` is what splits
+    "your bid" out of the demand, and getting it from anywhere but the session
+    would let a request nominate whose bids to highlight.
+
+    Aggregate only. `LotBook` carries no rates, so what a rival is paying never
+    leaves the server; how much they want is market depth and belongs to both
+    sides of a trade.
+  */
+  const books = lotBooks({
+    listings: Object.entries(lots).map(([id, lot]) => ({ id, grades: lot.posted })),
+    threads,
+    viewerBuyerId: session?.claims.accountId,
+  });
+
+  /*
+    Only this account's bargains cross to the browser.
+
+    Everything above reads every thread on the platform, because that is what
+    the lot book is built from — but the book is aggregate, and this is not. A
+    thread carries the other side's rates, so handing the whole collection to a
+    buyer's page put every competitor's price one View Source away. It also
+    disagreed with the stream, which has always scoped by `buyerId`: the first
+    paint showed rivals' threads and the first live update swept them away.
+
+    Operations keep the full view. They may read a bargain and never speak in
+    one, and reading them is the job.
+  */
+  const isOperations = session?.claims.role === "admin";
+  const visible = isOperations
+    ? threads
+    : threads.filter((t) => t.buyerId === session?.claims.accountId);
 
   return (
     <div className="flex min-h-svh flex-col">
@@ -75,12 +112,13 @@ export default async function BargainsPage() {
       )}
 
       <LiveBargains
-        initial={threads}
+        initial={visible}
         viewer="buyer"
         now={now}
         validForMinutes={controls.policy.proposalValidityMinutes}
         vocabulary={vocabulary}
         remaining={remaining}
+        books={books}
         editable={editable}
       />
     </div>

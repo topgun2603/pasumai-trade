@@ -8,6 +8,7 @@ import { PostProduceDialog } from "@/components/farm/post-produce-dialog";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { requireFarmer } from "@/lib/auth/farm";
+import { acrossLots, lotBooks } from "@/lib/domain/lot-book";
 import { produceName } from "@/lib/domain/models";
 import { isReady, nextStep } from "@/lib/domain/readiness";
 import { farmTotals, readFarmerListings } from "@/lib/firebase/listings-read";
@@ -42,6 +43,19 @@ export default async function FarmListingsPage() {
     if (thread.farmerId !== farmer.id || thread.status !== "open") continue;
     (threadsByListing[thread.listingId] ??= []).push(thread);
   }
+
+  /*
+    Where each lot actually stands. Built from *every* bargain of this
+    farmer's — settled ones included, since those are what "sold" means — so it
+    is a wider set than the open threads above.
+
+    This is the question a farmer could not answer before: four conversations
+    on screen said nothing about how much of the field was committed, or how
+    much of it several buyers were chasing at once.
+  */
+  const mine = threads.filter((t) => t.farmerId === farmer.id);
+  const books = lotBooks({ listings, threads: mine });
+  const book = acrossLots(books);
 
   // Both flags. The lock names whichever step is actually in the way, because
   // "Subscribe to post" shown to somebody whose verification is pending sends
@@ -100,12 +114,41 @@ export default async function FarmListingsPage() {
               <span className="font-medium tabular-nums">{totals.open}</span>{" "}
               <span className="text-muted-foreground">open</span>
             </span>
+
+            {/*
+              Three numbers, and the third is not like the others. Sold and left
+              are slices of what was posted; under bargain is demand, which
+              overlaps — several buyers can be chasing the same sack — so it can
+              exceed what is left, and that is the useful part.
+            */}
+            {book.sold > 0 ? (
+              <span className="text-sm">
+                <span className="text-success font-medium tabular-nums">
+                  {book.sold} {totals.unit}
+                </span>{" "}
+                <span className="text-muted-foreground">sold</span>
+              </span>
+            ) : null}
+
             <span className="text-sm">
               <span className="font-medium tabular-nums">
-                {totals.quantity} {totals.unit}
+                {book.remaining} {totals.unit}
               </span>{" "}
-              <span className="text-muted-foreground">on offer</span>
+              <span className="text-muted-foreground">still to sell</span>
             </span>
+
+            {book.underBargain > 0 ? (
+              <span className="text-sm">
+                <span className="font-medium tabular-nums">
+                  {book.underBargain} {totals.unit}
+                </span>{" "}
+                <span className="text-muted-foreground">
+                  being bargained for, across {book.lotsBargaining} lot
+                  {book.lotsBargaining === 1 ? "" : "s"}
+                </span>
+              </span>
+            ) : null}
+
             {totals.byGrade.map((g) => (
               <span key={g.grade} className="text-muted-foreground text-sm">
                 Grade {g.grade.toUpperCase()}{" "}
@@ -136,6 +179,7 @@ export default async function FarmListingsPage() {
           <ListingsBrowser
             listings={listings}
             threadsByListing={threadsByListing}
+            books={books}
             crops={crops}
           />
         )}

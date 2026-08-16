@@ -9,7 +9,9 @@ import { OpenBargainDialog } from "@/components/market/open-bargain-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Carousel } from "@/components/ui/carousel";
+import { LotSplit } from "@/components/negotiation/lot-split";
 import type { VocabularyEntry } from "@/lib/domain/bargain-vocabulary";
+import type { LotBook } from "@/lib/domain/lot-book";
 import { formatMoney } from "@/lib/domain/money";
 import type { MarketListing } from "@/lib/firebase/listings-read";
 import { mediaItems } from "@/lib/media";
@@ -29,11 +31,20 @@ import { mediaItems } from "@/lib/media";
 export function ProduceMarket({
   listings,
   openThreads,
+  books,
   vocabulary,
 }: {
   listings: MarketListing[];
   /** Listing ids this buyer already has a live bargain on. */
   openThreads: Record<string, string>;
+  /**
+   * Where each lot stands, keyed by listing id.
+   *
+   * Aggregate only — how much rival demand there is, never what any rival is
+   * paying. Depth is information both sides of a market are entitled to; a
+   * competitor's price is not.
+   */
+  books: Record<string, LotBook>;
   /** What a buyer may say when opening a bargain, from Controls. */
   vocabulary: readonly VocabularyEntry[];
 }) {
@@ -110,6 +121,20 @@ export function ProduceMarket({
       ),
     },
     {
+      key: "committed",
+      header: "Left / wanted",
+      className: "min-w-56",
+      // Sorted by what is still available, which is the question a buyer
+      // scanning the market is asking.
+      sortValue: (l) => books[l.id]?.remaining ?? l.quantity,
+      cell: (l) =>
+        books[l.id] ? (
+          <LotSplit book={books[l.id]} unit={l.unit} you compact />
+        ) : (
+          <span className="text-faint text-xs">—</span>
+        ),
+    },
+    {
       key: "farmer",
       header: "Farmer",
       sortValue: (l) => l.farmerName,
@@ -175,6 +200,8 @@ export function ProduceMarket({
       </div>
 
       {grades(l)}
+
+      {books[l.id] ? <LotSplit book={books[l.id]} unit={l.unit} you /> : null}
 
       <span className="text-muted-foreground flex items-center gap-1 text-xs">
         <MapPinIcon className="size-3" />

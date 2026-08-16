@@ -8,10 +8,11 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { requireFarmer } from "@/lib/auth/farm";
 import { readBargainVocabulary } from "@/lib/firebase/bargain-vocabulary-read";
+import { lotBooks } from "@/lib/domain/lot-book";
 import { isReady, nextStep } from "@/lib/domain/readiness";
 import { readControls } from "@/lib/firebase/controls-read";
 import { readNegotiations } from "@/lib/firebase/negotiations-read";
-import { readRemaining } from "@/lib/firebase/remaining-read";
+import { readLots } from "@/lib/firebase/remaining-read";
 import { CATALOGUE } from "@/lib/mock/catalogue";
 import { GEOGRAPHY } from "@/lib/mock/locations";
 import { negotiations } from "@/lib/mock/negotiations";
@@ -64,15 +65,32 @@ export default async function FarmBargainsPage({
   // the URL — `thread` only chooses which of their own to open first.
   const mine = threads.filter((t) => t.farmerId === farmer.id && t.status === "open");
 
-  // What is left on each lot being bargained over, so a buyer bidding for part
-  // of one is bounded by what nobody else has taken. One read per listing, and
-  // only for listings with a live bargain on them.
-  const lots = Array.from(new Set(mine.map((t) => t.listingId))).filter(Boolean);
+  // Each lot under negotiation, as posted and as it stands. One read per
+  // listing, and only for listings with a live bargain on them.
+  const lots = await readLots(mine.map((t) => t.listingId));
+
+  // What is left, so a buyer bidding for part of a lot is bounded by what
+  // nobody else has taken.
   const remaining = Object.fromEntries(
-    await Promise.all(
-      lots.map(async (id) => [id, await readRemaining(id)] as const),
-    ),
+    Object.entries(lots).map(([id, lot]) => [id, lot.remaining]),
   );
+
+  /*
+    How much of each lot is sold and how many buyers are chasing the rest.
+    Shown above the conversation because it is what decides the next move: a
+    farmer holding out on this buyer is doing so on the strength of the other
+    three.
+
+    Against the lot *as posted*, not against what is left of it — the book
+    subtracts the sales itself, so handing it the remainder would take them off
+    twice and draw a field smaller than the one out there.
+  */
+  const books = lotBooks({
+    listings: Object.entries(lots).map(([id, lot]) => ({ id, grades: lot.posted })),
+    // Every bargain of this farmer's, settled included — the settled ones are
+    // what "sold" means.
+    threads: threads.filter((t) => t.farmerId === farmer.id),
+  });
 
   const ready = isReady(flags);
   const blocking = nextStep(journey);
@@ -130,6 +148,7 @@ export default async function FarmBargainsPage({
             validForMinutes={controls.policy.proposalValidityMinutes}
             vocabulary={vocabulary}
             remaining={remaining}
+            books={books}
             // Arriving from a listing opens that lot's bargain rather than
             // whichever happens to sort first.
             initialThreadId={thread}

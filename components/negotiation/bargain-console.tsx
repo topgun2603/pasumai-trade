@@ -10,6 +10,7 @@ import type { VocabularyEntry } from "@/lib/domain/bargain-vocabulary";
 import { Badge } from "@/components/ui/badge";
 import { QUANTITY_UNITS } from "@/lib/domain/enums";
 import type { GradeQuantity } from "@/lib/domain/listing-draft";
+import type { LotBook } from "@/lib/domain/lot-book";
 import { formatRate, money } from "@/lib/domain/money";
 import type { GradeBand } from "@/lib/domain/models";
 import {
@@ -51,6 +52,7 @@ export function BargainConsole({
   validForMinutes,
   vocabulary,
   remaining,
+  books,
   editable,
   compact = false,
   initialThreadId,
@@ -68,6 +70,8 @@ export function BargainConsole({
    * listing rather than to any one thread.
    */
   remaining?: Readonly<Record<string, readonly GradeQuantity[]>>;
+  /** Where each lot stands, keyed by listing id. */
+  books?: Readonly<Record<string, LotBook>>;
   editable: boolean;
   /**
    * Panel layout: no sidebar, no viewport-height caps, fills its container.
@@ -266,6 +270,7 @@ export function BargainConsole({
               validForMinutes={validForMinutes}
               vocabulary={vocabulary}
               remaining={remaining?.[selected.listingId]}
+              book={books?.[selected.listingId]}
               onSend={send}
               pending={pending}
             />
@@ -385,6 +390,7 @@ export function BargainConsole({
             validForMinutes={validForMinutes}
             vocabulary={vocabulary}
             remaining={remaining?.[selected.listingId]}
+            book={books?.[selected.listingId]}
             onSend={send}
             pending={pending}
           />
