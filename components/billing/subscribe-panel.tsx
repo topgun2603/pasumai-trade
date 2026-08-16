@@ -1,6 +1,12 @@
 "use client";
 
-import { BanknoteIcon, ClockIcon, CopyIcon, ShieldCheckIcon } from "lucide-react";
+import {
+  BanknoteIcon,
+  ClockIcon,
+  CopyIcon,
+  FlaskConicalIcon,
+  ShieldCheckIcon,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -41,11 +47,14 @@ export function SubscribePanel({
   plans,
   current,
   payer,
+  bypassed = false,
 }: {
   plans: readonly Plan[];
   current: SubscriptionView;
   /** Prefills the checkout so nobody retypes what the platform already knows. */
   payer?: { name?: string; email?: string; mobile?: string };
+  /** Payment is switched off for testing. Shown, never hidden. */
+  bypassed?: boolean;
 }) {
   const router = useRouter();
   const [period, setPeriod] = useState<BillingPeriod>("monthly");
@@ -79,7 +88,19 @@ export function SubscribePanel({
         reference?: string;
         error?: string;
         alreadyActive?: boolean;
+        bypassed?: boolean;
       };
+
+      // Payment is switched off: the server already activated it. Nothing to
+      // open, nothing to verify.
+      if (response.ok && data.bypassed) {
+        setPending(null);
+        toast.success("Subscription active (payment bypassed)", {
+          description: "No money was taken. Turn the bypass off before going live.",
+        });
+        router.refresh();
+        return;
+      }
 
       if (!response.ok || !data.orderId) {
         if (data.alreadyActive) toast.info("That subscription is already running.");
@@ -153,6 +174,24 @@ export function SubscribePanel({
 
   return (
     <div className="flex flex-col gap-6">
+      {/*
+        Loud on purpose, and on every surface that can create a subscription.
+        A payment bypass nobody can see is a payment bypass that survives to
+        production.
+      */}
+      {bypassed ? (
+        <div className="border-warning/40 bg-warning-soft text-warning flex items-start gap-2.5 rounded-lg border px-4 py-3">
+          <FlaskConicalIcon className="mt-0.5 size-4 shrink-0" />
+          <span className="flex flex-col gap-0.5 text-sm">
+            <span className="font-medium">Payment is bypassed for testing</span>
+            <span className="opacity-90">
+              Choosing a plan activates it immediately and charges nothing. Unset
+              PAYMENTS_BYPASS to take real payments.
+            </span>
+          </span>
+        </div>
+      ) : null}
+
       <div
         className={`flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3 ${TONE[current.status]}`}
       >
@@ -188,7 +227,7 @@ export function SubscribePanel({
         checkout modal. It stays because it is what operations quote on the
         phone, and what somebody paying by transfer still needs.
       */}
-      {reference && current.status !== "active" ? (
+      {reference && current.status !== "active" && !bypassed ? (
         <div className="border-border flex flex-col gap-2 rounded-lg border px-4 py-3.5">
           <span className="flex items-center gap-2 text-sm font-medium">
             <BanknoteIcon className="size-4" /> Paying by bank transfer instead?
@@ -256,10 +295,14 @@ export function SubscribePanel({
                 onClick={() => choose(plan)}
               >
                 {pending === plan.id
-                  ? "Opening payment…"
-                  : current.status === "expired" || current.status === "pastDue"
-                    ? `Renew — ${formatMoney(period === "yearly" ? plan.yearly : plan.monthly)}`
-                    : `Pay ${formatMoney(period === "yearly" ? plan.yearly : plan.monthly)}`}
+                  ? bypassed
+                    ? "Activating…"
+                    : "Opening payment…"
+                  : bypassed
+                    ? "Activate (no payment)"
+                    : current.status === "expired" || current.status === "pastDue"
+                      ? `Renew — ${formatMoney(period === "yearly" ? plan.yearly : plan.monthly)}`
+                      : `Pay ${formatMoney(period === "yearly" ? plan.yearly : plan.monthly)}`}
               </Button>
             }
           />

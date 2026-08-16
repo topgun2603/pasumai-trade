@@ -13,6 +13,7 @@ import {
   plansForRole,
 } from "@/lib/domain/subscription";
 import { readAccountState } from "@/lib/firebase/subscription-read";
+import { paymentsBypassed } from "@/lib/payments/bypass";
 
 export const metadata: Metadata = { title: "Subscription · Pasumai Trade" };
 
@@ -62,7 +63,7 @@ export default async function SubscriptionPage() {
         description="Browsing is free. Bargaining and ordering need a plan."
       />
       <div className="flex flex-col gap-6 p-5">
-        <SubscribePanel plans={plans} current={current} />
+        <SubscribePanel plans={plans} current={current} bypassed={paymentsBypassed()} />
       </div>
     </>
   );

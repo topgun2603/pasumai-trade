@@ -13,6 +13,7 @@ import {
   plansForRole,
 } from "@/lib/domain/subscription";
 import { readAccountState } from "@/lib/firebase/subscription-read";
+import { paymentsBypassed } from "@/lib/payments/bypass";
 
 export const metadata: Metadata = { title: "Subscription · Agency" };
 
@@ -66,6 +67,7 @@ export default async function AgencySubscriptionPage() {
           plans={plansForRole(role)}
           current={current}
           payer={{ name: agency.name, email, mobile: agency.mobile }}
+          bypassed={paymentsBypassed()}
         />
       </div>
     </>

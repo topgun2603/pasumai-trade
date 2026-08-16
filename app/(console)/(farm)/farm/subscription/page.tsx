@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { SubscribePanel, type SubscriptionView } from "@/components/billing/subscribe-panel";
 import { PageHeader } from "@/components/page-header";
 import { requireFarmer } from "@/lib/auth/farm";
+import { paymentsBypassed } from "@/lib/payments/bypass";
 import { formatMoney } from "@/lib/domain/money";
 import {
   daysRemaining,
@@ -47,6 +48,7 @@ export default async function FarmSubscriptionPage() {
           plans={plansForRole("farmer")}
           current={current}
           payer={{ name: farmer.name, email, mobile: farmer.mobile }}
+          bypassed={paymentsBypassed()}
         />
       </div>
     </>

@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { requireSession } from "@/lib/api/write-guard";
 import { COLLECTION_FOR_SIGNUP, canSelfSignup } from "@/lib/domain/signup";
 import {
+  activate,
   isSubscribed,
   planById,
   priceFor,
@@ -12,6 +13,7 @@ import {
 } from "@/lib/domain/subscription";
 import { adminDb } from "@/lib/firebase/admin";
 import { readAccountState } from "@/lib/firebase/subscription-read";
+import { BYPASS_METHOD, paymentsBypassed } from "@/lib/payments/bypass";
 import { createOrder, isTestKey, razorpayConfig } from "@/lib/payments/razorpay";
 
 /**
@@ -29,8 +31,12 @@ export async function POST(request: Request) {
   const gate = await requireSession();
   if (!gate.ok) return gate.response;
 
+  // Checked before the credentials: with the bypass on, a deployment with no
+  // Razorpay keys at all still needs to be able to run the flow.
+  const bypass = paymentsBypassed();
+
   const config = razorpayConfig();
-  if (!config) {
+  if (!config && !bypass) {
     return Response.json(
       { error: "Card payment is not configured on this deployment." },
       { status: 503 },
@@ -88,9 +94,51 @@ export async function POST(request: Request) {
       ? state.subscription.reference
       : subscriptionReference(randomBytes(8).toString("hex"));
 
+  /*
+    The bypass. No order, no modal, no signature — the subscription is written
+    active immediately and stamped so it can be found later.
+
+    Deliberately its own branch that returns early rather than a flag threaded
+    through the real path. The verification code below must stay reachable only
+    by payments that actually happened, and the surest way to guarantee that is
+    for the bypass never to touch it.
+  */
+  if (bypass) {
+    const granted = activate(requestSubscription(plan, period, reference, now), now);
+
+    await adminDb().collection(COLLECTION_FOR_SIGNUP[role]).doc(accountId).set(
+      {
+        subscription: {
+          planId: granted.planId,
+          status: granted.status,
+          startedAt: granted.startedAt,
+          renewsAt: granted.renewsAt,
+          paidAt: granted.paidAt ?? now,
+          reference: granted.reference,
+          amount: granted.amount,
+          period: granted.period,
+          razorpayOrderId: null,
+          razorpayPaymentId: null,
+          // The marker that makes every fake findable in one query the day
+          // real payments start.
+          paymentMethod: BYPASS_METHOD,
+        },
+      },
+      { merge: true },
+    );
+
+    return Response.json({
+      bypassed: true,
+      status: granted.status,
+      renewsAt: granted.renewsAt.toISOString(),
+      reference,
+      planName: plan.name,
+    });
+  }
+
   let order;
   try {
-    order = await createOrder(config, {
+    order = await createOrder(config!, {
       amount,
       receipt: reference,
       // Echoed back on the webhook, which is how a payment completed after the
@@ -132,8 +180,8 @@ export async function POST(request: Request) {
     currency: order.currency,
     // The key id is a public identifier — it ships in the checkout script by
     // design. The secret never leaves the server.
-    keyId: config.keyId,
-    testMode: isTestKey(config.keyId),
+    keyId: config!.keyId,
+    testMode: isTestKey(config!.keyId),
     planName: plan.name,
     reference,
   });
