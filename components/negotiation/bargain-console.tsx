@@ -38,6 +38,7 @@ export function BargainConsole({
   quickReplies,
   validForMinutes,
   editable,
+  compact = false,
 }: {
   threads: Negotiation[];
   viewer: Party;
@@ -45,6 +46,19 @@ export function BargainConsole({
   quickReplies: readonly QuickReply[];
   validForMinutes: number;
   editable: boolean;
+  /**
+   * Panel layout: no sidebar, no viewport-height caps, fills its container.
+   *
+   * The page layout puts a 20rem thread list beside the conversation and caps
+   * both at the viewport. Dropped into a side panel that is narrower than the
+   * `lg` breakpoint, the grid collapses to one column, the list stacks *above*
+   * the conversation and pushes it out of the panel entirely — which is why a
+   * farmer opening a bargain saw a list of bargains and no chat.
+   *
+   * Here the panel already named the lot, so the sidebar is repeating itself.
+   * Several buyers on one lot become a strip of names instead.
+   */
+  compact?: boolean;
 }) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState(threads[0]?.id ?? null);
@@ -137,9 +151,61 @@ export function BargainConsole({
     );
   }
 
+  if (compact) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        {threads.length > 1 ? (
+          // Who is bargaining, as a strip. One row of names beats a column
+          // that eats half a narrow panel.
+          <div className="flex shrink-0 gap-1.5 overflow-x-auto border-b pb-2">
+            {threads.map((thread) => {
+              const active = thread.id === selected?.id;
+              const waiting =
+                thread.status === "open" && thread.messages.at(-1)?.author !== viewer;
+
+              return (
+                <button
+                  key={thread.id}
+                  type="button"
+                  onClick={() => setSelectedId(thread.id)}
+                  aria-current={active ? "true" : undefined}
+                  className={cn(
+                    "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors",
+                    active
+                      ? "border-primary bg-accent font-medium"
+                      : "border-border hover:bg-secondary",
+                  )}
+                >
+                  {thread.buyerName}
+                  {waiting ? (
+                    <span className="bg-warning size-1.5 rounded-full" aria-label="Your move" />
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
+        <div className="min-h-0 flex-1">
+          {selected ? (
+            <BargainThread
+              key={selected.id}
+              negotiation={selected}
+              viewer={viewer}
+              now={now}
+              quickReplies={quickReplies}
+              validForMinutes={validForMinutes}
+              onSend={send}
+              pending={pending}
+            />
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="grid flex-1 grid-cols-1 lg:grid-cols-[20rem_1fr]">
-      <ul className="max-h-[calc(100svh-4rem)] overflow-y-auto border-b lg:border-r lg:border-b-0">
+    <div className="grid flex-1 grid-cols-1 lg:grid-cols-[20rem_1fr]">      <ul className="max-h-[calc(100svh-4rem)] overflow-y-auto border-b lg:border-r lg:border-b-0">
         {threads.map((thread) => {
           const standing = standingProposal(thread);
           const waiting =

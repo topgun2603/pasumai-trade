@@ -69,9 +69,17 @@ export function BargainPanel({
     <Sheet open={listing !== null} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        // Wider than the default: a bargain is a conversation with prices in
-        // it, and the default sheet width wraps every message to three lines.
-        className="w-full gap-0 p-0 sm:max-w-xl"
+        /*
+          Wider than the default at both ends. A bargain is a conversation with
+          prices in it, and the default sheet wraps every message to three
+          lines.
+
+          `data-[side=right]:w-full` rather than plain `w-full`: the sheet ships
+          `data-[side=right]:w-3/4`, and a bare utility does not override a
+          variant-prefixed one — so on a phone the panel was 293px of a 390px
+          screen, with a dead strip beside the chat.
+        */
+        className="gap-0 p-0 data-[side=right]:w-full sm:max-w-xl"
       >
         <SheetHeader className="border-b px-5 py-4">
           <div className="flex items-start justify-between gap-3">
@@ -115,7 +123,9 @@ export function BargainPanel({
           </div>
         </SheetHeader>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4">
+        {/* `min-h-0` on every rung of the chain, or the conversation cannot
+            scroll inside the panel and simply overflows past the bottom. */}
+        <div className="flex min-h-0 flex-1 flex-col p-4">
           {threads.length === 0 ? (
             <p className="text-muted-foreground text-sm">
               When a buyer offers on this produce, the conversation appears here.
@@ -126,6 +136,9 @@ export function BargainPanel({
               // console rather than leaving the previous thread selected and
               // the composer half-filled with a reply meant for someone else.
               key={listing?.id}
+              // Panel layout: the page version stacks a thread list above the
+              // conversation at this width and pushes the chat out of view.
+              compact
               threads={threads}
               viewer="farmer"
               now={now}
