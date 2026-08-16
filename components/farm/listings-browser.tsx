@@ -100,6 +100,16 @@ export function ListingsBrowser({
 
   const openCount = (listing: FarmListing) => threadsByListing[listing.id]?.length ?? 0;
 
+  /*
+    Every listing with someone bargaining on it, in the order they appear.
+
+    A farmer with offers on four lots answers them one after another. Handing
+    the panel the whole set lets it step between them in place — closing and
+    reopening four times, hunting the right row each time, is the version of
+    this that gets abandoned halfway.
+  */
+  const withBargains = listings.filter((l) => openCount(l) > 0);
+
   const gradeChips = (listing: FarmListing) =>
     listing.grades.length > 0 ? (
       <span className="flex flex-wrap gap-1">
@@ -281,7 +291,6 @@ export function ListingsBrowser({
       </div>
 
       {gradeChips(l)}
-      {actions(l)}
     </div>
   );
 
@@ -303,6 +312,11 @@ export function ListingsBrowser({
       <BargainPanel
         listing={bargaining}
         threads={bargaining ? (threadsByListing[bargaining.id] ?? []) : []}
+        // Only offered when the one being viewed is itself in the set. Opening
+        // a listing with no offers is a dead end by definition, and stepping
+        // "next" from it would jump somewhere unrelated.
+        siblings={bargaining && openCount(bargaining) > 0 ? withBargains : []}
+        onSelect={setBargaining}
         now={now}
         quickReplies={quickReplies}
         validForMinutes={validForMinutes}
