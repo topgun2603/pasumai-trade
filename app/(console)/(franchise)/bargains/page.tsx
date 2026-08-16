@@ -6,6 +6,7 @@ import { LiveBargains } from "@/components/negotiation/live-bargains";
 import { PageHeader } from "@/components/page-header";
 import { readControls } from "@/lib/firebase/controls-read";
 import { readNegotiations } from "@/lib/firebase/negotiations-read";
+import { readRemaining } from "@/lib/firebase/remaining-read";
 import { CATALOGUE } from "@/lib/mock/catalogue";
 import { GEOGRAPHY } from "@/lib/mock/locations";
 import { negotiations } from "@/lib/mock/negotiations";
@@ -34,11 +35,13 @@ export default async function BargainsPage() {
     }),
   ]);
 
-  // Quick replies and the hold time come from Controls, so operations can add
-  // a phrase or shorten a quote's life without a deploy.
-  const quickReplies = controls.phrases
-    .filter((p) => p.kind === "quickReply" && p.active)
-    .map((p) => ({ id: p.id, text: p.text }));
+  // What is unsold on each lot under negotiation, so a buyer bidding for part
+  // of one cannot ask for more than is left. Read per listing, and only for the
+  // listings actually being bargained over.
+  const lots = Array.from(new Set(threads.map((t) => t.listingId))).filter(Boolean);
+  const remaining = Object.fromEntries(
+    await Promise.all(lots.map(async (id) => [id, await readRemaining(id)] as const)),
+  );
 
   // Operations can read a bargain but never speak in one, which is the same
   // rule the endpoint enforces.
@@ -71,8 +74,8 @@ export default async function BargainsPage() {
         initial={threads}
         viewer="buyer"
         now={now}
-        quickReplies={quickReplies}
         validForMinutes={controls.policy.proposalValidityMinutes}
+        remaining={remaining}
         editable={editable}
       />
     </div>

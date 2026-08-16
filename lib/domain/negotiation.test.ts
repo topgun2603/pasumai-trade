@@ -366,3 +366,106 @@ describe("reading the thread", () => {
     expect(roundCount(n)).toBe(2);
   });
 });
+
+/**
+ * Bidding for part of a lot.
+ *
+ * The guard has to hold against a stale client: a buyer's screen was drawn when
+ * four hundred kilos were available and somebody else has taken three of them
+ * since, so the check that matters is the one against `remaining` at the moment
+ * the message lands.
+ */
+describe("partial quantities", () => {
+  const remaining = [
+    { grade: "a" as const, quantity: 400 },
+    { grade: "b" as const, quantity: 200 },
+  ];
+
+  it("takes a bid for part of a grade", () => {
+    const bid: GradeBand[] = [{ grade: "a", ratePerUnit: 2200, quantity: 150 }];
+    expect(canPropose(fresh(), "buyer", bid, remaining).allowed).toBe(true);
+  });
+
+  it("refuses more of a grade than is left", () => {
+    const bid: GradeBand[] = [{ grade: "a", ratePerUnit: 2200, quantity: 401 }];
+    expect(canPropose(fresh(), "buyer", bid, remaining)).toMatchObject({
+      allowed: false,
+      refusal: { code: "exceedsAvailable" },
+    });
+  });
+
+  it("refuses a grade with nothing available", () => {
+    const bid: GradeBand[] = [{ grade: "c", ratePerUnit: 900, quantity: 10 }];
+    const result = canPropose(fresh(), "buyer", bid, remaining);
+    expect(result.allowed).toBe(false);
+    if (!result.allowed) expect(result.refusal.code).toBe("exceedsAvailable");
+  });
+
+  it("says how much is available without claiming why", () => {
+    // `remaining` cannot distinguish "never offered" from "somebody just took
+    // it", so the refusal states the limit and stops.
+    // Under the lot's 800, so it is the per-grade limit of 200 that bites.
+    const bid: GradeBand[] = [{ grade: "b", ratePerUnit: 1800, quantity: 500 }];
+    const result = canPropose(fresh(), "buyer", bid, remaining);
+    expect(result.allowed).toBe(false);
+    if (!result.allowed) {
+      expect(result.refusal.message).toContain("200");
+      expect(result.refusal.message).not.toMatch(/sold|taken/i);
+    }
+  });
+
+  it("refuses more than the lot even with no availability to check against", () => {
+    // 800 kg listed. Without `remaining` there is no per-grade limit, but the
+    // lot's own size still is one — this is the floor that holds when the
+    // listing cannot be read.
+    const bid: GradeBand[] = [{ grade: "a", ratePerUnit: 2200, quantity: 900 }];
+    expect(canPropose(fresh(), "buyer", bid)).toMatchObject({
+      allowed: false,
+      refusal: { code: "exceedsAvailable" },
+    });
+  });
+
+  it("refuses a fraction of a unit, and zero", () => {
+    for (const quantity of [12.5, 0, -5]) {
+      const bid: GradeBand[] = [{ grade: "a", ratePerUnit: 2200, quantity }];
+      expect(canPropose(fresh(), "buyer", bid, remaining)).toMatchObject({
+        allowed: false,
+        refusal: { code: "badQuantity" },
+      });
+    }
+  });
+
+  it("treats wanting more at the same rate as a real counter-offer", () => {
+    let n = fresh();
+    n = send(n, "buyer", "proposal", {
+      bands: [{ grade: "a", ratePerUnit: 2200, quantity: 100 }],
+    });
+
+    // Same money per kilo, twice the load. Refusing this as "no change" would
+    // make a buyer raise their price to say they will take more.
+    const more: GradeBand[] = [{ grade: "a", ratePerUnit: 2200, quantity: 200 }];
+    expect(canPropose(n, "buyer", more, remaining).allowed).toBe(true);
+  });
+
+  it("still refuses a proposal that changes nothing at all", () => {
+    let n = fresh();
+    const bid: GradeBand[] = [{ grade: "a", ratePerUnit: 2200, quantity: 100 }];
+    n = send(n, "buyer", "proposal", { bands: bid });
+
+    expect(canPropose(n, "buyer", bid, remaining)).toMatchObject({
+      allowed: false,
+      refusal: { code: "noChange" },
+    });
+  });
+
+  it("prices a partial bid at the quantity bid for, not the whole lot", () => {
+    const bid: GradeBand[] = [{ grade: "a", ratePerUnit: 2200, quantity: 150 }];
+    // 150 kg at ₹22, not 800 at ₹22.
+    expect(valueAt(fresh(), bid, "a").minorUnits).toBe(330_000);
+  });
+
+  it("prices a band with no quantity as the whole lot, as it always did", () => {
+    const bid: GradeBand[] = [{ grade: "a", ratePerUnit: 2200 }];
+    expect(valueAt(fresh(), bid, "a").minorUnits).toBe(800 * 2200);
+  });
+});

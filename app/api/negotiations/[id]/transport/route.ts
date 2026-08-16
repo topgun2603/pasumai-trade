@@ -96,6 +96,11 @@ export async function POST(
         respondedAt: null,
         pickupDistrict: dispatch.pickupDistrict,
         reason: null,
+        // The agreed share, not the listed lot. Three buyers on one field means
+        // three of these, each for what that buyer actually took.
+        produceName: dispatch.produceName,
+        quantity: dispatch.quantity,
+        unit: dispatch.unit,
       },
       updatedAt: now,
     },
@@ -103,7 +108,14 @@ export async function POST(
   );
 
   return Response.json(
-    { negotiationId: id, agencyId: agency.id, agencyName: agency.name, status: dispatch.status },
+    {
+      negotiationId: id,
+      agencyId: agency.id,
+      agencyName: agency.name,
+      status: dispatch.status,
+      quantity: dispatch.quantity,
+      unit: dispatch.unit,
+    },
     { status: 201 },
   );
 }

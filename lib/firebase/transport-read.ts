@@ -15,6 +15,9 @@ export interface StoredTransport {
   readonly agencyName: string;
   readonly status: DispatchStatus;
   readonly reason?: string;
+  /** What this vehicle is collecting — the agreed share, not the listed lot. */
+  readonly quantity?: number;
+  readonly unit?: string;
 }
 
 const STATUSES: DispatchStatus[] = ["requested", "accepted", "declined", "cancelled"];
@@ -36,6 +39,8 @@ export async function readTransport(): Promise<Record<string, StoredTransport>> 
       agencyName: typeof raw.agencyName === "string" ? raw.agencyName : "Agency",
       status: status as DispatchStatus,
       reason: typeof raw.reason === "string" ? raw.reason : undefined,
+      quantity: typeof raw.quantity === "number" ? raw.quantity : undefined,
+      unit: typeof raw.unit === "string" ? raw.unit : undefined,
     };
   }
 

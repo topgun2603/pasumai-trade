@@ -17,6 +17,7 @@ export interface WireMessage {
   readonly id: string;
   readonly author: NegotiationMessage["author"];
   readonly kind: NegotiationMessage["kind"];
+  readonly phraseId?: string;
   readonly text?: string;
   readonly locale?: string;
   readonly bands?: readonly GradeBand[];
@@ -60,6 +61,7 @@ export function toWire(negotiation: Negotiation): WireNegotiation {
       id: m.id,
       author: m.author,
       kind: m.kind,
+      phraseId: m.phraseId,
       text: m.text,
       locale: m.locale,
       bands: m.bands,

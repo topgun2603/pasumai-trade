@@ -153,10 +153,18 @@ export interface GradeBand {
   readonly grade: Grade;
   /** Per listed unit, in minor units. `1900` is ₹19/kg. */
   readonly ratePerUnit: number;
+  /**
+   * How much of this grade the band is for, in the listing's unit.
+   *
+   * Absent means the whole of what is available at that grade — which is what
+   * every band meant before produce could be sold in parts, so old records read
+   * correctly without being rewritten.
+   */
+  readonly quantity?: number;
 }
 
 export function bandTotal(band: GradeBand, quantity: number): Money {
-  return forQuantity(band.ratePerUnit, quantity);
+  return forQuantity(band.ratePerUnit, band.quantity ?? quantity);
 }
 
 export function bandRate(band: GradeBand): Money {

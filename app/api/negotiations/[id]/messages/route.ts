@@ -1,4 +1,5 @@
 import { GRADES } from "@/lib/domain/enums";
+import { canSay, phraseById } from "@/lib/domain/bargain-vocabulary";
 import type { GradeBand } from "@/lib/domain/models";
 import {
   applyMessage,
@@ -9,6 +10,7 @@ import {
 } from "@/lib/domain/negotiation";
 import { adminDb } from "@/lib/firebase/admin";
 import { shapeNegotiation } from "@/lib/firebase/negotiations-read";
+import { readRemaining } from "@/lib/firebase/remaining-read";
 import { requireCapability } from "@/lib/api/capability";
 
 /**
@@ -23,18 +25,40 @@ import { requireCapability } from "@/lib/api/capability";
  */
 const KINDS: MessageKind[] = ["note", "proposal", "accept", "withdraw"];
 
-/** Rates arrive as `{ a: 2200, b: 1800, c: 1300 }` in paise. */
-function readBands(value: unknown): GradeBand[] | undefined {
+/**
+ * Rates arrive as `{ a: 2200, b: 1800 }` in paise, quantities as `{ a: 200 }`.
+ *
+ * Keyed by grade rather than sent as an array, so a reordered list cannot
+ * quietly reprice the wrong grade. A grade with a quantity but no rate is not a
+ * bid and is dropped; a grade with a rate and no quantity is a bid for whatever
+ * is available, which is what a whole-lot offer has always been.
+ */
+function readBands(value: unknown, quantities: unknown): GradeBand[] | undefined {
   if (!value || typeof value !== "object") return undefined;
-  const source = value as Record<string, unknown>;
+  const rates = value as Record<string, unknown>;
+  const wanted =
+    quantities && typeof quantities === "object"
+      ? (quantities as Record<string, unknown>)
+      : {};
 
   const bands: GradeBand[] = [];
   for (const grade of GRADES) {
-    const rate = source[grade];
+    const rate = rates[grade];
     if (typeof rate !== "number" || !Number.isFinite(rate)) continue;
-    // Paise are integers. A fractional rate would put a fraction of a paisa
-    // into a money calculation that is integer all the way down.
-    bands.push({ grade, ratePerUnit: Math.round(rate) });
+
+    const quantity = wanted[grade];
+    bands.push({
+      // Paise are integers. A fractional rate would put a fraction of a paisa
+      // into a money calculation that is integer all the way down.
+      ratePerUnit: Math.round(rate),
+      grade,
+      // Left undefined rather than defaulted, so "no quantity given" stays
+      // distinguishable from "asked for zero" — the guard refuses the latter.
+      quantity:
+        typeof quantity === "number" && Number.isFinite(quantity)
+          ? Math.round(quantity)
+          : undefined,
+    });
   }
   return bands.length > 0 ? bands : undefined;
 }
@@ -66,9 +90,25 @@ export async function POST(
     return Response.json({ error: "Unknown message kind." }, { status: 422 });
   }
 
-  const text = typeof body.text === "string" ? body.text.trim() : undefined;
-  if (kind === "note" && !text) {
-    return Response.json({ error: "A message needs some text." }, { status: 422 });
+  // What is said comes from the fixed vocabulary, by id. `body.text` is read
+  // nowhere — a request carrying `{ phraseId: "collect-today", text: "call me
+  // on 98430 11204" }` gets the words that belong to that id and nothing else,
+  // which is the whole point of the list.
+  const phraseId = typeof body.phraseId === "string" ? body.phraseId : undefined;
+  const phrase = phraseId ? phraseById(phraseId) : undefined;
+
+  if (phraseId && !phrase) {
+    return Response.json(
+      { error: "That is not a phrase you can send.", code: "unknownPhrase" },
+      { status: 422 },
+    );
+  }
+
+  if (kind === "note" && !phrase) {
+    return Response.json(
+      { error: "Choose a message from the list.", code: "noPhrase" },
+      { status: 422 },
+    );
   }
 
   const db = adminDb();
@@ -94,7 +134,24 @@ export async function POST(
     );
   }
 
+  // A farmer does not say "we will collect tomorrow" and a buyer does not say
+  // "I cannot split this lot". Checked against the session-derived party, not
+  // against anything the body claims to be.
+  if (phrase && !canSay(author, phrase.id)) {
+    return Response.json(
+      { error: "That message is not one your side sends.", code: "wrongSpeaker" },
+      { status: 422 },
+    );
+  }
+
   const sentAt = new Date();
+
+  // What is left on the lot, so a bid for part of it can be bounded. Read here
+  // rather than trusted from the client: the whole reason quantities are
+  // checked is that another buyer may have taken the rest while this screen was
+  // open.
+  const remaining =
+    kind === "proposal" ? await readRemaining(negotiation.listingId) : undefined;
 
   const draft: DraftMessage = {
     // Sequential rather than random: the id says where in the thread it sits,
@@ -102,9 +159,11 @@ export async function POST(
     id: `${id}-M${negotiation.messages.length + 1}`,
     author,
     kind,
-    text,
+    phraseId: phrase?.id,
+    // Stored from the vocabulary, never from the body.
+    text: phrase?.text.en,
     locale: typeof body.locale === "string" ? body.locale : undefined,
-    bands: kind === "proposal" ? readBands(body.bands) : undefined,
+    bands: kind === "proposal" ? readBands(body.bands, body.quantities) : undefined,
     validForMinutes:
       typeof body.validForMinutes === "number" ? body.validForMinutes : undefined,
     sentAt,
@@ -112,7 +171,7 @@ export async function POST(
 
   let next;
   try {
-    next = applyMessage(negotiation, draft);
+    next = applyMessage(negotiation, draft, remaining);
   } catch (error) {
     if (error instanceof NegotiationError) {
       // The domain's refusal text is written to be read by the person who
@@ -131,6 +190,7 @@ export async function POST(
         id: m.id,
         author: m.author,
         kind: m.kind,
+        phraseId: m.phraseId ?? null,
         text: m.text ?? null,
         locale: m.locale ?? null,
         bands: m.bands ?? null,

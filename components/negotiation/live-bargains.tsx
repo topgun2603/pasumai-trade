@@ -4,7 +4,7 @@ import { RadioIcon, WifiOffIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { BargainConsole } from "@/components/negotiation/bargain-console";
-import type { QuickReply } from "@/components/negotiation/bargain-thread";
+import type { GradeQuantity } from "@/lib/domain/listing-draft";
 import type { Negotiation, Party } from "@/lib/domain/negotiation";
 import { fromWire, type WireNegotiation } from "@/lib/domain/negotiation-wire";
 import { cn } from "@/lib/utils";
@@ -26,8 +26,8 @@ export function LiveBargains({
   initial,
   viewer,
   now,
-  quickReplies,
   validForMinutes,
+  remaining,
   editable,
   initialThreadId,
   /** Keeps the server-rendered filter — open only, or everything. */
@@ -36,8 +36,16 @@ export function LiveBargains({
   initial: Negotiation[];
   viewer: Party;
   now: number;
-  quickReplies: readonly QuickReply[];
   validForMinutes: number;
+  /**
+   * What is unsold per listing, from the server.
+   *
+   * Not recomputed as threads stream in: the browser only sees this account's
+   * bargains, so it cannot know what another buyer has taken. A stale limit
+   * here costs a refused send with a clear reason; a limit invented here would
+   * cost a lot sold twice.
+   */
+  remaining?: Readonly<Record<string, readonly GradeQuantity[]>>;
   editable: boolean;
   initialThreadId?: string;
   filter?: "open";
@@ -97,8 +105,8 @@ export function LiveBargains({
         threads={threads}
         viewer={viewer}
         now={now}
-        quickReplies={quickReplies}
         validForMinutes={validForMinutes}
+        remaining={remaining}
         editable={editable}
         initialThreadId={initialThreadId}
       />

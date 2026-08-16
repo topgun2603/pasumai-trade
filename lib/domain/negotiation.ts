@@ -89,11 +89,24 @@ export interface NegotiationMessage {
   readonly id: string;
   readonly author: Party;
   readonly kind: MessageKind;
-  /** Free text. Present on a note, optional alongside a proposal. */
+  /**
+   * Which phrase was sent, from the fixed vocabulary.
+   *
+   * The message itself is not stored as words either side chose. It is an id,
+   * rendered into whatever language the reader uses — see
+   * `lib/domain/bargain-vocabulary.ts` for why a bargain is not free text.
+   */
+  readonly phraseId?: string;
+  /**
+   * The phrase in English, denormalised so a thread read back years later —
+   * exported, disputed, produced as a record — is legible without the
+   * vocabulary table to hand. Never client-supplied.
+   */
   readonly text?: string;
   /**
-   * Locale the text was written in, so it renders with the right font and can
-   * be offered for translation. A farmer types Tamil; a buyer may not read it.
+   * Locale the sender was reading in. Kept for the record only: the text
+   * renders from `phraseId` in whatever language the reader wants, so this no
+   * longer decides anything about display.
    */
   readonly locale?: string;
   /** Best grade first. Present on `proposal` and on the `accept` that took it. */
@@ -190,7 +203,24 @@ export function gap(
   return result;
 }
 
-/** What the farmer would be paid at these rates if the lot graded out at `grade`. */
+/** How much of a grade a band is for. Absent means the whole lot, as it always did. */
+export function quantityFor(
+  negotiation: Negotiation,
+  bands: readonly GradeBand[],
+  grade: Grade,
+): number {
+  return bands.find((b) => b.grade === grade)?.quantity ?? negotiation.quantity;
+}
+
+/** Is any band on this proposal for less than the whole lot? */
+export function isPartial(
+  negotiation: Negotiation,
+  bands: readonly GradeBand[],
+): boolean {
+  return bands.some((b) => b.quantity !== undefined && b.quantity < negotiation.quantity);
+}
+
+/** What the farmer would be paid at these rates for the quantity bid at `grade`. */
 export function valueAt(
   negotiation: Negotiation,
   bands: readonly GradeBand[],
@@ -198,7 +228,7 @@ export function valueAt(
 ): Money {
   const rate = rateFor(bands, grade);
   if (rate === undefined) return money(0);
-  return forQuantity(rate, negotiation.quantity);
+  return forQuantity(rate, quantityFor(negotiation, bands, grade));
 }
 
 /** Rounds of proposals, for showing how long a bargain has run. */
@@ -219,7 +249,11 @@ export type NegotiationRefusalCode =
   | "noChange"
   | "nothingToAccept"
   | "ownProposal"
-  | "proposalExpired";
+  | "proposalExpired"
+  /** Wanted more of a grade than is left unsold. */
+  | "exceedsAvailable"
+  /** A quantity that is not a whole number of units, or is zero. */
+  | "badQuantity";
 
 export interface NegotiationRefusal {
   readonly code: NegotiationRefusalCode;
@@ -246,14 +280,59 @@ function refuse(
  * Fails closed, like the order guards: a proposal that cannot be fully checked
  * is refused rather than assumed sound. This gate stands between produce and
  * money.
+ *
+ * `remaining` is what is still unsold on the listing — the posted quantities
+ * minus every bargain already agreed against them, which the caller derives
+ * with `remainingOn`. Passing it is how a bid for part of a lot is bounded.
+ * Omitting it means quantities are not checked here at all, which is right for
+ * the one caller that has no listing in hand (a thread read back on its own)
+ * and wrong everywhere else — so the write path always passes it.
  */
 export function canPropose(
   negotiation: Negotiation,
   party: Party,
   bands: readonly GradeBand[],
+  remaining?: readonly { grade: Grade; quantity: number }[],
 ): NegotiationResult {
   if (isSettled(negotiation)) {
     return refuse("settled", "This bargain is closed. Start a new one.");
+  }
+
+  // Quantities, before rates. A bid for four hundred kilos of a lot with two
+  // hundred left is refused whatever the price, and saying so first gives the
+  // clearer message.
+  for (const band of bands) {
+    if (band.quantity === undefined) continue;
+
+    if (!Number.isInteger(band.quantity) || band.quantity <= 0) {
+      return refuse(
+        "badQuantity",
+        `Grade ${GRADE_LABELS[band.grade]} needs a whole number of units above zero.`,
+      );
+    }
+
+    if (band.quantity > negotiation.quantity) {
+      return refuse(
+        "exceedsAvailable",
+        `This lot is ${negotiation.quantity} in total. You cannot bid for more than that.`,
+      );
+    }
+
+    if (remaining) {
+      const left = remaining.find((r) => r.grade === band.grade)?.quantity ?? 0;
+      if (band.quantity > left) {
+        // Says what is available and stops. Whether the rest was never offered
+        // or has just been taken by somebody else is not something this can
+        // tell from `remaining` alone, and guessing at it out loud would put a
+        // sentence in front of a buyer that is sometimes simply false.
+        return refuse(
+          "exceedsAvailable",
+          left === 0
+            ? `Nothing is available at grade ${GRADE_LABELS[band.grade]} on this lot.`
+            : `Only ${left} available at grade ${GRADE_LABELS[band.grade]}.`,
+        );
+      }
+    }
   }
 
   // Any subset of grades, so long as it is not empty.
@@ -314,6 +393,13 @@ export function canPropose(
         continue;
       }
       if (now !== before) moved = true;
+
+      // Changing how much you want is a move even at the same rate — "the same
+      // price, but I'll take twice as much" is a real counter-offer and must
+      // not be refused as a repeat.
+      const wantNow = bands.find((b) => b.grade === grade)?.quantity;
+      const wantBefore = previous.bands.find((b) => b.grade === grade)?.quantity;
+      if (wantNow !== wantBefore) moved = true;
 
       // A buyer only ever improves upward, a farmer only ever concedes
       // downward. Anything else is a party walking back an offer the other
@@ -397,6 +483,8 @@ export interface DraftMessage {
   readonly id: string;
   readonly author: Party;
   readonly kind: MessageKind;
+  readonly phraseId?: string;
+  /** Resolved from `phraseId` by the caller, never taken from a request body. */
   readonly text?: string;
   readonly locale?: string;
   readonly bands?: readonly GradeBand[];
@@ -419,19 +507,22 @@ export interface DraftMessage {
 export function applyMessage(
   negotiation: Negotiation,
   draft: DraftMessage,
+  /** What is still unsold on the listing. See `canPropose`. */
+  remaining?: readonly { grade: Grade; quantity: number }[],
 ): Negotiation {
   const now = draft.sentAt.getTime();
 
   switch (draft.kind) {
     case "proposal": {
       const bands = draft.bands ?? [];
-      const check = canPropose(negotiation, draft.author, bands);
+      const check = canPropose(negotiation, draft.author, bands, remaining);
       if (!check.allowed) throw new NegotiationError(check.refusal);
 
       const message: NegotiationMessage = {
         id: draft.id,
         author: draft.author,
         kind: "proposal",
+        phraseId: draft.phraseId,
         text: draft.text,
         locale: draft.locale,
         bands,
@@ -453,6 +544,7 @@ export function applyMessage(
         id: draft.id,
         author: draft.author,
         kind: "accept",
+        phraseId: draft.phraseId,
         text: draft.text,
         locale: draft.locale,
         // Snapshot, not a pointer. What was agreed must stay readable even if
@@ -482,6 +574,7 @@ export function applyMessage(
         id: draft.id,
         author: draft.author,
         kind: "withdraw",
+        phraseId: draft.phraseId,
         text: draft.text,
         locale: draft.locale,
         sentAt: draft.sentAt,
@@ -506,6 +599,7 @@ export function applyMessage(
         id: draft.id,
         author: draft.author,
         kind: "note",
+        phraseId: draft.phraseId,
         text: draft.text,
         locale: draft.locale,
         sentAt: draft.sentAt,

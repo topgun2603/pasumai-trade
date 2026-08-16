@@ -35,7 +35,13 @@ function toBands(value: unknown): readonly GradeBand[] | undefined {
   if (!Array.isArray(value)) return undefined;
   return value
     .filter((b) => b && typeof b.ratePerUnit === "number")
-    .map((b) => ({ grade: b.grade, ratePerUnit: b.ratePerUnit }));
+    .map((b) => ({
+      grade: b.grade,
+      ratePerUnit: b.ratePerUnit,
+      // Absent on every band written before lots could be sold in parts, and
+      // absent means the whole of that grade — so those read back unchanged.
+      quantity: typeof b.quantity === "number" ? b.quantity : undefined,
+    }));
 }
 
 export function shapeNegotiation(
@@ -48,6 +54,7 @@ export function shapeNegotiation(
     id: String(m.id),
     author: m.author,
     kind: m.kind,
+    phraseId: m.phraseId ?? undefined,
     text: m.text ?? undefined,
     locale: m.locale ?? undefined,
     bands: toBands(m.bands),

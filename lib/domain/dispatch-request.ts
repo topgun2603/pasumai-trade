@@ -45,6 +45,32 @@ export interface DispatchRequest {
   readonly pickupDistrict: string;
   /** Why an agency said no, for the farmer choosing the next one. */
   readonly reason?: string;
+  /** What is being collected, for a driver loading it. */
+  readonly produceName: string;
+  /**
+   * How much, in `unit`.
+   *
+   * The agreed quantity, not the listed one. A lot sold in three parts to three
+   * buyers produces three of these, each for its own share and each its own
+   * collection — which is the honest description of what happens at the farm
+   * gate. Sending one lorry for the whole lot would be the platform inventing a
+   * consolidation nobody agreed to, and the three buyers are in three towns.
+   */
+  readonly quantity: number;
+  readonly unit: string;
+}
+
+/**
+ * How much a settled bargain is actually for.
+ *
+ * The sum of the agreed bands' quantities, falling back to the whole lot for a
+ * band that carries none — which is every band written before produce could be
+ * sold in parts.
+ */
+export function agreedQuantity(negotiation: Negotiation): number {
+  const bands = negotiation.agreedBands ?? [];
+  if (bands.length === 0) return negotiation.quantity;
+  return bands.reduce((sum, b) => sum + (b.quantity ?? negotiation.quantity), 0);
 }
 
 export class DispatchError extends Error {
@@ -142,6 +168,9 @@ export function requestDispatch(
     status: "requested",
     requestedAt: now,
     pickupDistrict,
+    produceName: negotiation.produceName,
+    quantity: agreedQuantity(negotiation),
+    unit: negotiation.unit,
   };
 }
 

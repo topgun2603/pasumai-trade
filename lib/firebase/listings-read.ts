@@ -3,8 +3,10 @@ import "server-only";
 import type { Grade } from "@/lib/domain/enums";
 import type { GradeQuantity } from "@/lib/domain/listing-draft";
 import { GRADES } from "@/lib/domain/enums";
+import { remainingOn } from "@/lib/domain/partial-bargain";
 
 import { adminDb, adminStorage } from "./admin";
+import { shapeNegotiation } from "./negotiations-read";
 
 /**
  * A farmer's own listings, read from Firestore.
@@ -249,10 +251,16 @@ export interface MarketListing extends FarmListing {
  */
 export async function readMarketListings(): Promise<MarketListing[]> {
   const db = adminDb();
-  const [listings, farmers] = await Promise.all([
+  const [listings, farmers, sold] = await Promise.all([
     db.collection("listings").get(),
     db.collection("farmers").get(),
+    // Every settled bargain, so a lot half-sold shows what is actually left.
+    // A buyer who bids for four hundred against a listing with a hundred and
+    // fifty on it has wasted a round, and the farmer has to explain why.
+    db.collection("negotiations").where("status", "==", "agreed").get(),
   ]);
+
+  const agreed = sold.docs.map((doc) => shapeNegotiation(doc.id, doc.data()));
 
   // Indexed on both spellings: seeded rows say `f-201` where accounts say
   // `F-201`, and a case-sensitive lookup silently drops every demo listing.
@@ -266,8 +274,28 @@ export async function readMarketListings(): Promise<MarketListing[]> {
       const data = doc.data();
       if (data.seeded === true) return null;
 
-      const base = shape(doc.id, data);
-      if (base.status === "withdrawn" || base.status === "expired") return null;
+      const posted = shape(doc.id, data);
+      if (posted.status === "withdrawn" || posted.status === "expired") return null;
+
+      // What is left, not what was posted. Derived from the settled bargains
+      // rather than decremented on the listing: a counter goes wrong once and
+      // then stays wrong, and what it would be wrong about is how much produce
+      // exists.
+      const left = remainingOn(
+        posted.grades,
+        agreed.filter((n) => n.listingId === doc.id),
+      );
+
+      // Nothing left is not a market row. The lot is sold; showing it with a
+      // Bargain button would be an invitation to a conversation that ends in
+      // "somebody already took it".
+      if (posted.grades.length > 0 && left.length === 0) return null;
+
+      const base = {
+        ...posted,
+        grades: left.length > 0 ? left : posted.grades,
+        quantity: left.length > 0 ? left.reduce((s, g) => s + g.quantity, 0) : posted.quantity,
+      };
 
       const farmerId = typeof data.farmerId === "string" ? data.farmerId : "";
       const farmer = byId.get(farmerId.toLowerCase());

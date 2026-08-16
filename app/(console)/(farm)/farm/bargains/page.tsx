@@ -10,6 +10,7 @@ import { requireFarmer } from "@/lib/auth/farm";
 import { isReady, nextStep } from "@/lib/domain/readiness";
 import { readControls } from "@/lib/firebase/controls-read";
 import { readNegotiations } from "@/lib/firebase/negotiations-read";
+import { readRemaining } from "@/lib/firebase/remaining-read";
 import { CATALOGUE } from "@/lib/mock/catalogue";
 import { GEOGRAPHY } from "@/lib/mock/locations";
 import { negotiations } from "@/lib/mock/negotiations";
@@ -58,6 +59,16 @@ export default async function FarmBargainsPage({
   // Scoped by the session's farmer id. There is no path that takes one from
   // the URL — `thread` only chooses which of their own to open first.
   const mine = threads.filter((t) => t.farmerId === farmer.id && t.status === "open");
+
+  // What is left on each lot being bargained over, so a buyer bidding for part
+  // of one is bounded by what nobody else has taken. One read per listing, and
+  // only for listings with a live bargain on them.
+  const lots = Array.from(new Set(mine.map((t) => t.listingId))).filter(Boolean);
+  const remaining = Object.fromEntries(
+    await Promise.all(
+      lots.map(async (id) => [id, await readRemaining(id)] as const),
+    ),
+  );
 
   const ready = isReady(flags);
   const blocking = nextStep(journey);
@@ -112,8 +123,8 @@ export default async function FarmBargainsPage({
             filter="open"
             viewer="farmer"
             now={clock}
-            quickReplies={controls.phrases}
             validForMinutes={controls.policy.proposalValidityMinutes}
+            remaining={remaining}
             // Arriving from a listing opens that lot's bargain rather than
             // whichever happens to sort first.
             initialThreadId={thread}

@@ -9,16 +9,16 @@ import {
   XIcon,
 } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
 import { countdown, relativeTime } from "@/lib/format";
-import { GRADES, GRADE_LABELS, QUANTITY_UNITS } from "@/lib/domain/enums";
+import { GRADES, GRADE_LABELS, QUANTITY_UNITS, type Grade } from "@/lib/domain/enums";
+import { phraseById, phrasesFor } from "@/lib/domain/bargain-vocabulary";
+import type { GradeQuantity } from "@/lib/domain/listing-draft";
 import { formatMoney, formatRate, money } from "@/lib/domain/money";
 import type { GradeBand } from "@/lib/domain/models";
 import {
@@ -26,9 +26,11 @@ import {
   canPropose,
   gap,
   hasExpired,
+  isPartial,
   isSettled,
   lastProposalBy,
   PARTY_LABELS,
+  quantityFor,
   rateFor,
   roundCount,
   standingProposal,
@@ -58,9 +60,35 @@ import { cn } from "@/lib/utils";
  * both sides of hydration.
  */
 
-function localeOf(message: NegotiationMessage): Locale | undefined {
-  const value = message.locale;
-  return value && value in LOCALE_META ? (value as Locale) : undefined;
+/**
+ * What a message says, in the language of whoever is reading it.
+ *
+ * Resolved from the phrase id rather than shown as sent: a farmer wrote nothing
+ * — they chose — so a buyer reads English and the farmer reads Tamil off the
+ * same record. `text` is the fallback for threads written before the vocabulary
+ * existed, and for a phrase since retired from the list.
+ */
+function reading(
+  message: NegotiationMessage,
+  locale: string,
+): { text: string; tag: string } | null {
+  const phrase = message.phraseId ? phraseById(message.phraseId) : undefined;
+
+  if (phrase) {
+    const translated = phrase.text[locale];
+    return {
+      text: translated ?? phrase.text.en,
+      tag: translated && locale in LOCALE_META ? LOCALE_META[locale as Locale].tag : "en-IN",
+    };
+  }
+
+  if (!message.text) return null;
+
+  const written = message.locale;
+  return {
+    text: message.text,
+    tag: written && written in LOCALE_META ? LOCALE_META[written as Locale].tag : "en-IN",
+  };
 }
 
 /** The rates on offer, priced out against the actual quantity. */
@@ -79,6 +107,7 @@ function ProposalCard({
 }) {
   const expired = expiresAt ? now >= expiresAt.getTime() : false;
   const unitLabel = QUANTITY_UNITS[negotiation.unit].en;
+  const partial = isPartial(negotiation, bands);
 
   return (
     <div
@@ -93,8 +122,13 @@ function ProposalCard({
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium tracking-wide uppercase">
+        <span className="flex items-center gap-2 text-xs font-medium tracking-wide uppercase">
           {tone === "agreed" ? "Agreed" : "Proposed rates"}
+          {partial ? (
+            <Badge variant="secondary" className="px-1.5 py-0 text-[10px] normal-case">
+              Part of the lot
+            </Badge>
+          ) : null}
         </span>
         {expiresAt ? (
           <Badge
@@ -115,10 +149,14 @@ function ProposalCard({
         {GRADES.map((grade) => {
           const rate = rateFor(bands, grade);
           if (rate === undefined) return null;
+          const want = quantityFor(negotiation, bands, grade);
           return (
             <li key={grade} className="flex items-baseline justify-between gap-3">
               <span className="text-muted-foreground text-sm">
                 Grade {GRADE_LABELS[grade]}
+                <span className="tabular text-faint text-xs">
+                  {want} {unitLabel}
+                </span>
               </span>
               <span className="tabular flex items-baseline gap-2">
                 <span className="font-medium">
@@ -134,8 +172,9 @@ function ProposalCard({
       </ul>
 
       <p className="text-faint text-xs">
-        Right-hand figure is the whole lot at that grade. Grades not listed are
-        not part of this offer.
+        {partial
+          ? "This is for part of the lot. What is not taken here stays on the market."
+          : "Right-hand figure is the quantity at that rate. Grades not listed are not part of this offer."}
       </p>
     </div>
   );
@@ -145,15 +184,18 @@ function Bubble({
   negotiation,
   message,
   viewer,
+  locale,
   now,
 }: {
   negotiation: Negotiation;
   message: NegotiationMessage;
   viewer: Party;
+  /** The reader's language, not the sender's. */
+  locale: string;
   now: number;
 }) {
   const mine = message.author === viewer;
-  const locale = localeOf(message);
+  const said = reading(message, locale);
 
   if (message.kind === "withdraw") {
     return (
@@ -162,12 +204,9 @@ function Bubble({
           {PARTY_LABELS[message.author]} ended this bargain ·{" "}
           {relativeTime(message.sentAt, now)}
         </span>
-        {message.text ? (
-          <p
-            lang={locale ? LOCALE_META[locale].tag : undefined}
-            className="text-muted-foreground max-w-md text-center text-sm"
-          >
-            {message.text}
+        {said ? (
+          <p lang={said.tag} className="text-muted-foreground max-w-md text-center text-sm">
+            {said.text}
           </p>
         ) : null}
       </li>
@@ -180,17 +219,12 @@ function Bubble({
         {mine ? "You" : PARTY_LABELS[message.author]}
         <span aria-hidden>·</span>
         {relativeTime(message.sentAt, now)}
-        {locale && locale !== "en" ? (
-          <Badge variant="secondary" className="px-1 py-0 text-[10px]">
-            {LOCALE_META[locale].englishName}
-          </Badge>
-        ) : null}
       </span>
 
       <div className={cn("flex max-w-md flex-col gap-2", mine && "items-end")}>
-        {message.text ? (
+        {said ? (
           <p
-            lang={locale ? LOCALE_META[locale].tag : undefined}
+            lang={said.tag}
             className={cn(
               "rounded-lg px-3 py-2 text-sm",
               mine
@@ -198,7 +232,7 @@ function Bubble({
                 : "bg-secondary text-secondary-foreground",
             )}
           >
-            {message.text}
+            {said.text}
           </p>
         ) : null}
 
@@ -226,36 +260,32 @@ function Bubble({
   );
 }
 
-/**
- * A phrase offered as a tap, in the language of whoever is reading.
- *
- * Comes from Controls rather than a literal here — a farmer who cannot type
- * needs these to exist in Telugu and Kannada the day the platform reaches
- * those states, not the next time someone edits this file.
- */
-export interface QuickReply {
-  readonly id: string;
-  readonly text: Readonly<Record<string, string>>;
-}
-
 export function BargainThread({
   negotiation,
   viewer,
   now,
-  quickReplies,
   validForMinutes,
+  remaining,
   onSend,
   pending,
 }: {
   negotiation: Negotiation;
   viewer: Party;
   now: number;
-  quickReplies: readonly QuickReply[];
   /** How long a proposal holds, from platform policy. */
   validForMinutes: number;
+  /**
+   * What is still unsold on this listing, per grade.
+   *
+   * Bounds the quantity fields, and is why a buyer sees "180 left" rather than
+   * the 400 that was posted before somebody else took half. The server checks
+   * it again against Firestore — this is so the person sees the limit while
+   * they are typing, not after they press send.
+   */
+  remaining?: readonly GradeQuantity[];
   onSend: (draft: {
     kind: "note" | "proposal" | "accept" | "withdraw";
-    text?: string;
+    phraseId?: string;
     bands?: GradeBand[];
     validForMinutes?: number;
   }) => Promise<boolean>;
@@ -275,28 +305,57 @@ export function BargainThread({
       }),
     );
   });
-  const [text, setText] = useState("");
+
+  // Quantities, prefilled the same way. A blank field means the whole of what
+  // is left at that grade, which is the ordinary case and should not need
+  // typing.
+  const [want, setWant] = useState<Record<string, string>>(() => {
+    const source = standing?.bands ?? [];
+    return Object.fromEntries(
+      GRADES.map((grade) => {
+        const q = source.find((b) => b.grade === grade)?.quantity;
+        return [grade, q === undefined ? "" : String(q)];
+      }),
+    );
+  });
   const [countering, setCountering] = useState(false);
 
   const settled = isSettled(negotiation);
   const acceptCheck = canAccept(negotiation, viewer, now);
 
-  // A blank field means "not bidding on this grade", not "zero". Grades trade
+  /** How much is left at a grade, or the whole lot where nothing was passed. */
+  const leftAt = (grade: Grade) =>
+    remaining
+      ? (remaining.find((r) => r.grade === grade)?.quantity ?? 0)
+      : negotiation.quantity;
+
+  // A blank rate means "not bidding on this grade", not "zero". Grades trade
   // separately, so leaving one out is an ordinary thing to do rather than an
-  // incomplete form.
+  // incomplete form. A blank quantity means all of what is left at that grade.
   const proposed: GradeBand[] = GRADES.flatMap((grade) => {
     const entered = (draft[grade] ?? "").trim();
     if (entered === "") return [];
-    return [{ grade, ratePerUnit: Math.round(Number(entered) * 100) }];
+
+    const asked = (want[grade] ?? "").trim();
+    return [
+      {
+        grade,
+        ratePerUnit: Math.round(Number(entered) * 100),
+        quantity: asked === "" ? leftAt(grade) : Math.round(Number(asked)),
+      },
+    ];
   });
-  const proposeCheck = canPropose(negotiation, viewer, proposed);
+  const proposeCheck = canPropose(negotiation, viewer, proposed, remaining);
 
   const distance = gap(negotiation);
   const gapGrades = GRADES.filter((g) => distance[g] !== undefined);
   const unitLabel = QUANTITY_UNITS[negotiation.unit].en;
 
-  // A farmer reads their own language; the buyer console is English.
+  // A farmer reads their own language; the buyer console is English. Every
+  // phrase exists in both, so the same message renders in whichever the reader
+  // uses rather than in whichever the sender typed.
   const viewerLocale = viewer === "farmer" ? "ta" : "en";
+  const vocabulary = phrasesFor(viewer);
 
   // "2h", "45m", "1h 30m" — the policy figure, said the way it reads.
   const hours = Math.floor(validForMinutes / 60);
@@ -310,13 +369,10 @@ export function BargainThread({
 
   async function send(
     kind: "note" | "proposal" | "accept" | "withdraw",
-    extra: { bands?: GradeBand[]; validForMinutes?: number } = {},
+    extra: { phraseId?: string; bands?: GradeBand[]; validForMinutes?: number } = {},
   ) {
-    const ok = await onSend({ kind, text: text.trim() || undefined, ...extra });
-    if (ok) {
-      setText("");
-      setCountering(false);
-    }
+    const ok = await onSend({ kind, ...extra });
+    if (ok) setCountering(false);
   }
 
   return (
@@ -372,6 +428,7 @@ export function BargainThread({
             negotiation={negotiation}
             message={message}
             viewer={viewer}
+            locale={viewerLocale}
             now={now}
           />
         ))}
@@ -425,30 +482,57 @@ export function BargainThread({
           {countering ? (
             <div className="bg-background flex flex-col gap-3 rounded-lg border p-3">
               <p className="text-muted-foreground text-xs">
-                Bid on one grade or several. Anything you leave blank is not
-                part of this offer.
+                Bid on one grade or several, for all of it or part. A grade left
+                blank is not part of this offer; a quantity left blank is all
+                that is left at that grade.
               </p>
 
               <div className="grid gap-3 sm:grid-cols-3">
-                {GRADES.map((grade) => (
-                  <div key={grade} className="flex flex-col gap-1.5">
-                    <Label htmlFor={`rate-${grade}`} className="text-sm">
-                      Grade {GRADE_LABELS[grade]}
-                      <span className="text-faint text-xs font-normal">
-                        ₹ per {unitLabel}
-                      </span>
-                    </Label>
-                    <Input
-                      id={`rate-${grade}`}
-                      inputMode="decimal"
-                      value={draft[grade] ?? ""}
-                      onChange={(e) =>
-                        setDraft((d) => ({ ...d, [grade]: e.target.value }))
-                      }
-                      className="tabular"
-                    />
-                  </div>
-                ))}
+                {GRADES.map((grade) => {
+                  const left = leftAt(grade);
+                  const sold = remaining !== undefined && left === 0;
+
+                  return (
+                    <div key={grade} className="flex flex-col gap-1.5">
+                      <Label htmlFor={`rate-${grade}`} className="text-sm">
+                        Grade {GRADE_LABELS[grade]}
+                        <span className="text-faint text-xs font-normal">
+                          {sold ? "sold out" : `${left} ${unitLabel} left`}
+                        </span>
+                      </Label>
+
+                      <div className="flex items-center gap-1.5">
+                        <Input
+                          id={`rate-${grade}`}
+                          inputMode="decimal"
+                          disabled={sold}
+                          placeholder={`₹ / ${unitLabel}`}
+                          aria-label={`Grade ${GRADE_LABELS[grade]} rate in rupees per ${unitLabel}`}
+                          value={draft[grade] ?? ""}
+                          onChange={(e) =>
+                            setDraft((d) => ({ ...d, [grade]: e.target.value }))
+                          }
+                          className="tabular"
+                        />
+                        <span className="text-faint shrink-0 text-xs">×</span>
+                        <Input
+                          inputMode="numeric"
+                          disabled={sold}
+                          // Placeholder rather than a filled value: an empty
+                          // field that means "all of it" reads as one decision,
+                          // where a prefilled number reads as one to check.
+                          placeholder={sold ? "—" : String(left)}
+                          aria-label={`Grade ${GRADE_LABELS[grade]} quantity in ${unitLabel}`}
+                          value={want[grade] ?? ""}
+                          onChange={(e) =>
+                            setWant((w) => ({ ...w, [grade]: e.target.value }))
+                          }
+                          className="tabular"
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               {!proposeCheck.allowed ? (
@@ -488,61 +572,51 @@ export function BargainThread({
 
           <Separator />
 
-          <div className="flex flex-wrap gap-1.5">
-            {quickReplies.map((reply) => {
-              // Shown in the reader's language, falling back to English so a
-              // phrase nobody has translated yet is still offered.
-              const label = reply.text[viewerLocale] ?? reply.text.en;
-              const tag =
-                reply.text[viewerLocale] && viewerLocale in LOCALE_META
-                  ? LOCALE_META[viewerLocale as Locale].tag
-                  : "en-IN";
+          {/*
+            The whole of what can be said. There is no text box, and that is
+            deliberate — see `lib/domain/bargain-vocabulary.ts`. A phrase is
+            sent on the tap: nothing is drafted, so nothing has to be
+            proof-read, and a farmer holding a phone in a field sends a message
+            with one thumb.
+          */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-faint flex items-center gap-1.5 text-xs">
+              <MessageSquareIcon className="size-3.5" />
+              Tap to send. Both of you read these in your own language.
+            </span>
 
-              return (
-                <Button
-                  key={reply.id}
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setText(label)}
-                >
-                  <MessageSquareIcon className="size-3.5" />
-                  <span lang={tag}>{label}</span>
-                </Button>
-              );
-            })}
-          </div>
+            <div className="flex flex-wrap gap-1.5">
+              {vocabulary.map((phrase) => {
+                const translated = phrase.text[viewerLocale];
+                const label = translated ?? phrase.text.en;
+                const tag =
+                  translated && viewerLocale in LOCALE_META
+                    ? LOCALE_META[viewerLocale as Locale].tag
+                    : "en-IN";
 
-          <div className="flex items-end gap-2">
-            <Textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Add a message"
-              aria-label="Message"
-              rows={2}
-              className="flex-1 resize-none"
-            />
-            <Button
-              variant="outline"
-              disabled={pending || !text.trim()}
-              onClick={() => send("note")}
-            >
-              <SendIcon className="size-4" />
-              Send
-            </Button>
+                return (
+                  <Button
+                    key={phrase.id}
+                    variant="secondary"
+                    size="sm"
+                    disabled={pending}
+                    onClick={() => void send("note", { phraseId: phrase.id })}
+                  >
+                    <span lang={tag}>{label}</span>
+                  </Button>
+                );
+              })}
+            </div>
           </div>
 
           <button
             type="button"
             disabled={pending}
             onClick={() => {
-              if (!text.trim()) {
-                toast.error("Say why you are ending it", {
-                  description:
-                    "The farmer is owed a reason — otherwise they are left guessing whether to hold the stock.",
-                });
-                return;
-              }
-              void send("withdraw");
+              // Ending it says why, and the reason comes from the list like
+              // everything else. The other side is owed one — otherwise they
+              // are left guessing whether to hold the stock.
+              void send("withdraw", { phraseId: "not-interested" });
             }}
             className="text-muted-foreground hover:text-destructive self-start text-xs underline underline-offset-2"
           >

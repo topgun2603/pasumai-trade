@@ -31,6 +31,8 @@ export interface TransportState {
   readonly agencyName: string;
   readonly status: DispatchStatus;
   readonly reason?: string;
+  readonly quantity?: number;
+  readonly unit?: string;
 }
 
 /**
@@ -45,12 +47,21 @@ export interface TransportState {
 export function AssignTransport({
   negotiationId,
   produceName,
+  load,
   agencies,
   transport,
   district,
 }: {
   negotiationId: string;
   produceName: string;
+  /**
+   * What this vehicle is collecting, e.g. "150 kg".
+   *
+   * The agreed share, not the listed lot. A field sold to three buyers produces
+   * three of these, three vehicles and three collections — the agency needs to
+   * know which load it is being asked for.
+   */
+  load: string;
   agencies: AgencyOption[];
   transport: TransportState | null;
   district: string;
@@ -119,6 +130,13 @@ export function AssignTransport({
         >
           {accepted ? <CheckCircle2Icon className="size-3" /> : <ClockIcon className="size-3" />}
           {transport.agencyName}
+          {/* What this vehicle is for. A lot split between buyers has one of
+              these per buyer, and they are only distinguishable by the load. */}
+          {transport.quantity !== undefined ? (
+            <span className="tabular opacity-70">
+              · {transport.quantity} {transport.unit ?? ""}
+            </span>
+          ) : null}
         </Badge>
         {!accepted ? (
           <Button size="sm" variant="outline" disabled={busy} onClick={cancel}>
@@ -147,9 +165,13 @@ export function AssignTransport({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="flex max-h-[85svh] flex-col gap-0 p-0 sm:max-w-md">
           <DialogHeader className="border-b px-5 py-4">
-            <DialogTitle>Who is collecting the {produceName.toLowerCase()}?</DialogTitle>
+            <DialogTitle>
+              Who is collecting {load} of {produceName.toLowerCase()}?
+            </DialogTitle>
             <DialogDescription>
-              Agencies covering {district} whose paperwork is in order today.
+              Agencies covering {district} whose paperwork is in order today. This
+              collection is for this sale only — a lot sold in parts is collected
+              in parts.
             </DialogDescription>
           </DialogHeader>
 

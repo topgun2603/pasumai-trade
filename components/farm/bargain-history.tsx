@@ -5,6 +5,7 @@ import { CheckCircle2Icon, CircleSlashIcon, TimerOffIcon } from "lucide-react";
 import { AssignTransport, type AgencyOption, type TransportState } from "@/components/farm/assign-transport";
 import { DataTable, type Column, type FilterTab } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
+import { agreedQuantity } from "@/lib/domain/dispatch-request";
 import { formatMoney } from "@/lib/domain/money";
 import type { Negotiation, NegotiationStatus } from "@/lib/domain/negotiation";
 
@@ -49,10 +50,31 @@ function rates(thread: Negotiation) {
           <span className="tabular-nums">
             {formatMoney({ minorUnits: b.ratePerUnit, currency: "INR" })}
           </span>
+          {b.quantity !== undefined && b.quantity < thread.quantity ? (
+            <span className="text-muted-foreground tabular-nums">
+              {" "}
+              × {b.quantity}
+            </span>
+          ) : null}
         </span>
       ))}
     </span>
   );
+}
+
+/**
+ * The quantity a row is about.
+ *
+ * For a sold lot that is what the buyer took, which may be part of it — showing
+ * the listed 400 against a sale of 150 would overstate every partial sale on
+ * the page, and this is the page a farmer reads back to see what they got.
+ */
+function soldLine(thread: Negotiation) {
+  if (thread.status !== "agreed") return `${thread.quantity} ${thread.unit}`;
+  const taken = agreedQuantity(thread);
+  return taken < thread.quantity
+    ? `${taken} of ${thread.quantity} ${thread.unit}`
+    : `${taken} ${thread.unit}`;
 }
 
 export function BargainHistory({
@@ -77,7 +99,7 @@ export function BargainHistory({
         <span className="flex flex-col leading-tight">
           <span className="font-medium">{t.produceName}</span>
           <span className="text-muted-foreground text-xs tabular-nums">
-            {t.quantity} {t.unit}
+            {soldLine(t)}
           </span>
         </span>
       ),
@@ -113,6 +135,7 @@ export function BargainHistory({
           <AssignTransport
             negotiationId={t.id}
             produceName={t.produceName}
+            load={`${agreedQuantity(t)} ${t.unit}`}
             agencies={agencies}
             transport={transport[t.id] ?? null}
             district={district}
@@ -160,13 +183,14 @@ export function BargainHistory({
           </Badge>
         </div>
         <span className="text-muted-foreground text-sm">
-          {t.buyerName} · {t.quantity} {t.unit}
+          {t.buyerName} · {soldLine(t)}
         </span>
         {rates(t)}
         {t.status === "agreed" ? (
           <AssignTransport
             negotiationId={t.id}
             produceName={t.produceName}
+            load={`${agreedQuantity(t)} ${t.unit}`}
             agencies={agencies}
             transport={transport[t.id] ?? null}
             district={district}

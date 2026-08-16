@@ -1,25 +1,26 @@
 "use client";
 
+import { PackageIcon, TrendingUpIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import {
-  BargainThread,
-  type QuickReply,
-} from "@/components/negotiation/bargain-thread";
+import { BargainThread } from "@/components/negotiation/bargain-thread";
 import { Badge } from "@/components/ui/badge";
 import { QUANTITY_UNITS } from "@/lib/domain/enums";
+import type { GradeQuantity } from "@/lib/domain/listing-draft";
 import { formatRate, money } from "@/lib/domain/money";
 import type { GradeBand } from "@/lib/domain/models";
 import {
   gap,
   hasExpired,
+  lastProposalBy,
   rateFor,
   standingProposal,
   type Negotiation,
   type Party,
 } from "@/lib/domain/negotiation";
+import { rank, type BidLine } from "@/lib/domain/partial-bargain";
 import { relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -31,12 +32,23 @@ import { cn } from "@/lib/utils";
  * wrong — the other side may have countered or walked away in the meantime,
  * and this screen decides what a farmer is paid.
  */
+/** What the buyer on a thread currently has on the table. */
+function buyerStanding(thread: Negotiation): BidLine[] {
+  const offer = lastProposalBy(thread, "buyer");
+  return (offer?.bands ?? []).map((band) => ({
+    grade: band.grade,
+    // No quantity on the band means the whole lot, as it always did.
+    quantity: band.quantity ?? thread.quantity,
+    ratePerUnit: band.ratePerUnit,
+  }));
+}
+
 export function BargainConsole({
   threads,
   viewer,
   now,
-  quickReplies,
   validForMinutes,
+  remaining,
   editable,
   compact = false,
   initialThreadId,
@@ -44,8 +56,14 @@ export function BargainConsole({
   threads: Negotiation[];
   viewer: Party;
   now: number;
-  quickReplies: readonly QuickReply[];
   validForMinutes: number;
+  /**
+   * What is unsold on each listing, keyed by listing id.
+   *
+   * Several buyers bargain over one lot at once, so the limit belongs to the
+   * listing rather than to any one thread.
+   */
+  remaining?: Readonly<Record<string, readonly GradeQuantity[]>>;
   editable: boolean;
   /**
    * Panel layout: no sidebar, no viewport-height caps, fills its container.
@@ -75,9 +93,35 @@ export function BargainConsole({
 
   const selected = threads.find((t) => t.id === selectedId) ?? threads[0];
 
+  // Who is winning, per lot.
+  //
+  // Ranked within a listing rather than across the console: "top bid" means
+  // most for this produce, and comparing a tomato bid against an onion one
+  // would be a badge that means nothing. Two marks, not a combined score —
+  // whoever pays most and whoever takes most are usually different buyers, and
+  // which matters is the farmer's call.
+  const leaders = new Map<string, { bid?: string; quantity?: string }>();
+  for (const listingId of new Set(threads.map((t) => t.listingId))) {
+    const onThisLot = threads.filter((t) => t.listingId === listingId);
+    // Nothing to lead with one bidder — the badge is a comparison.
+    if (onThisLot.length < 2) continue;
+    const { topBidId, topQuantityId } = rank(onThisLot, buyerStanding);
+    leaders.set(listingId, { bid: topBidId, quantity: topQuantityId });
+  }
+
+  /** Marks for a thread, shown only to the farmer choosing between buyers. */
+  function marksFor(thread: Negotiation) {
+    if (viewer !== "farmer") return { top: false, most: false };
+    const leader = leaders.get(thread.listingId);
+    return {
+      top: leader?.bid === thread.id,
+      most: leader?.quantity === thread.id,
+    };
+  }
+
   async function send(draft: {
     kind: "note" | "proposal" | "accept" | "withdraw";
-    text?: string;
+    phraseId?: string;
     bands?: GradeBand[];
     validForMinutes?: number;
   }): Promise<boolean> {
@@ -100,10 +144,18 @@ export function BargainConsole({
           ...draft,
           author: viewer,
           locale: viewer === "farmer" ? "ta" : "en",
-          // Rates travel as paise keyed by grade, not as an array, so a
-          // reordered array cannot quietly reprice the wrong grade.
+          // Rates and quantities travel as paise and units keyed by grade, not
+          // as arrays, so a reordered array cannot quietly reprice or resize
+          // the wrong grade.
           bands: draft.bands
             ? Object.fromEntries(draft.bands.map((b) => [b.grade, b.ratePerUnit]))
+            : undefined,
+          quantities: draft.bands
+            ? Object.fromEntries(
+                draft.bands
+                  .filter((b) => b.quantity !== undefined)
+                  .map((b) => [b.grade, b.quantity]),
+              )
             : undefined,
         }),
       });
@@ -171,6 +223,7 @@ export function BargainConsole({
               const active = thread.id === selected?.id;
               const waiting =
                 thread.status === "open" && thread.messages.at(-1)?.author !== viewer;
+              const { top, most } = marksFor(thread);
 
               return (
                 <button
@@ -182,9 +235,13 @@ export function BargainConsole({
                     "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors",
                     active
                       ? "border-primary bg-accent font-medium"
-                      : "border-border hover:bg-secondary",
+                      : top
+                        ? "border-success/50 bg-success-soft hover:bg-success-soft/80"
+                        : "border-border hover:bg-secondary",
                   )}
                 >
+                  {top ? <TrendingUpIcon className="text-success size-3.5" /> : null}
+                  {most && !top ? <PackageIcon className="size-3.5" /> : null}
                   {thread.buyerName}
                   {waiting ? (
                     <span className="bg-warning size-1.5 rounded-full" aria-label="Your move" />
@@ -202,8 +259,8 @@ export function BargainConsole({
               negotiation={selected}
               viewer={viewer}
               now={now}
-              quickReplies={quickReplies}
               validForMinutes={validForMinutes}
+              remaining={remaining?.[selected.listingId]}
               onSend={send}
               pending={pending}
             />
@@ -225,6 +282,7 @@ export function BargainConsole({
           const distance = gap(thread);
           const last = thread.messages.at(-1);
           const active = thread.id === selected?.id;
+          const { top, most } = marksFor(thread);
 
           return (
             <li key={thread.id}>
@@ -233,7 +291,12 @@ export function BargainConsole({
                 onClick={() => setSelectedId(thread.id)}
                 aria-current={active}
                 className={cn(
-                  "hover:bg-muted/60 focus-visible:ring-ring flex w-full flex-col gap-1.5 border-b p-3 text-left focus-visible:ring-2 focus-visible:outline-none",
+                  "hover:bg-muted/60 focus-visible:ring-ring flex w-full flex-col gap-1.5 border-b border-l-2 border-l-transparent p-3 text-left focus-visible:ring-2 focus-visible:outline-none",
+                  // The mark is a left edge rather than a fill, so it survives
+                  // being the selected row — the farmer needs to see it is the
+                  // best offer while they are reading it.
+                  top && "border-l-success",
+                  most && !top && "border-l-primary",
                   active && "bg-muted",
                 )}
               >
@@ -266,6 +329,23 @@ export function BargainConsole({
                   {thread.quantity} {QUANTITY_UNITS[thread.unit].en}
                 </span>
 
+                {top || most ? (
+                  <span className="flex flex-wrap gap-1">
+                    {top ? (
+                      <Badge className="border-success/40 bg-success-soft text-success gap-1 border">
+                        <TrendingUpIcon className="size-3" />
+                        Best price
+                      </Badge>
+                    ) : null}
+                    {most ? (
+                      <Badge variant="secondary" className="gap-1">
+                        <PackageIcon className="size-3" />
+                        Takes the most
+                      </Badge>
+                    ) : null}
+                  </span>
+                ) : null}
+
                 <span className="text-faint flex items-center justify-between gap-2 text-xs">
                   <span className="truncate">
                     {last?.kind === "proposal"
@@ -297,8 +377,8 @@ export function BargainConsole({
             negotiation={selected}
             viewer={viewer}
             now={now}
-            quickReplies={quickReplies}
             validForMinutes={validForMinutes}
+            remaining={remaining?.[selected.listingId]}
             onSend={send}
             pending={pending}
           />
