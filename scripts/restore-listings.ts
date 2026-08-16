@@ -66,6 +66,9 @@ async function main() {
       .collection("listings")
       .doc(l.id)
       .set({
+        // Same mark the seed writes. Everything this script restores is demo
+        // data by definition.
+        seeded: true,
         produceId: l.produce.id,
         farmerId: l.farmer.id,
         farmerName: l.farmer.name,

@@ -418,6 +418,10 @@ async function main() {
     openListings(now),
     (l) => l.id,
     (l) => ({
+      // Demo data, and labelled as such. The buyers' market filters on this so
+      // a real buyer never bargains for produce that does not exist and a
+      // farmer who cannot be telephoned.
+      seeded: true,
       produceId: l.produce.id,
       farmerId: l.farmer.id,
       farmerName: l.farmer.name,

@@ -237,8 +237,15 @@ export interface MarketListing extends FarmListing {
  * every row — at this scale that is cheaper than the alternative and always
  * current.
  *
- * Withdrawn lots are excluded. A buyer bargaining for produce the farmer has
- * taken off the market is a conversation that ends in an apology.
+ * Withdrawn lots are excluded, and so is seeded demo data. A buyer bargaining
+ * for produce that does not exist, with a farmer who cannot be telephoned, is a
+ * conversation that ends in an apology — and it is worse than an empty market,
+ * because an empty market is at least true.
+ *
+ * The seeded rows carry `seeded: true`, written by the seed and by
+ * scripts/restore-listings.ts. Marked rather than guessed at from the shape of
+ * the id: `L-` is a convention, and a convention is a thing somebody
+ * reasonably breaks later.
  */
 export async function readMarketListings(): Promise<MarketListing[]> {
   const db = adminDb();
@@ -257,6 +264,8 @@ export async function readMarketListings(): Promise<MarketListing[]> {
   const rows = await Promise.all(
     listings.docs.map(async (doc): Promise<MarketListing | null> => {
       const data = doc.data();
+      if (data.seeded === true) return null;
+
       const base = shape(doc.id, data);
       if (base.status === "withdrawn" || base.status === "expired") return null;
 
