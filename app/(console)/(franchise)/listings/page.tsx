@@ -1,85 +1,69 @@
-import { AlarmClockIcon, CircleSlashIcon, GavelIcon, TimerIcon } from "lucide-react";
+import { SproutIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { connection } from "next/server";
 
-import { ListingsTable } from "@/components/franchise/listings-table";
-import { StatTile } from "@/components/franchise/stat-tile";
+import { ProduceMarket } from "@/components/market/produce-market";
 import { PageHeader } from "@/components/page-header";
-import { hasExpiredAt, remainingFrom } from "@/lib/domain/models";
-import { DISTRICTS, openListings } from "@/lib/mock/listings";
+import { BUYING_ROLES } from "@/lib/auth/claims";
+import { requireConsole } from "@/lib/auth/require";
+import { readMarketListings } from "@/lib/firebase/listings-read";
+import { readNegotiations } from "@/lib/firebase/negotiations-read";
+import { negotiations } from "@/lib/mock/negotiations";
 
-export const metadata: Metadata = {
-  title: "Listings",
-};
+export const metadata: Metadata = { title: "Listings" };
 
-const HOUR = 3_600_000;
-
+/**
+ * Produce on offer, from the farmers who posted it.
+ *
+ * This page read the mock catalogue and quoted a mandi reference beside every
+ * row. Both are gone: the rows are real listings out of Firestore, and the
+ * only price shown is what the farmer is asking. Prices here come from the two
+ * people in the trade, which is the entire premise.
+ */
 export default async function ListingsPage() {
-  // This page is a live queue, so it must render per request. `new Date()`
-  // alone does not opt out of prerendering — without this the build bakes a
-  // timestamp in and every "42m ago" freezes at build time.
   await connection();
 
-  // Read the clock once, here, and pass it down. Every relative time on the
-  // page is derived from this single value so the server render and the
-  // hydrated client render agree.
-  const now = new Date();
-  const listings = openListings(now);
+  const session = await requireConsole([...BUYING_ROLES, "admin"]);
+  const clock = new Date().getTime();
 
-  const awaitingQuote = listings.filter((l) => l.status === "awaitingOffer");
-  const offered = listings.filter((l) => l.status === "offered" && l.offer);
-  const live = offered.filter((l) => !hasExpiredAt(l.offer!, now));
-  const expiring = live.filter((l) => remainingFrom(l.offer!, now) < HOUR);
-  const expired = offered.filter((l) => hasExpiredAt(l.offer!, now));
+  const [listings, { threads }] = await Promise.all([
+    readMarketListings(),
+    readNegotiations(negotiations(clock)),
+  ]);
+
+  // Which lots this buyer is already talking about, so the row offers to
+  // continue rather than to open a second thread the domain would refuse.
+  const openThreads: Record<string, string> = {};
+  for (const thread of threads) {
+    if (thread.buyerId !== session.claims.accountId || thread.status !== "open") continue;
+    openThreads[thread.listingId] = thread.id;
+  }
 
   return (
     <>
       <PageHeader
         title="Listings"
-        description="Open produce across your districts. Quote the grades you want — grading happens at pickup, and the price resolves from the band you priced."
+        description="Produce posted by farmers across the districts you cover. Bargain on the grades you want — you do not have to take the whole lot."
         aside={
           <p className="text-faint text-xs">
-            {listings.length} open · {DISTRICTS.length} districts
+            {listings.length} lot{listings.length === 1 ? "" : "s"} on offer
           </p>
         }
       />
 
-      <div className="grid grid-cols-2 gap-px border-b bg-border lg:grid-cols-4">
-        <StatTile
-          label="Awaiting your quote"
-          value={awaitingQuote.length}
-          icon={GavelIcon}
-          tone="default"
-          hint="No offer yet from any franchise"
-        />
-        <StatTile
-          label="Live offers"
-          value={live.length}
-          icon={TimerIcon}
-          tone="success"
-          hint="Quoted, farmer has not responded"
-        />
-        <StatTile
-          label="Expiring within an hour"
-          value={expiring.length}
-          icon={AlarmClockIcon}
-          tone="warning"
-          hint="Countdown is visible to the farmer"
-        />
-        <StatTile
-          label="Expired, needs requote"
-          value={expired.length}
-          icon={CircleSlashIcon}
-          tone="danger"
-          hint="Offer lapsed before the farmer answered"
-        />
+      <div className="flex flex-col gap-4 p-5">
+        {listings.length === 0 ? (
+          <div className="border-border text-muted-foreground flex flex-col items-center gap-3 rounded-lg border border-dashed px-4 py-14 text-center">
+            <SproutIcon className="size-7" />
+            <p className="max-w-sm text-sm">
+              Nothing is listed right now. Farmers post as lots come ready, so this fills up
+              through the morning.
+            </p>
+          </div>
+        ) : (
+          <ProduceMarket listings={listings} openThreads={openThreads} />
+        )}
       </div>
-
-      <ListingsTable
-        listings={listings}
-        districts={[...DISTRICTS]}
-        now={now.getTime()}
-      />
     </>
   );
 }

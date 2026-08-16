@@ -21,6 +21,8 @@ import { adminDb, adminStorage } from "./admin";
 
 export interface FarmListing {
   readonly id: string;
+  /** Whose lot it is. Needed wherever ownership is checked or displayed. */
+  readonly farmerId: string;
   readonly produceId: string;
   readonly produceName: string;
   readonly grades: GradeQuantity[];
@@ -115,6 +117,7 @@ function shape(
 
   return {
     id,
+    farmerId: typeof data.farmerId === "string" ? data.farmerId : "",
     produceId: typeof data.produceId === "string" ? data.produceId : "",
     produceName: typeof data.produceName === "string" ? data.produceName : (typeof data.produceId === "string" ? data.produceId : "Produce"),
     grades,
@@ -211,4 +214,88 @@ export function farmTotals(listings: readonly FarmListing[]): FarmTotals {
     // rather than pretending to add kg to bunches.
     unit: open[0]?.unit ?? "kg",
   };
+}
+
+/* -------------------------------------------------------------------------
+   The market, as a buyer sees it
+   ------------------------------------------------------------------------- */
+
+export interface MarketListing extends FarmListing {
+  readonly farmerName: string;
+  readonly village: string;
+  readonly district: string;
+  /** Completed orders — the only real signal of reliability a buyer has. */
+  readonly completedOrders: number;
+}
+
+/**
+ * Every lot on the market, with the farmer attached.
+ *
+ * Joined here rather than denormalised onto the listing, because a farmer's
+ * name and village change and a listing written last month should not go on
+ * showing where they used to live. One read of the farmers collection covers
+ * every row — at this scale that is cheaper than the alternative and always
+ * current.
+ *
+ * Withdrawn lots are excluded. A buyer bargaining for produce the farmer has
+ * taken off the market is a conversation that ends in an apology.
+ */
+export async function readMarketListings(): Promise<MarketListing[]> {
+  const db = adminDb();
+  const [listings, farmers] = await Promise.all([
+    db.collection("listings").get(),
+    db.collection("farmers").get(),
+  ]);
+
+  // Indexed on both spellings: seeded rows say `f-201` where accounts say
+  // `F-201`, and a case-sensitive lookup silently drops every demo listing.
+  const byId = new Map<string, FirebaseFirestore.DocumentData>();
+  for (const doc of farmers.docs) {
+    byId.set(doc.id.toLowerCase(), doc.data());
+  }
+
+  const rows = await Promise.all(
+    listings.docs.map(async (doc): Promise<MarketListing | null> => {
+      const data = doc.data();
+      const base = shape(doc.id, data);
+      if (base.status === "withdrawn" || base.status === "expired") return null;
+
+      const farmerId = typeof data.farmerId === "string" ? data.farmerId : "";
+      const farmer = byId.get(farmerId.toLowerCase());
+
+      const imagePaths = Array.isArray(data.imagePaths)
+        ? data.imagePaths.filter((p): p is string => typeof p === "string")
+        : [];
+      const videoPath = typeof data.videoPath === "string" ? data.videoPath : undefined;
+
+      const [imageUrls, videoUrls] = await Promise.all([
+        signRead(imagePaths),
+        signRead(videoPath ? [videoPath] : []),
+      ]);
+
+      return {
+        ...base,
+        imageUrls,
+        videoUrl: videoUrls[0],
+        imagePaths,
+        videoPath,
+        // Falls back to whatever the listing itself recorded, so a lot whose
+        // farmer document is missing still renders instead of vanishing.
+        farmerName:
+          (typeof farmer?.name === "string" ? farmer.name : undefined) ??
+          (typeof data.farmerName === "string" ? data.farmerName : "Farmer"),
+        village:
+          (typeof farmer?.village === "string" ? farmer.village : undefined) ??
+          (typeof data.village === "string" ? data.village : ""),
+        district:
+          (typeof farmer?.district === "string" ? farmer.district : undefined) ??
+          (typeof data.district === "string" ? data.district : ""),
+        completedOrders: typeof farmer?.completedOrders === "number" ? farmer.completedOrders : 0,
+      };
+    }),
+  );
+
+  return rows
+    .filter((r): r is MarketListing => r !== null)
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
