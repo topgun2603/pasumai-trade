@@ -191,59 +191,47 @@ export function SignUpForm({
           <div className="flex flex-col gap-1.5">
             <span className="font-medium">Account created</span>
             <p className="text-muted-foreground text-sm">
-              Your reference is <span className="font-mono">{created}</span>. Keep it — operations
-              will quote it when they call.
+              Your reference is <span className="font-mono">{created}</span>. Worth keeping — it
+              is what operations ask for if you ever phone them.
             </p>
           </div>
         </div>
 
         {/*
-          The honest version of what happens next. Signing up creates a login,
-          not a working account: nothing can be bought, sold or dispatched
-          until documents are checked. Saying that here beats letting someone
-          sign in, find every button refused, and conclude it is broken.
+          What actually happens next, which is: they are in.
 
-          And the farmer branch is not the same promise. There is no farmer app
-          yet, so telling a farmer to sign in would send them to a door that
-          says "not available" — the registration is real and reaches
-          operations, the console is what does not exist.
+          This used to promise a two-day wait for approval, from when accounts
+          were issued by hand and nothing worked until operations had checked
+          the documents. None of that is true now — registration creates a
+          working login, the gate on trading is the subscription, and
+          verification is a separate thing that is instant wherever eKYC is
+          switched on. Telling somebody to wait two days at the exact moment
+          they could be looking at prices is the worst possible time to be
+          wrong.
+
+          No farmer branch either. The farmer console exists, so a farmer signs
+          in like everybody else.
         */}
         <div className="bg-secondary flex flex-col gap-2 rounded-lg px-4 py-3.5">
           <span className="text-sm font-medium">What happens now</span>
           <ol className="text-muted-foreground flex list-decimal flex-col gap-1 pl-4 text-sm">
-            {isFarmer ? (
-              <>
-                <li>Your registration is with operations — they will call on {values.mobile}.</li>
-                <li>Keep your bank passbook and land record ready for verification.</li>
-                <li>The farmer app is not open yet. Until it is, list through your franchise.</li>
-              </>
-            ) : (
-              <>
-                <li>You can sign in straight away, and see your console.</li>
-                <li>
-                  You cannot trade yet — your account is{" "}
-                  <span className="font-medium">pending</span> until operations verify it.
-                </li>
-                <li>
-                  Have your documents ready. Verification is usually within two working days.
-                </li>
-              </>
-            )}
+            <li>Sign in now — your account is ready.</li>
+            <li>Looking around is free: prices, listings and who is buying.</li>
+            <li>
+              {isFarmer
+                ? "Take a plan when you want to post produce and bargain."
+                : "Take a plan when you want to bargain and order."}
+            </li>
+            <li>Verification is in your console, and most of it is instant.</li>
           </ol>
         </div>
 
-        {!isFarmer ? (
-          <Button asChild>
-            <Link href={`/${locale}/signin?as=${initial}`}>
-              Sign in
-              <ArrowRightIcon className="size-4" />
-            </Link>
-          </Button>
-        ) : (
-          <Button asChild variant="outline">
-            <Link href={`/${locale}`}>Back to home</Link>
-          </Button>
-        )}
+        <Button asChild>
+          <Link href={`/${locale}/signin?as=${initial}`}>
+            Sign in
+            <ArrowRightIcon className="size-4" />
+          </Link>
+        </Button>
       </div>
     );
   }

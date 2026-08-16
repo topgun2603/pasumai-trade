@@ -460,7 +460,7 @@ export function SignInForm({
               >
                 Register as {active.label.toLowerCase()}
               </Link>{" "}
-              — verification takes about two working days.
+              — it takes a minute and you can sign in straight away.
             </span>
           )}
         </p>

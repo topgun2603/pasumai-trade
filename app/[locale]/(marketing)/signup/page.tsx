@@ -43,7 +43,7 @@ export default async function SignUpPage({
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">Create an account</h1>
           <p className="text-muted-foreground text-sm">
-            Register once. Operations verify you before you trade.
+            Takes a minute. You can sign in and look around straight away.
           </p>
         </div>
       </div>
