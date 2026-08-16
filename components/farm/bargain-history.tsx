@@ -2,6 +2,7 @@
 
 import { CheckCircle2Icon, CircleSlashIcon, TimerOffIcon } from "lucide-react";
 
+import { AssignTransport, type AgencyOption, type TransportState } from "@/components/farm/assign-transport";
 import { DataTable, type Column, type FilterTab } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
 import { formatMoney } from "@/lib/domain/money";
@@ -54,7 +55,19 @@ function rates(thread: Negotiation) {
   );
 }
 
-export function BargainHistory({ threads }: { threads: Negotiation[] }) {
+export function BargainHistory({
+  threads,
+  agencies,
+  district,
+  transport,
+}: {
+  threads: Negotiation[];
+  /** Agencies that can actually collect from this farmer today. */
+  agencies: AgencyOption[];
+  district: string;
+  /** What has already been arranged, keyed by bargain. */
+  transport: Record<string, TransportState>;
+}) {
   const columns: Column<Negotiation>[] = [
     {
       key: "produce",
@@ -89,6 +102,24 @@ export function BargainHistory({ threads }: { threads: Negotiation[] }) {
       key: "rates",
       header: "Settled at",
       cell: (t) => rates(t) ?? <span className="text-faint text-xs">no price agreed</span>,
+    },
+    {
+      key: "transport",
+      header: "Transport",
+      cell: (t) =>
+        // Only a sold lot needs a lorry. A withdrawn or expired bargain has
+        // nothing to collect, and offering to arrange one would be nonsense.
+        t.status === "agreed" ? (
+          <AssignTransport
+            negotiationId={t.id}
+            produceName={t.produceName}
+            agencies={agencies}
+            transport={transport[t.id] ?? null}
+            district={district}
+          />
+        ) : (
+          <span className="text-faint text-xs">—</span>
+        ),
     },
     {
       key: "closed",
@@ -132,6 +163,15 @@ export function BargainHistory({ threads }: { threads: Negotiation[] }) {
           {t.buyerName} · {t.quantity} {t.unit}
         </span>
         {rates(t)}
+        {t.status === "agreed" ? (
+          <AssignTransport
+            negotiationId={t.id}
+            produceName={t.produceName}
+            agencies={agencies}
+            transport={transport[t.id] ?? null}
+            district={district}
+          />
+        ) : null}
         <span className="text-faint text-xs">
           {(t.agreedAt ?? t.openedAt).toLocaleDateString("en-IN", {
             day: "numeric",

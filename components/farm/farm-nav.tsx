@@ -2,6 +2,7 @@
 
 import {
   BadgeCheckIcon,
+  ChartColumnIcon,
   CreditCardIcon,
   GaugeIcon,
   HandshakeIcon,
@@ -40,6 +41,7 @@ const LINKS = [
   { href: "/farm", label: "Today", icon: GaugeIcon, exact: true },
   { href: "/farm/listings", label: "My produce", icon: SproutIcon },
   { href: "/farm/bargains", label: "Sales", icon: HandshakeIcon },
+  { href: "/farm/analytics", label: "Prices", icon: ChartColumnIcon },
   { href: "/farm/account", label: "Account", icon: UserRoundIcon },
 ];
 

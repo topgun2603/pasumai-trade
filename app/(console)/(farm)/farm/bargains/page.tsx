@@ -4,9 +4,13 @@ import { connection } from "next/server";
 
 import { BargainHistory } from "@/components/farm/bargain-history";
 import { PageHeader } from "@/components/page-header";
+import type { AgencyOption, TransportState } from "@/components/farm/assign-transport";
 import { requireFarmer } from "@/lib/auth/farm";
+import { availableAgencies } from "@/lib/domain/dispatch-request";
 import { isSettled } from "@/lib/domain/negotiation";
 import { readNegotiations } from "@/lib/firebase/negotiations-read";
+import { readTransport } from "@/lib/firebase/transport-read";
+import { agencies, vehicles } from "@/lib/mock/admin";
 import { negotiations } from "@/lib/mock/negotiations";
 
 export const metadata: Metadata = { title: "Sales history · Farmer" };
@@ -28,7 +32,28 @@ export default async function FarmBargainsPage() {
   const { farmer } = await requireFarmer();
   const clock = new Date().getTime();
 
-  const { threads } = await readNegotiations(negotiations(clock));
+  const [{ threads }, transport] = await Promise.all([
+    readNegotiations(negotiations(clock)),
+    readTransport(),
+  ]);
+
+  /*
+    Only agencies that could actually collect: contracted for transport, papers
+    in date, and covering this farmer's district. Listing the rest greyed out
+    would read as "the platform has no transport" to a farmer who cannot tell
+    why they are unavailable.
+  */
+  const now = new Date(clock);
+  const fleet = vehicles(now);
+  const options: AgencyOption[] = availableAgencies(agencies(now), farmer.district, clock).map(
+    (a) => ({
+      id: a.id,
+      name: a.name,
+      town: a.town,
+      districts: a.districts,
+      fleetSize: fleet.filter((v) => v.agencyId === a.id).length,
+    }),
+  );
 
   // Terminal only. `isSettled` is the domain's own word for "nobody can speak
   // in this any more", so the two stay in step if a status is ever added.
@@ -60,7 +85,12 @@ export default async function FarmBargainsPage() {
             </p>
           </div>
         ) : (
-          <BargainHistory threads={history} />
+          <BargainHistory
+            threads={history}
+            agencies={options}
+            district={farmer.district}
+            transport={transport as Record<string, TransportState>}
+          />
         )}
       </div>
     </>
