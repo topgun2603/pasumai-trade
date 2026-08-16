@@ -3,9 +3,11 @@ import "server-only";
 import { notFound } from "next/navigation";
 
 import type { FarmerAccount } from "@/lib/domain/admin";
-import { readFarmer } from "@/lib/firebase/farmer-read";
-import { readAccountState } from "@/lib/firebase/subscription-read";
+import type { Check } from "@/lib/domain/kyc";
+import { farmerJourney, type AccountFlags, type JourneyStep } from "@/lib/domain/readiness";
 import type { Subscription } from "@/lib/domain/subscription";
+import { readAccount } from "@/lib/firebase/account-flags";
+import { readFarmer } from "@/lib/firebase/farmer-read";
 
 import { requireConsole } from "./require";
 
@@ -20,11 +22,18 @@ import { requireConsole } from "./require";
  * There is no code path that takes a farmer id from the URL, which is the
  * whole isolation story — one farmer cannot ask for another's listings because
  * there is nowhere to put the request.
+ *
+ * The flags and the journey come back with the session because every page in
+ * this console needs at least one of them, and working them out per page meant
+ * the same document read three times on one render.
  */
 export interface FarmSession {
   readonly farmer: FarmerAccount;
   readonly email?: string;
   readonly subscription: Subscription | null;
+  readonly checks: Check[];
+  readonly flags: AccountFlags;
+  readonly journey: JourneyStep[];
   /** Operations rejected or suspended this account. */
   readonly blocked: boolean;
 }
@@ -35,14 +44,14 @@ export async function requireFarmer(): Promise<FarmSession> {
   // person's private prices and bank tail, and there is a read-only view of all
   // of it in /admin already.
   const session = await requireConsole(["farmer"]);
+  const now = new Date();
 
   // From Firestore, not the mock catalogue. Self-signup writes there and
   // nowhere else, so a lookup in the mocks refused every real farmer their own
-  // console while the seeded demo accounts worked — the worst shape of bug,
-  // because testing with seeded data never sees it.
-  const [farmer, state] = await Promise.all([
+  // console while the seeded demo accounts worked.
+  const [farmer, account] = await Promise.all([
     readFarmer(session.claims.accountId ?? ""),
-    readAccountState("farmer", session.claims.accountId),
+    readAccount("farmer", session.claims.accountId, now),
   ]);
 
   // A claim pointing at no farmer. Not found rather than an empty console: an
@@ -53,7 +62,10 @@ export async function requireFarmer(): Promise<FarmSession> {
   return {
     farmer,
     email: session.email,
-    subscription: state.subscription,
-    blocked: state.blocked,
+    subscription: account.subscription,
+    checks: account.checks,
+    flags: account.flags,
+    journey: farmerJourney(account.flags),
+    blocked: account.flags.blocked,
   };
 }

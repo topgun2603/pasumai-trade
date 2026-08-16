@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireFarmer } from "@/lib/auth/farm";
 import { produceName } from "@/lib/domain/models";
-import { isSubscribed } from "@/lib/domain/subscription";
+import { isReady, nextStep } from "@/lib/domain/readiness";
 import { CATALOGUE } from "@/lib/mock/catalogue";
 import { openListings } from "@/lib/mock/listings";
 
@@ -18,14 +18,24 @@ export const metadata: Metadata = { title: "My produce · Farmer" };
 export default async function FarmListingsPage() {
   await connection();
 
-  const { farmer, subscription } = await requireFarmer();
+  const { farmer, flags, journey } = await requireFarmer();
   const now = new Date();
 
   const mine = openListings(now).filter(
     (l) => l.farmer.id.toLowerCase() === farmer.id.toLowerCase(),
   );
 
-  const subscribed = isSubscribed(subscription, now);
+  // Both flags. The lock names whichever step is actually in the way, because
+  // "Subscribe to post" shown to somebody whose verification is pending sends
+  // them to pay for something they still cannot use.
+  const ready = isReady(flags);
+  const blocking = nextStep(journey);
+  const lockLabel = flags.awaitingReview
+    ? "Verification pending"
+    : blocking?.id === "verify"
+      ? "Verify to post"
+      : "Subscribe to post";
+  const lockHref = blocking?.href ?? "/farm/verification";
 
   // The whole catalogue, in a shape the dialog can use offline. Small enough to
   // send whole — a farmer on a village connection should not wait on a second
@@ -49,13 +59,13 @@ export default async function FarmListingsPage() {
             they are missing — hiding the button would just look like the
             feature does not exist.
           */
-          subscribed ? (
+          ready ? (
             <PostProduceDialog crops={crops} />
           ) : (
             <Button asChild size="sm" variant="outline">
-              <Link href="/farm/subscription">
+              <Link href={lockHref}>
                 <LockIcon className="size-4" />
-                Subscribe to post
+                {lockLabel}
               </Link>
             </Button>
           )
@@ -70,11 +80,11 @@ export default async function FarmListingsPage() {
               Nothing listed. Post what is ready to cut and buyers across your district will see
               it — you decide the price by bargaining, not by taking a rate off a board.
             </p>
-            {subscribed ? (
+            {ready ? (
               <PostProduceDialog crops={crops} />
             ) : (
               <Button asChild size="sm">
-                <Link href="/farm/subscription">See plans</Link>
+                <Link href={lockHref}>{lockLabel}</Link>
               </Button>
             )}
           </div>

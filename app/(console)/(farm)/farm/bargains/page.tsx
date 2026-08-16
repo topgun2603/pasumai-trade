@@ -7,7 +7,7 @@ import { BargainConsole } from "@/components/negotiation/bargain-console";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { requireFarmer } from "@/lib/auth/farm";
-import { isSubscribed } from "@/lib/domain/subscription";
+import { isReady, nextStep } from "@/lib/domain/readiness";
 import { readControls } from "@/lib/firebase/controls-read";
 import { readNegotiations } from "@/lib/firebase/negotiations-read";
 import { CATALOGUE } from "@/lib/mock/catalogue";
@@ -27,7 +27,7 @@ export const metadata: Metadata = { title: "Bargains · Farmer" };
 export default async function FarmBargainsPage() {
   await connection();
 
-  const { farmer, subscription } = await requireFarmer();
+  const { farmer, flags, journey } = await requireFarmer();
   const now = new Date();
   const clock = now.getTime();
 
@@ -45,7 +45,8 @@ export default async function FarmBargainsPage() {
   // Scoped by the session's farmer id. There is no path that takes one from
   // the URL.
   const mine = threads.filter((t) => t.farmerId === farmer.id);
-  const subscribed = isSubscribed(subscription, now);
+  const ready = isReady(flags);
+  const blocking = nextStep(journey);
 
   return (
     <>
@@ -55,14 +56,20 @@ export default async function FarmBargainsPage() {
       />
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 p-5">
-        {!subscribed ? (
+        {!ready ? (
           <div className="border-warning/30 bg-warning-soft flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3">
             <span className="flex items-center gap-2 text-sm">
               <LockIcon className="size-4 shrink-0" />
-              You can read every bargain. Replying and accepting need a plan.
+              {flags.awaitingReview
+                ? "You can read every bargain. Replying opens when your verification clears."
+                : blocking?.id === "verify"
+                  ? "You can read every bargain. Replying needs your account verified."
+                  : "You can read every bargain. Replying and accepting need a plan."}
             </span>
             <Button asChild size="sm" variant="outline">
-              <Link href="/farm/subscription">See plans</Link>
+              <Link href={blocking?.href ?? "/farm/verification"}>
+                {blocking?.id === "verify" ? "Verify" : "See plans"}
+              </Link>
             </Button>
           </div>
         ) : null}
@@ -83,7 +90,7 @@ export default async function FarmBargainsPage() {
             validForMinutes={controls.policy.proposalValidityMinutes}
             // Reading stays open; writing is gated. The server checks again and
             // answers 402 — this only decides whether the composer is live.
-            editable={subscribed}
+            editable={ready}
           />
         )}
       </div>

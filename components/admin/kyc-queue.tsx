@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CHECK_LABELS, type Check, type CheckKind } from "@/lib/domain/kyc";
+import { CHECK_LABELS, type CheckKind } from "@/lib/domain/kyc";
 import type { Role } from "@/lib/auth/claims";
 
 export interface QueueRow {
