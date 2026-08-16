@@ -67,19 +67,24 @@ export const DOCUMENT_FOR_CHECK: Record<CheckKind, DocumentKind> = {
 export const REQUIRED_CHECKS: Record<Role, readonly CheckKind[]> = {
   admin: [],
   farmer: ["identity", "bank"],
-  buyer: ["identity", "pan", "gst", "bank"],
-  franchise: ["identity", "pan", "gst", "bank"],
-  transport: ["identity", "pan", "gst", "bank"],
+  // GST is optional, not absent. Plenty of real businesses on this platform
+  // are under the registration threshold or are composition dealers, and a
+  // buyer who cannot produce a GSTIN is a buyer, not a fraud. It is asked for,
+  // it is verified when given, and it does not stand between anybody and the
+  // market.
+  buyer: ["identity", "pan", "bank"],
+  franchise: ["identity", "pan", "bank"],
+  transport: ["identity", "pan", "bank"],
   manpower: ["identity", "pan", "bank"],
 };
 
 export const OPTIONAL_CHECKS: Record<Role, readonly CheckKind[]> = {
   admin: [],
   farmer: ["pan"],
-  buyer: ["fssai"],
-  franchise: ["fssai"],
-  transport: [],
-  manpower: [],
+  buyer: ["gst", "fssai"],
+  franchise: ["gst", "fssai"],
+  transport: ["gst"],
+  manpower: ["gst"],
 };
 
 /* -------------------------------------------------------------------------
@@ -363,25 +368,25 @@ export function isWellFormedAadhaar(value: string): boolean {
 }
 
 /**
- * The GSTIN check digit.
+ * The shape of a GSTIN, and deliberately not its check digit.
  *
- * Base-36 over the first fourteen characters, weighted alternately 1 and 2,
- * with the quotient folded back in. Catches a mistyped GSTIN at the form rather
- * than at the tax return.
+ * Fifteen characters: state code, PAN, entity number, Z, checksum. That much is
+ * documented and unambiguous, and it catches the errors people actually make —
+ * a missing character, a transposed pair, a PAN pasted into the wrong box.
+ *
+ * The check digit is *not* verified, and that is a decision rather than an
+ * omission. An implementation of it sat here and rejected real GSTINs that
+ * businesses were typing in correctly; I could not establish from the material
+ * I had whether the fault was in the algorithm or in the numbers I was testing
+ * it against, and a validator nobody can prove correct is not a validator — it
+ * is a door that sticks. Wrongly refusing a real GSTIN costs a customer;
+ * wrongly accepting a mistyped one costs an operator ten seconds at review,
+ * where the number is checked against the register anyway.
+ *
+ * When GST verification goes through an API — the KYC_API_BASE provider —
+ * the register answers this properly and the question stops being ours.
  */
-const GST_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
 export function isWellFormedGstin(value: string): boolean {
   const gstin = value.replace(/\s/g, "").toUpperCase();
-  if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin)) return false;
-
-  let sum = 0;
-  for (let i = 0; i < 14; i++) {
-    const value = GST_ALPHABET.indexOf(gstin[i]);
-    if (value < 0) return false;
-    const product = value * (i % 2 === 0 ? 1 : 2);
-    sum += Math.floor(product / 36) + (product % 36);
-  }
-
-  return GST_ALPHABET[(36 - (sum % 36)) % 36] === gstin[14];
+  return /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin);
 }

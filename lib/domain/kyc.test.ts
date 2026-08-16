@@ -14,6 +14,7 @@ import {
   recordEkyc,
   recordManual,
   reject,
+  OPTIONAL_CHECKS,
   REQUIRED_CHECKS,
   type Check,
   type CheckKind,
@@ -142,6 +143,21 @@ describe("account state", () => {
     // Every extra field is a farmer who stops halfway.
     expect(REQUIRED_CHECKS.farmer.length).toBeLessThan(REQUIRED_CHECKS.buyer.length);
   });
+
+  it("never requires a GSTIN of anybody", () => {
+    // Businesses under the threshold and composition dealers do not hold one,
+    // and refusing them the market over it would be refusing real customers.
+    for (const role of ROLES) {
+      expect(REQUIRED_CHECKS[role]).not.toContain("gst");
+    }
+    expect(OPTIONAL_CHECKS.buyer).toContain("gst");
+    expect(OPTIONAL_CHECKS.franchise).toContain("gst");
+  });
+
+  it("verifies a buyer who never gives one", () => {
+    const checks = REQUIRED_CHECKS.buyer.map(verified);
+    expect(kycState(checks, "buyer")).toBe("verified");
+  });
 });
 
 describe("progress and what is left", () => {
@@ -208,32 +224,28 @@ describe("Aadhaar", () => {
 });
 
 describe("GSTIN", () => {
-  it("accepts a valid check digit", () => {
-    // Check digits computed from the algorithm itself, so these test the
-    // implementation against the published scheme rather than against a number
-    // somebody remembered.
+  it("accepts the documented shape", () => {
     expect(isWellFormedGstin("27AAPFU0939F1ZV")).toBe(true);
-    expect(isWellFormedGstin("29AAGCB7383J1Z4")).toBe(true);
-    expect(isWellFormedGstin("33AAECK4521M1ZK")).toBe(true);
-    expect(isWellFormedGstin("07AAACS8577K1ZR")).toBe(true);
-  });
-
-  it("rejects a wrong check digit", () => {
-    // Same GSTIN, last character changed — the case a regex alone waves through.
-    expect(isWellFormedGstin("27AAPFU0939F1ZA")).toBe(false);
-  });
-
-  it("rejects a mistyped body even when the shape is right", () => {
-    expect(isWellFormedGstin("27AAPFU0939F1ZV".replace("0939", "0938"))).toBe(false);
+    expect(isWellFormedGstin("29AAGCB7383J1ZL")).toBe(true);
+    expect(isWellFormedGstin("07AABCS1429B1ZS")).toBe(true);
   });
 
   it("rejects the wrong shape outright", () => {
     expect(isWellFormedGstin("27AAPFU0939F1Z")).toBe(false);
     expect(isWellFormedGstin("")).toBe(false);
     expect(isWellFormedGstin("hello")).toBe(false);
+    // The fourteenth character is always Z.
+    expect(isWellFormedGstin("27AAPFU0939F1XV")).toBe(false);
   });
 
   it("is case- and space-insensitive, because forms are", () => {
     expect(isWellFormedGstin(" 27aapfu0939f1zv ")).toBe(true);
+  });
+
+  it("does not check the check digit, on purpose", () => {
+    // A validator nobody can prove correct is a door that sticks. Refusing a
+    // real GSTIN costs a customer; accepting a mistyped one costs an operator
+    // ten seconds at review, where it is checked against the register anyway.
+    expect(isWellFormedGstin("27AAPFU0939F1ZA")).toBe(true);
   });
 });

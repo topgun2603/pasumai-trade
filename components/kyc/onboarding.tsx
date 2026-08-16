@@ -29,6 +29,8 @@ export interface OnboardingView {
   readonly state: KycState;
   readonly checks: readonly Check[];
   readonly required: readonly CheckKind[];
+  /** Worth having, never in the way. */
+  readonly optional: readonly CheckKind[];
   readonly progress: { done: number; total: number };
   /** Per check, whether this deployment can verify it instantly. */
   readonly instant: Record<string, boolean>;
@@ -186,7 +188,8 @@ export function KycOnboarding({ view, roleLabel }: { view: OnboardingView; roleL
       )}
 
       <div className="flex flex-col gap-3">
-        {view.required.map((kind) => {
+        {[...view.required, ...view.optional].map((kind) => {
+          const isOptional = view.optional.includes(kind);
           const check = byKind(kind);
           const done = check?.state === "verified" || check?.state === "review";
 
@@ -195,6 +198,9 @@ export function KycOnboarding({ view, roleLabel }: { view: OnboardingView; roleL
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="flex items-center gap-2 font-medium">
                   {CHECK_LABELS[kind]}
+                  {isOptional ? (
+                    <span className="text-muted-foreground text-xs font-normal">— optional</span>
+                  ) : null}
                   {view.instant[kind] ? (
                     <Badge variant="outline" className="border-primary/40 text-primary">
                       <ZapIcon className="size-3" />
@@ -202,7 +208,11 @@ export function KycOnboarding({ view, roleLabel }: { view: OnboardingView; roleL
                     </Badge>
                   ) : null}
                 </span>
-                <StateBadge check={check} />
+                {check || !isOptional ? (
+                  <StateBadge check={check} />
+                ) : (
+                  <span className="text-faint text-xs">Not provided</span>
+                )}
               </div>
 
               {check?.reference ? (

@@ -60,7 +60,12 @@ function validate(kind: CheckKind, raw: string): { reference: string } | { error
 
     case "gst": {
       if (!isWellFormedGstin(value)) {
-        return { error: "That GSTIN is not valid — the check digit does not match." };
+        // Shape only, and the message says what the shape is rather than
+        // asserting the number is wrong — the register decides that, not us.
+        return {
+          error:
+            "A GSTIN is 15 characters, like 27AAPFU0939F1ZV. Check it against your certificate.",
+        };
       }
       return { reference: normalise(value).replace(/\s/g, "") };
     }
