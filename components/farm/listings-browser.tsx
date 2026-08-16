@@ -19,6 +19,7 @@ import { DataTable, type Column, type FilterTab } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Carousel } from "@/components/ui/carousel";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { mediaItems } from "@/lib/media";
 import {
   DropdownMenu,
@@ -61,18 +62,10 @@ export function ListingsBrowser({
   const router = useRouter();
   const [bargaining, setBargaining] = useState<FarmListing | null>(null);
   const [editing, setEditing] = useState<FarmListing | null>(null);
+  const [deleting, setDeleting] = useState<FarmListing | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   async function act(listing: FarmListing, action: "withdraw" | "relist" | "delete") {
-    if (action === "delete") {
-      // A listing with photographs is a few minutes of somebody's afternoon, so
-      // deleting one asks first. Withdrawing does not — it is reversible.
-      const ok = window.confirm(
-        `Delete this ${listing.produceName} listing and its photos? This cannot be undone.`,
-      );
-      if (!ok) return;
-    }
-
     setBusy(listing.id);
     const response = await fetch(`/api/listings/${listing.id}`, {
       method: action === "delete" ? "DELETE" : "PATCH",
@@ -91,6 +84,7 @@ export function ListingsBrowser({
       return;
     }
 
+    setDeleting(null);
     toast.success(
       action === "delete"
         ? "Listing deleted"
@@ -98,6 +92,9 @@ export function ListingsBrowser({
           ? "Taken off the market"
           : "Back on the market",
     );
+    // Re-reads on the server, so the rows *and* the totals above them both
+    // move. Dropping the row from client state alone would leave the header
+    // still counting produce that is gone.
     router.refresh();
   }
 
@@ -261,7 +258,7 @@ export function ListingsBrowser({
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" onClick={() => act(l, "delete")}>
+          <DropdownMenuItem variant="destructive" onClick={() => setDeleting(l)}>
             <Trash2Icon className="size-3.5" />
             Delete
           </DropdownMenuItem>
@@ -314,6 +311,41 @@ export function ListingsBrowser({
         editable={editable}
         onOpenChange={(open) => {
           if (!open) setBargaining(null);
+        }}
+      />
+
+      {/*
+        Deleting asks first, in the application's own dialog, naming exactly
+        what goes — the crop, the quantity, how many photographs. Withdrawing
+        does not ask, because it is reversible, and the description says so
+        rather than leaving somebody to guess which of the two they wanted.
+      */}
+      <ConfirmDialog
+        open={deleting !== null}
+        title="Delete this listing?"
+        description={
+          deleting ? (
+            <>
+              <span className="text-foreground font-medium">{deleting.produceName}</span>,{" "}
+              {deleting.quantity} {deleting.unit}
+              {deleting.imageUrls.length > 0
+                ? ` and ${deleting.imageUrls.length} photo${
+                    deleting.imageUrls.length === 1 ? "" : "s"
+                  }`
+                : ""}
+              {deleting.videoUrl ? " and the video" : ""} will be removed. This cannot be undone.{" "}
+              To take it off the market and keep it, use{" "}
+              <span className="text-foreground">Take off the market</span> instead.
+            </>
+          ) : null
+        }
+        confirmLabel="Delete listing"
+        pending={busy === deleting?.id}
+        onConfirm={() => deleting && act(deleting, "delete")}
+        onOpenChange={(open) => {
+          // Not dismissable mid-delete: the request is already in flight and
+          // closing would hide the outcome.
+          if (!open && !busy) setDeleting(null);
         }}
       />
 

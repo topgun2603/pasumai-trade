@@ -337,7 +337,11 @@ export function PostProduceDialog({ crops }: { crops: CropOption[] }) {
             </div>
           </div>
 
-          <DialogFooter className="border-t px-5 py-4">
+          {/* `mx-0 mb-0` cancels the negative margins DialogFooter ships for a
+              p-4 content box. This dialog is p-0 with its own padding, so those
+              were pulling the footer outside the panel and rounding it as a
+              separate slab over the scrolling body. */}
+          <DialogFooter className="mx-0 mb-0 rounded-b-xl border-t px-5 py-4">
             <Button type="button" variant="outline" disabled={busy} onClick={() => setOpen(false)}>
               Cancel
             </Button>

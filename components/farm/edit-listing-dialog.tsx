@@ -399,7 +399,9 @@ function Body({
           ) : null}
         </div>
 
-        <DialogFooter className="border-t px-5 py-4">
+        {/* Same as the posting dialog: cancel DialogFooter's negative margins,
+            which assume the default p-4 content box. */}
+        <DialogFooter className="mx-0 mb-0 rounded-b-xl border-t px-5 py-4">
           <Button type="button" variant="outline" disabled={busy} onClick={onDone}>
             Cancel
           </Button>
