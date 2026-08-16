@@ -61,7 +61,11 @@ function readGrades(value: unknown): GradeQuantity[] {
     const g = raw as Record<string, unknown>;
     if (!GRADES.includes(g.grade as Grade)) return [];
     const quantity = typeof g.quantity === "number" ? g.quantity : 0;
-    return quantity > 0 ? [{ grade: g.grade as Grade, quantity }] : [];
+    if (quantity <= 0) return [];
+    // Stored as null when there is no asking price; the domain uses undefined.
+    const askingRate =
+      typeof g.askingRate === "number" && g.askingRate > 0 ? g.askingRate : undefined;
+    return [{ grade: g.grade as Grade, quantity, askingRate }];
   });
 }
 

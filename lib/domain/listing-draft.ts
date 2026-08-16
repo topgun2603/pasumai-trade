@@ -1,4 +1,4 @@
-import { GRADES, type Grade } from "./enums";
+import { GRADES, QUANTITY_UNITS, type Grade, type QuantityUnit } from "./enums";
 
 /**
  * What a farmer posts, before it is a listing.
@@ -21,17 +21,52 @@ import { GRADES, type Grade } from "./enums";
 
 export interface GradeQuantity {
   readonly grade: Grade;
-  /** In the produce's own unit. Omitted or zero means "none of this grade". */
+  /** In the listing's unit. Omitted or zero means "none of this grade". */
   readonly quantity: number;
+  /**
+   * What the farmer is asking, per unit, in paise. Optional.
+   *
+   * An asking price, not a price. It does not settle anything — a buyer still
+   * has to offer and the farmer still has to accept, and the bargain decides.
+   * What it does is stop the farmer negotiating from nowhere: someone with no
+   * number in front of them is anchored by whatever the first buyer says, and
+   * that was the thing this platform was built to remove.
+   *
+   * Per grade, because a lot of A and a lot of C are two different sales.
+   * Leaving it out is allowed and means "make me an offer".
+   */
+  readonly askingRate?: number;
 }
 
 export interface ListingDraft {
   readonly produceId: string;
+  /**
+   * How this lot is measured.
+   *
+   * Chosen by the farmer, not fixed by the crop. The catalogue's default is a
+   * sensible starting point and no more — the same tomatoes are sold by the
+   * kilo at a farm gate and by the crate to a wholesaler, and forcing one on
+   * somebody makes them do arithmetic to enter their own stock.
+   */
+  readonly unit: QuantityUnit;
   readonly grades: readonly GradeQuantity[];
   readonly readyIn: string;
   readonly imagePaths: readonly string[];
   readonly videoPath?: string;
 }
+
+export function isQuantityUnit(value: string): value is QuantityUnit {
+  return value in QUANTITY_UNITS;
+}
+
+/**
+ * A sane ceiling on an asking price: one lakh rupees per unit.
+ *
+ * Not a rule about produce, a rule about the decimal point. Rates are entered
+ * in rupees and stored in paise, and the likeliest error by far is a factor of
+ * a hundred in either direction.
+ */
+export const MAX_RATE_PAISE = 100_000 * 100;
 
 /* -------------------------------------------------------------------------
    Media limits
@@ -73,7 +108,9 @@ export function isVideoType(type: string): boolean {
    Validation
    ------------------------------------------------------------------------- */
 
-export type DraftErrors = Partial<Record<"produce" | "grades" | "images" | "video", string>>;
+export type DraftErrors = Partial<
+  Record<"produce" | "unit" | "grades" | "rates" | "images" | "video", string>
+>;
 
 /** A quantity that is a real number of kilos and not a typo or a fraction of one. */
 function badQuantity(value: number): string | undefined {
@@ -87,6 +124,7 @@ export function validateDraft(draft: ListingDraft): DraftErrors {
   const errors: DraftErrors = {};
 
   if (!draft.produceId) errors.produce = "Choose what you are selling.";
+  if (!isQuantityUnit(draft.unit)) errors.unit = "Choose how it is measured.";
 
   const priced = draft.grades.filter((g) => g.quantity > 0);
 
@@ -100,6 +138,25 @@ export function validateDraft(draft: ListingDraft): DraftErrors {
     } else if (draft.grades.some((g) => !GRADES.includes(g.grade))) {
       errors.grades = "Unknown grade.";
     }
+  }
+
+  /*
+    Asking prices, where one was given.
+
+    Only checked for sanity — a rate that is absent is not an error, and a rate
+    the platform thinks is low is not one either. A farmer clearing a glut at a
+    price nobody else would take is still their decision to make.
+  */
+  const badRate = priced.find(
+    (g) =>
+      g.askingRate !== undefined &&
+      (!Number.isFinite(g.askingRate) ||
+        g.askingRate <= 0 ||
+        g.askingRate > MAX_RATE_PAISE ||
+        !Number.isInteger(g.askingRate)),
+  );
+  if (badRate) {
+    errors.rates = `Check the price on grade ${badRate.grade.toUpperCase()}.`;
   }
 
   if (draft.imagePaths.length === 0) {
@@ -127,7 +184,11 @@ export function totalQuantity(grades: readonly GradeQuantity[]): number {
 export function offeredGrades(grades: readonly GradeQuantity[]): GradeQuantity[] {
   return GRADES.flatMap((grade) => {
     const found = grades.find((g) => g.grade === grade);
-    return found && found.quantity > 0 ? [{ grade, quantity: found.quantity }] : [];
+    if (!found || found.quantity <= 0) return [];
+    // Spread rather than rebuilt: this used to construct `{grade, quantity}`
+    // and silently drop everything else on the entry, which threw away the
+    // asking price on the way to being stored.
+    return [{ ...found, grade, quantity: found.quantity }];
   });
 }
 
@@ -135,5 +196,35 @@ export function offeredGrades(grades: readonly GradeQuantity[]): GradeQuantity[]
 export function describeGrades(grades: readonly GradeQuantity[], unit: string): string {
   return offeredGrades(grades)
     .map((g) => `${g.quantity} ${unit} ${g.grade.toUpperCase()}`)
+    .join(" · ");
+}
+
+/** Rupees as typed, to whole paise. `"26.50"` becomes 2650. */
+export function rupeesToPaise(value: string): number | undefined {
+  const trimmed = value.trim();
+  if (trimmed === "") return undefined;
+  const rupees = Number(trimmed);
+  if (!Number.isFinite(rupees) || rupees <= 0) return undefined;
+  // Rounded rather than truncated: ₹26.555 typed into a phone should be 2656,
+  // not 2655, and a fraction of a paisa cannot exist downstream anyway.
+  return Math.round(rupees * 100);
+}
+
+/** Paise back to a plain rupee string for an input. 2650 becomes `"26.5"`. */
+export function paiseToRupees(paise: number | undefined): string {
+  if (paise === undefined) return "";
+  return String(paise / 100);
+}
+
+/** "₹26/kg for A" — the asking price as it reads in a row. */
+export function describeAsking(
+  grades: readonly GradeQuantity[],
+  unit: string,
+  format: (paise: number) => string,
+): string {
+  const priced = offeredGrades(grades).filter((g) => g.askingRate !== undefined);
+  if (priced.length === 0) return "";
+  return priced
+    .map((g) => `${g.grade.toUpperCase()} ${format(g.askingRate!)}/${unit}`)
     .join(" · ");
 }

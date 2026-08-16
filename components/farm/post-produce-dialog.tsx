@@ -5,6 +5,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import {
+  emptyRows,
+  GradeRows,
+  rowsToPayload,
+  type GradeRowState,
+} from "@/components/farm/grade-rows";
 import { MediaPicker, type PickedFile } from "@/components/farm/media-picker";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +22,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -25,8 +30,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { GRADES } from "@/lib/domain/enums";
-import { hasDraftErrors, validateDraft, type DraftErrors } from "@/lib/domain/listing-draft";
+import type { QuantityUnit } from "@/lib/domain/enums";
+import {
+  hasDraftErrors,
+  isQuantityUnit,
+  validateDraft,
+  type DraftErrors,
+  type GradeQuantity,
+} from "@/lib/domain/listing-draft";
 
 export interface CropOption {
   id: string;
@@ -35,52 +46,48 @@ export interface CropOption {
   unit: string;
 }
 
-const GRADE_HELP: Record<string, string> = {
-  a: "Best — even size, no marks",
-  b: "Good — small blemishes",
-  c: "Fair — misshapen, still sound",
-};
-
 /**
  * Posting produce.
  *
- * Filled in standing in a field on a phone, so: no price, and a grade split
- * rather than one number.
- *
- * No price because that is what the bargaining is for, and asking a farmer to
- * name one up front is the anchor this platform exists to remove.
+ * Filled in standing in a field on a phone: a grade split rather than one
+ * number, the unit the farmer actually sells in, and an asking price per grade.
  *
  * Grades separately because a cut of tomatoes is not "800 kg of tomatoes" —
  * it is some A, more B and a little C, and each fetches its own rate. Any
  * subset is fine: a farmer with only B fills in one box and leaves the others
  * alone rather than typing zeroes to say "none".
+ *
+ * The asking price is optional and it does not settle anything — a buyer still
+ * offers and the farmer still accepts. It exists so the farmer is not
+ * negotiating from nowhere, anchored by whatever the first buyer happens to
+ * say.
  */
 export function PostProduceDialog({ crops }: { crops: CropOption[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [produceId, setProduceId] = useState("");
-  const [quantities, setQuantities] = useState<Record<string, string>>({});
+  const [rows, setRows] = useState<GradeRowState>(emptyRows);
+  const [unit, setUnit] = useState<QuantityUnit>("kg");
   const [readyIn, setReadyIn] = useState("today");
   const [images, setImages] = useState<PickedFile[]>([]);
   const [video, setVideo] = useState<PickedFile | null>(null);
   const [errors, setErrors] = useState<DraftErrors>({});
   const [stage, setStage] = useState<"idle" | "uploading" | "posting">("idle");
 
-  const crop = crops.find((c) => c.id === produceId);
-  const unit = crop?.unit ?? "kg";
   const busy = stage !== "idle";
 
-  const gradeQuantities = GRADES.map((grade) => ({
-    grade,
-    quantity: Number(quantities[grade] ?? "") || 0,
+  const payload = rowsToPayload(rows);
+  const gradeQuantities: GradeQuantity[] = Object.entries(payload).map(([grade, v]) => ({
+    grade: grade as GradeQuantity["grade"],
+    quantity: v.quantity,
+    askingRate: v.rate,
   }));
-  const total = gradeQuantities.reduce((sum, g) => sum + (g.quantity > 0 ? g.quantity : 0), 0);
 
   function reset() {
     for (const picked of images) URL.revokeObjectURL(picked.preview);
     if (video) URL.revokeObjectURL(video.preview);
     setProduceId("");
-    setQuantities({});
+    setRows(emptyRows);
     setImages([]);
     setVideo(null);
     setErrors({});
@@ -155,6 +162,7 @@ export function PostProduceDialog({ crops }: { crops: CropOption[] }) {
     // there. Media is checked against what has been picked, not uploaded.
     const found = validateDraft({
       produceId,
+      unit,
       grades: gradeQuantities,
       readyIn,
       imagePaths: images.map((i) => i.file.name),
@@ -178,9 +186,8 @@ export function PostProduceDialog({ crops }: { crops: CropOption[] }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           produceId,
-          grades: Object.fromEntries(
-            gradeQuantities.filter((g) => g.quantity > 0).map((g) => [g.grade, g.quantity]),
-          ),
+          unit,
+          grades: payload,
           readyIn,
           imagePaths: media.imagePaths,
           videoPath: media.videoPath,
@@ -246,6 +253,10 @@ export function PostProduceDialog({ crops }: { crops: CropOption[] }) {
                 value={produceId}
                 onValueChange={(v) => {
                   setProduceId(v);
+                  // A suggestion, not a lock: the crop's usual unit is a good
+                  // default and the farmer can still say crate.
+                  const suggested = crops.find((c) => c.id === v)?.unit;
+                  if (suggested && isQuantityUnit(suggested)) setUnit(suggested);
                   setErrors((e) => ({ ...e, produce: undefined }));
                 }}
               >
@@ -274,52 +285,22 @@ export function PostProduceDialog({ crops }: { crops: CropOption[] }) {
             </div>
 
             <div className="flex flex-col gap-2">
-              <div className="flex items-baseline justify-between gap-2">
-                <Label>How much of each grade?</Label>
-                {total > 0 ? (
-                  <span className="text-muted-foreground text-xs tabular-nums">
-                    {total} {unit} in total
-                  </span>
-                ) : null}
-              </div>
-
-              <div className="flex flex-col gap-2">
-                {GRADES.map((grade) => (
-                  <div key={grade} className="flex items-center gap-3">
-                    <span className="bg-secondary flex size-9 shrink-0 items-center justify-center rounded-md font-medium">
-                      {grade.toUpperCase()}
-                    </span>
-                    <span className="text-muted-foreground min-w-0 flex-1 text-xs">
-                      {GRADE_HELP[grade]}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <Input
-                        aria-label={`Grade ${grade.toUpperCase()} quantity`}
-                        inputMode="decimal"
-                        placeholder="0"
-                        className="w-24 text-right"
-                        value={quantities[grade] ?? ""}
-                        onChange={(e) => {
-                          setQuantities((q) => ({ ...q, [grade]: e.target.value }));
-                          setErrors((x) => ({ ...x, grades: undefined }));
-                        }}
-                      />
-                      <span className="text-muted-foreground w-6 text-xs">{unit}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {errors.grades ? (
+              <GradeRows
+                rows={rows}
+                unit={unit}
+                disabled={busy}
+                onRows={(next) => {
+                  setRows(next);
+                  setErrors((e) => ({ ...e, grades: undefined, rates: undefined }));
+                }}
+                onUnit={setUnit}
+              />
+              {errors.grades || errors.rates ? (
                 <p className="text-destructive flex items-center gap-1 text-xs">
                   <TriangleAlertIcon className="size-3 shrink-0" />
-                  {errors.grades}
+                  {errors.grades ?? errors.rates}
                 </p>
-              ) : (
-                <p className="text-muted-foreground text-xs">
-                  Fill in only the grades you have. Buyers can bid on one grade or all of them.
-                </p>
-              )}
+              ) : null}
             </div>
 
             <MediaPicker

@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { QuickReply } from "@/components/negotiation/bargain-thread";
+import { formatMoney } from "@/lib/domain/money";
 import type { Negotiation } from "@/lib/domain/negotiation";
 import type { FarmListing } from "@/lib/firebase/listings-read";
 
@@ -119,6 +120,13 @@ export function ListingsBrowser({
           <span key={g.grade} className="bg-secondary rounded px-1.5 py-0.5 text-xs">
             <span className="font-medium">{g.grade.toUpperCase()}</span>{" "}
             <span className="tabular-nums">{g.quantity}</span>
+            {/* The asking price, where one was given. Absent reads as "open to
+                offers" rather than as free. */}
+            {g.askingRate ? (
+              <span className="text-primary ml-1 tabular-nums">
+                {formatMoney({ minorUnits: g.askingRate, currency: "INR" })}/{listing.unit}
+              </span>
+            ) : null}
           </span>
         ))}
       </span>

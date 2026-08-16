@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Carousel } from "@/components/ui/carousel";
+import { formatMoney } from "@/lib/domain/money";
 import { mediaItems } from "@/lib/media";
 import type { FarmListing } from "@/lib/firebase/listings-read";
 
@@ -55,6 +56,11 @@ export function ListingCard({ listing }: { listing: FarmListing }) {
                 <span className="tabular-nums">
                   {g.quantity} {listing.unit}
                 </span>
+                {g.askingRate ? (
+                  <span className="text-primary tabular-nums">
+                    {formatMoney({ minorUnits: g.askingRate, currency: "INR" })}/{listing.unit}
+                  </span>
+                ) : null}
               </span>
             ))}
             <span className="text-muted-foreground px-1 text-xs tabular-nums">

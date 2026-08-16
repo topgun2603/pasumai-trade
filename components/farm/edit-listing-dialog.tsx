@@ -5,6 +5,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import {
+  emptyRows,
+  GradeRows,
+  rowsToPayload,
+  type GradeRowState,
+} from "@/components/farm/grade-rows";
 import { MediaPicker, type PickedFile } from "@/components/farm/media-picker";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +21,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -24,8 +29,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { GRADES } from "@/lib/domain/enums";
-import { MAX_IMAGES } from "@/lib/domain/listing-draft";
+import type { QuantityUnit } from "@/lib/domain/enums";
+import { isQuantityUnit, MAX_IMAGES, paiseToRupees } from "@/lib/domain/listing-draft";
 import type { FarmListing } from "@/lib/firebase/listings-read";
 
 export interface CropOption {
@@ -95,8 +100,17 @@ function Body({
   const router = useRouter();
 
   const [produceId, setProduceId] = useState(listing.produceId);
-  const [quantities, setQuantities] = useState<Record<string, string>>(
-    Object.fromEntries(listing.grades.map((g) => [g.grade, String(g.quantity)])),
+  const [rows, setRows] = useState<GradeRowState>({
+    ...emptyRows,
+    ...Object.fromEntries(
+      listing.grades.map((g) => [
+        g.grade,
+        { quantity: String(g.quantity), rate: paiseToRupees(g.askingRate) },
+      ]),
+    ),
+  });
+  const [unit, setUnit] = useState<QuantityUnit>(
+    isQuantityUnit(listing.unit) ? listing.unit : "kg",
   );
   const [readyIn, setReadyIn] = useState("");
 
@@ -113,16 +127,12 @@ function Body({
   const [error, setError] = useState<string | null>(null);
   const [stage, setStage] = useState<"idle" | "uploading" | "saving">("idle");
 
-  const unit = crops.find((c) => c.id === produceId)?.unit ?? listing.unit;
   const busy = stage !== "idle";
   const cropChanged = produceId !== listing.produceId;
   const totalImages = keptImages.length + newImages.length;
 
-  const grades = GRADES.map((grade) => ({
-    grade,
-    quantity: Number(quantities[grade] ?? "") || 0,
-  }));
-  const total = grades.reduce((sum, g) => sum + Math.max(0, g.quantity), 0);
+  const payload = rowsToPayload(rows);
+  const grades = Object.values(payload);
 
   /** Uploads only what is new, and returns the full set of paths. */
   async function uploadNew(): Promise<{ imagePaths: string[]; videoPath?: string } | null> {
@@ -188,11 +198,11 @@ function Body({
     event.preventDefault();
     setError(null);
 
-    if (grades.every((g) => g.quantity <= 0)) {
+    if (grades.length === 0) {
       setError("Keep at least one grade. Take it off the market instead of emptying it.");
       return;
     }
-    if (grades.some((g) => g.quantity < 0 || g.quantity > 100_000)) {
+    if (grades.some((g) => g.quantity > 100_000)) {
       setError("Those quantities do not look right.");
       return;
     }
@@ -218,9 +228,8 @@ function Body({
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         produceId,
-        grades: Object.fromEntries(
-          grades.filter((g) => g.quantity > 0).map((g) => [g.grade, g.quantity]),
-        ),
+        unit,
+        grades: payload,
         ...(readyIn ? { readyIn } : {}),
         imagePaths: media.imagePaths,
         videoPath: media.videoPath ?? null,
@@ -284,34 +293,16 @@ function Body({
             ) : null}
           </div>
 
-          <div className="flex flex-col gap-2">
-            <div className="flex items-baseline justify-between gap-2">
-              <Label>Quantity by grade</Label>
-              <span className="text-muted-foreground text-xs tabular-nums">
-                {total} {unit} in total
-              </span>
-            </div>
-
-            {GRADES.map((grade) => (
-              <div key={grade} className="flex items-center gap-3">
-                <span className="bg-secondary flex size-9 shrink-0 items-center justify-center rounded-md font-medium">
-                  {grade.toUpperCase()}
-                </span>
-                <Input
-                  aria-label={`Grade ${grade.toUpperCase()} quantity`}
-                  inputMode="decimal"
-                  placeholder="0"
-                  className="flex-1 text-right"
-                  value={quantities[grade] ?? ""}
-                  onChange={(e) => {
-                    setQuantities((q) => ({ ...q, [grade]: e.target.value }));
-                    setError(null);
-                  }}
-                />
-                <span className="text-muted-foreground w-6 text-xs">{unit}</span>
-              </div>
-            ))}
-          </div>
+          <GradeRows
+            rows={rows}
+            unit={unit}
+            disabled={busy}
+            onRows={(next) => {
+              setRows(next);
+              setError(null);
+            }}
+            onUnit={setUnit}
+          />
 
           {/* Existing media, each removable. Kept apart from the picker below
               because these are already in storage and those are not yet. */}

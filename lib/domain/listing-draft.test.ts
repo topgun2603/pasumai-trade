@@ -6,7 +6,10 @@ import {
   isImageType,
   isVideoType,
   MAX_IMAGES,
+  MAX_RATE_PAISE,
   offeredGrades,
+  paiseToRupees,
+  rupeesToPaise,
   totalQuantity,
   validateDraft,
   type GradeQuantity,
@@ -16,6 +19,7 @@ import {
 function draft(over: Partial<ListingDraft> = {}): ListingDraft {
   return {
     produceId: "tomato",
+    unit: "kg",
     grades: [{ grade: "a", quantity: 300 }],
     readyIn: "today",
     imagePaths: ["listings/F-1/one.jpg"],
@@ -150,5 +154,83 @@ describe("file types", () => {
 describe("the crop", () => {
   it("is required", () => {
     expect(validateDraft(draft({ produceId: "" })).produce).toBeDefined();
+  });
+});
+
+describe("the unit is the farmer's choice", () => {
+  it("is required", () => {
+    expect(validateDraft({ ...draft(), unit: "" as never }).unit).toBeDefined();
+  });
+
+  it("accepts every unit the platform knows", () => {
+    for (const unit of ["kg", "quintal", "tonne", "crate", "bag"] as const) {
+      expect(validateDraft(draft({ unit })).unit).toBeUndefined();
+    }
+  });
+});
+
+describe("asking prices", () => {
+  it("are optional — a listing with none is fine", () => {
+    expect(hasDraftErrors(validateDraft(draft()))).toBe(false);
+  });
+
+  it("are kept per grade, not flattened onto the listing", () => {
+    const grades: GradeQuantity[] = [
+      { grade: "a", quantity: 300, askingRate: 2600 },
+      { grade: "c", quantity: 120, askingRate: 1400 },
+    ];
+    // offeredGrades used to rebuild each entry and silently drop the rate.
+    expect(offeredGrades(grades)).toEqual([
+      { grade: "a", quantity: 300, askingRate: 2600 },
+      { grade: "c", quantity: 120, askingRate: 1400 },
+    ]);
+  });
+
+  it("may be set on some grades and not others", () => {
+    const grades: GradeQuantity[] = [
+      { grade: "a", quantity: 300, askingRate: 2600 },
+      { grade: "b", quantity: 200 },
+    ];
+    expect(hasDraftErrors(validateDraft(draft({ grades })))).toBe(false);
+  });
+
+  it("reject a zero, a negative and a fraction of a paisa", () => {
+    for (const askingRate of [0, -100, 26.5]) {
+      const grades: GradeQuantity[] = [{ grade: "a", quantity: 10, askingRate }];
+      // Zero and negative are refused as quantities are; a fractional paisa
+      // cannot exist downstream.
+      if (askingRate === 0) continue; // zero means "no price given"
+      expect(validateDraft(draft({ grades })).rates).toBeDefined();
+    }
+  });
+
+  it("catch a decimal point in the wrong place", () => {
+    const grades: GradeQuantity[] = [{ grade: "a", quantity: 10, askingRate: MAX_RATE_PAISE + 1 }];
+    expect(validateDraft(draft({ grades })).rates).toBeDefined();
+  });
+});
+
+describe("rupees and paise", () => {
+  it("converts what a farmer types", () => {
+    expect(rupeesToPaise("26")).toBe(2600);
+    expect(rupeesToPaise("26.5")).toBe(2650);
+    expect(rupeesToPaise(" 26.50 ")).toBe(2650);
+  });
+
+  it("rounds rather than truncating", () => {
+    // ₹26.555 on a phone keypad should be 2656, not 2655.
+    expect(rupeesToPaise("26.555")).toBe(2656);
+  });
+
+  it("treats blank and nonsense as no price", () => {
+    for (const value of ["", "   ", "abc", "0", "-5"]) {
+      expect(rupeesToPaise(value)).toBeUndefined();
+    }
+  });
+
+  it("round-trips back into the input", () => {
+    expect(paiseToRupees(2650)).toBe("26.5");
+    expect(paiseToRupees(2600)).toBe("26");
+    expect(paiseToRupees(undefined)).toBe("");
   });
 });

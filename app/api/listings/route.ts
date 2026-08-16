@@ -2,6 +2,7 @@ import { requireCapability } from "@/lib/api/capability";
 import { GRADES, type Grade } from "@/lib/domain/enums";
 import {
   hasDraftErrors,
+  isQuantityUnit,
   MAX_IMAGES,
   offeredGrades,
   totalQuantity,
@@ -36,17 +37,41 @@ const READY_HOURS: Record<string, number> = {
   week: 168,
 };
 
-/** `{ a: 300, b: 400 }` — grades the farmer actually has, any subset. */
+/**
+ * `{ a: { quantity: 300, rate: 2600 } }` — grades the farmer has, any subset.
+ *
+ * The bare-number form `{ a: 300 }` is still accepted, because it is what the
+ * first version of this endpoint took and there is no reason to break a client
+ * that has not been updated.
+ */
 function readGrades(value: unknown): GradeQuantity[] {
   if (!value || typeof value !== "object") return [];
   const source = value as Record<string, unknown>;
 
   return GRADES.flatMap((grade) => {
     const raw = source[grade];
-    if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) return [];
+
+    const quantity =
+      typeof raw === "number"
+        ? raw
+        : raw && typeof raw === "object" && typeof (raw as { quantity?: unknown }).quantity === "number"
+          ? ((raw as { quantity: number }).quantity)
+          : NaN;
+
+    if (!Number.isFinite(quantity) || quantity <= 0) return [];
+
+    const rateRaw =
+      raw && typeof raw === "object" ? (raw as { rate?: unknown }).rate : undefined;
+    const askingRate =
+      typeof rateRaw === "number" && Number.isFinite(rateRaw) && rateRaw > 0
+        ? // Paise are integers all the way down. A fractional paisa here
+          // becomes a fractional paisa in every total computed from it.
+          Math.round(rateRaw)
+        : undefined;
+
     // Whole units. Half a kilo of grade B is not a thing anyone weighs out at
     // a farm gate, and a fraction here becomes a fraction in every total.
-    return [{ grade: grade as Grade, quantity: Math.round(raw) }];
+    return [{ grade: grade as Grade, quantity: Math.round(quantity), askingRate }];
   });
 }
 
@@ -72,6 +97,12 @@ export async function POST(request: Request) {
   const grades = readGrades(body.grades);
   const readyIn = typeof body.readyIn === "string" ? body.readyIn : "today";
 
+  // The farmer's choice, falling back to what the crop is usually sold in.
+  const unit =
+    typeof body.unit === "string" && isQuantityUnit(body.unit)
+      ? body.unit
+      : produce.defaultUnit;
+
   // Only paths under this farmer's own folder. The signing route composes
   // them, so anything else is a client that edited what it was handed.
   const prefix = `listings/${farmerId}/`;
@@ -84,7 +115,7 @@ export async function POST(request: Request) {
   const videoCandidate = typeof body.videoPath === "string" ? body.videoPath : undefined;
   const videoPath = videoCandidate?.startsWith(prefix) ? videoCandidate : undefined;
 
-  const errors = validateDraft({ produceId, grades, readyIn, imagePaths, videoPath });
+  const errors = validateDraft({ produceId, unit, grades, readyIn, imagePaths, videoPath });
   if (hasDraftErrors(errors)) {
     const [field, message] = Object.entries(errors).find(([, m]) => m)!;
     return Response.json({ error: message, field }, { status: 422 });
@@ -102,11 +133,17 @@ export async function POST(request: Request) {
     // From the session. This is the line that makes the listing theirs.
     farmerId,
     // Per grade, and only the grades they actually have.
-    grades: offered.map((g) => ({ grade: g.grade, quantity: g.quantity })),
+    grades: offered.map((g) => ({
+      grade: g.grade,
+      quantity: g.quantity,
+      // Null rather than omitted: Firestore rejects undefined, and an explicit
+      // null reads as "no asking price" rather than as a missing field.
+      askingRate: g.askingRate ?? null,
+    })),
     // The sum, stored so a list can sort and filter on it without unpacking
     // the array on every row.
     quantity: totalQuantity(offered),
-    unit: produce.defaultUnit,
+    unit,
     status: "awaitingOffer",
     readyAt: new Date(now.getTime() + (READY_HOURS[readyIn] ?? 0) * 3_600_000),
     createdAt: now,

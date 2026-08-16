@@ -1,6 +1,7 @@
 import { requireCapability } from "@/lib/api/capability";
 import { GRADES, type Grade } from "@/lib/domain/enums";
 import {
+  isQuantityUnit,
   MAX_IMAGES,
   offeredGrades,
   totalQuantity,
@@ -30,13 +31,28 @@ const READY_HOURS: Record<string, number> = {
   week: 168,
 };
 
+/** Same two shapes the POST route takes: a bare number, or quantity plus rate. */
 function readGrades(value: unknown): GradeQuantity[] {
   if (!value || typeof value !== "object") return [];
   const source = value as Record<string, unknown>;
+
   return GRADES.flatMap((grade) => {
     const raw = source[grade];
-    if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) return [];
-    return [{ grade: grade as Grade, quantity: Math.round(raw) }];
+    const quantity =
+      typeof raw === "number"
+        ? raw
+        : raw && typeof raw === "object" && typeof (raw as { quantity?: unknown }).quantity === "number"
+          ? (raw as { quantity: number }).quantity
+          : NaN;
+    if (!Number.isFinite(quantity) || quantity <= 0) return [];
+
+    const rateRaw = raw && typeof raw === "object" ? (raw as { rate?: unknown }).rate : undefined;
+    const askingRate =
+      typeof rateRaw === "number" && Number.isFinite(rateRaw) && rateRaw > 0
+        ? Math.round(rateRaw)
+        : undefined;
+
+    return [{ grade: grade as Grade, quantity: Math.round(quantity), askingRate }];
   });
 }
 
@@ -84,8 +100,19 @@ export async function PATCH(request: Request, context: RouteContext<"/api/listin
         { status: 422 },
       );
     }
-    update.grades = grades.map((g) => ({ grade: g.grade, quantity: g.quantity }));
+    update.grades = grades.map((g) => ({
+      grade: g.grade,
+      quantity: g.quantity,
+      askingRate: g.askingRate ?? null,
+    }));
     update.quantity = totalQuantity(grades);
+  }
+
+  // The unit is the farmer's, not the crop's. Changing it does not rescale the
+  // quantities — 300 kg is not 300 crates, and quietly converting somebody's
+  // stock is worse than making them retype it.
+  if (typeof body.unit === "string" && isQuantityUnit(body.unit)) {
+    update.unit = body.unit;
   }
 
   if (typeof body.readyIn === "string" && body.readyIn in READY_HOURS) {
@@ -110,7 +137,11 @@ export async function PATCH(request: Request, context: RouteContext<"/api/listin
     if (!produce) return Response.json({ error: "Unknown crop." }, { status: 422 });
     update.produceId = produce.id;
     update.produceName = produce.names.en;
-    update.unit = produce.defaultUnit;
+    // The unit deliberately does not follow the crop here: the farmer set it,
+    // and an explicit `unit` in the same request wins anyway.
+    if (update.unit === undefined && typeof body.unit !== "string") {
+      update.unit = produce.defaultUnit;
+    }
   }
 
   /*
