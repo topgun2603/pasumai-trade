@@ -1,16 +1,31 @@
 import { requireCapability } from "@/lib/api/capability";
+import { GRADES, type Grade } from "@/lib/domain/enums";
+import {
+  hasDraftErrors,
+  MAX_IMAGES,
+  offeredGrades,
+  totalQuantity,
+  validateDraft,
+  type GradeQuantity,
+} from "@/lib/domain/listing-draft";
 import { adminDb } from "@/lib/firebase/admin";
 import { CATALOGUE } from "@/lib/mock/catalogue";
 
 /**
  * Post produce.
  *
- * Farmers only, and only with an active plan — `requireCapability` answers 402
- * when there is none, which is what the dialog keys its subscribe prompt off.
+ * Farmers only, and only with an active plan and a cleared verification —
+ * `requireCapability` answers 403 or 402 and the dialog keys its prompts off
+ * which.
  *
  * The farmer is taken from the session, never from the body. A listing that
  * could name its own farmer would let anyone post produce in somebody else's
  * name and collect the bargains for it.
+ *
+ * Media arrives as storage paths, not as bytes: the browser has already
+ * uploaded straight to the bucket using a URL this server signed. The paths
+ * are checked to be inside the farmer's own folder, because a path is the one
+ * part of that exchange the client hands back.
  */
 
 /** How long until it needs cutting, as hours. Kept coarse on purpose. */
@@ -21,9 +36,25 @@ const READY_HOURS: Record<string, number> = {
   week: 168,
 };
 
+/** `{ a: 300, b: 400 }` — grades the farmer actually has, any subset. */
+function readGrades(value: unknown): GradeQuantity[] {
+  if (!value || typeof value !== "object") return [];
+  const source = value as Record<string, unknown>;
+
+  return GRADES.flatMap((grade) => {
+    const raw = source[grade];
+    if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) return [];
+    // Whole units. Half a kilo of grade B is not a thing anyone weighs out at
+    // a farm gate, and a fraction here becomes a fraction in every total.
+    return [{ grade: grade as Grade, quantity: Math.round(raw) }];
+  });
+}
+
 export async function POST(request: Request) {
   const gate = await requireCapability("postListing", "farmer");
   if (!gate.ok) return gate.response;
+
+  const farmerId = gate.session.claims.accountId!;
 
   let body: Record<string, unknown>;
   try {
@@ -38,32 +69,59 @@ export async function POST(request: Request) {
     return Response.json({ error: "Unknown crop." }, { status: 422 });
   }
 
-  const quantity = typeof body.quantity === "number" ? body.quantity : NaN;
-  if (!Number.isFinite(quantity) || quantity <= 0 || quantity > 100_000) {
-    return Response.json({ error: "Quantity must be a number above zero." }, { status: 422 });
+  const grades = readGrades(body.grades);
+  const readyIn = typeof body.readyIn === "string" ? body.readyIn : "today";
+
+  // Only paths under this farmer's own folder. The signing route composes
+  // them, so anything else is a client that edited what it was handed.
+  const prefix = `listings/${farmerId}/`;
+  const asPaths = (value: unknown): string[] =>
+    Array.isArray(value)
+      ? value.filter((p): p is string => typeof p === "string" && p.startsWith(prefix))
+      : [];
+
+  const imagePaths = asPaths(body.imagePaths).slice(0, MAX_IMAGES);
+  const videoCandidate = typeof body.videoPath === "string" ? body.videoPath : undefined;
+  const videoPath = videoCandidate?.startsWith(prefix) ? videoCandidate : undefined;
+
+  const errors = validateDraft({ produceId, grades, readyIn, imagePaths, videoPath });
+  if (hasDraftErrors(errors)) {
+    const [field, message] = Object.entries(errors).find(([, m]) => m)!;
+    return Response.json({ error: message, field }, { status: 422 });
   }
 
-  const readyIn = typeof body.readyIn === "string" ? body.readyIn : "today";
-  const readyHours = READY_HOURS[readyIn] ?? 0;
-
+  const offered = offeredGrades(grades);
   const now = new Date();
-  const db = adminDb();
-  const ref = db.collection("listings").doc();
+  const ref = adminDb().collection("listings").doc();
 
   await ref.set({
     produceId: produce.id,
-    // Denormalised so the market can render a listing without a catalogue
-    // lookup per row, and so a crop renamed later does not rewrite history.
+    // Denormalised so the market can render a row without a catalogue lookup,
+    // and so a crop renamed later does not rewrite history.
     produceName: produce.names.en,
     // From the session. This is the line that makes the listing theirs.
-    farmerId: gate.session.claims.accountId,
-    quantity,
+    farmerId,
+    // Per grade, and only the grades they actually have.
+    grades: offered.map((g) => ({ grade: g.grade, quantity: g.quantity })),
+    // The sum, stored so a list can sort and filter on it without unpacking
+    // the array on every row.
+    quantity: totalQuantity(offered),
     unit: produce.defaultUnit,
     status: "awaitingOffer",
-    readyAt: new Date(now.getTime() + readyHours * 3_600_000),
+    readyAt: new Date(now.getTime() + (READY_HOURS[readyIn] ?? 0) * 3_600_000),
     createdAt: now,
-    photoCount: 0,
+    imagePaths,
+    videoPath: videoPath ?? null,
+    photoCount: imagePaths.length,
   });
 
-  return Response.json({ id: ref.id, status: "awaitingOffer" }, { status: 201 });
+  return Response.json(
+    {
+      id: ref.id,
+      status: "awaitingOffer",
+      grades: offered,
+      quantity: totalQuantity(offered),
+    },
+    { status: 201 },
+  );
 }

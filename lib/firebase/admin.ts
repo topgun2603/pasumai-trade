@@ -9,6 +9,7 @@ import {
   type ServiceAccount,
 } from "firebase-admin/app";
 import { getAuth, type Auth } from "firebase-admin/auth";
+import { getStorage } from "firebase-admin/storage";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
 /**
@@ -106,6 +107,24 @@ export function adminDb(): Firestore {
 
 export function adminAuth(): Auth {
   return getAuth(adminApp());
+}
+
+/**
+ * The storage bucket, for signing upload URLs.
+ *
+ * The bucket name comes from the same public config the browser uses, because
+ * it is the same bucket — there is nothing secret about which one it is. What
+ * is secret is the key that signs URLs for it, which is why signing happens
+ * here and never in the browser.
+ */
+export function adminStorage() {
+  const bucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+  if (!bucket) {
+    throw new Error(
+      "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET is not set, so uploads cannot be signed.",
+    );
+  }
+  return getStorage(adminApp()).bucket(bucket);
 }
 
 /** Present so `getApp` stays referenced for the named-app lookup path. */

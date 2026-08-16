@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { MediaPicker, type PickedFile } from "@/components/farm/media-picker";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,6 +25,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { GRADES } from "@/lib/domain/enums";
+import { hasDraftErrors, validateDraft, type DraftErrors } from "@/lib/domain/listing-draft";
 
 export interface CropOption {
   id: string;
@@ -32,91 +35,192 @@ export interface CropOption {
   unit: string;
 }
 
+const GRADE_HELP: Record<string, string> = {
+  a: "Best — even size, no marks",
+  b: "Good — small blemishes",
+  c: "Fair — misshapen, still sound",
+};
+
 /**
  * Posting produce.
  *
- * Four fields, because this is filled in standing in a field on a phone. No
- * price: the price is what the bargaining is for, and asking a farmer to name
- * one up front is exactly the anchor this platform exists to remove.
+ * Filled in standing in a field on a phone, so: no price, and a grade split
+ * rather than one number.
  *
- * The crop list is bilingual on one line rather than behind a language toggle.
- * A farmer who reads Tamil and a franchise operator who reads English use the
- * same list, and a toggle is a step where somebody picks wrong.
+ * No price because that is what the bargaining is for, and asking a farmer to
+ * name one up front is the anchor this platform exists to remove.
+ *
+ * Grades separately because a cut of tomatoes is not "800 kg of tomatoes" —
+ * it is some A, more B and a little C, and each fetches its own rate. Any
+ * subset is fine: a farmer with only B fills in one box and leaves the others
+ * alone rather than typing zeroes to say "none".
  */
 export function PostProduceDialog({ crops }: { crops: CropOption[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [produceId, setProduceId] = useState("");
-  const [quantity, setQuantity] = useState("");
+  const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [readyIn, setReadyIn] = useState("today");
-  const [errors, setErrors] = useState<{ produceId?: string; quantity?: string }>({});
-  const [submitting, setSubmitting] = useState(false);
+  const [images, setImages] = useState<PickedFile[]>([]);
+  const [video, setVideo] = useState<PickedFile | null>(null);
+  const [errors, setErrors] = useState<DraftErrors>({});
+  const [stage, setStage] = useState<"idle" | "uploading" | "posting">("idle");
 
   const crop = crops.find((c) => c.id === produceId);
+  const unit = crop?.unit ?? "kg";
+  const busy = stage !== "idle";
+
+  const gradeQuantities = GRADES.map((grade) => ({
+    grade,
+    quantity: Number(quantities[grade] ?? "") || 0,
+  }));
+  const total = gradeQuantities.reduce((sum, g) => sum + (g.quantity > 0 ? g.quantity : 0), 0);
+
+  function reset() {
+    for (const picked of images) URL.revokeObjectURL(picked.preview);
+    if (video) URL.revokeObjectURL(video.preview);
+    setProduceId("");
+    setQuantities({});
+    setImages([]);
+    setVideo(null);
+    setErrors({});
+  }
+
+  /**
+   * Uploads straight to storage with URLs this server signed.
+   *
+   * The bytes never touch the application server: a thirty-second video is far
+   * past the request-body limit a serverless function will take, so a proxied
+   * upload would work for every photograph and fail on the first real video.
+   */
+  async function uploadAll(): Promise<{ imagePaths: string[]; videoPath?: string } | null> {
+    const files = [
+      ...images.map((i) => ({ kind: "image" as const, file: i.file })),
+      ...(video ? [{ kind: "video" as const, file: video.file }] : []),
+    ];
+
+    const response = await fetch("/api/uploads", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        files: files.map((f) => ({
+          kind: f.kind,
+          contentType: f.file.type || "application/octet-stream",
+          bytes: f.file.size,
+        })),
+      }),
+    });
+
+    const data = (await response.json().catch(() => ({}))) as {
+      uploads?: Array<{ path: string; url: string; contentType: string }>;
+      error?: string;
+    };
+
+    if (!response.ok || !data.uploads) {
+      toast.error(data.error ?? "Could not start the upload.");
+      return null;
+    }
+
+    // In parallel: five photos one after another on a village connection is a
+    // minute of somebody standing in a field watching a spinner.
+    const results = await Promise.all(
+      data.uploads.map(async (upload, index) => {
+        const file = files[index].file;
+        const put = await fetch(upload.url, {
+          method: "PUT",
+          // Must match what was signed, byte for byte, or the bucket rejects it.
+          headers: { "content-type": upload.contentType },
+          body: file,
+        });
+        return put.ok ? upload.path : null;
+      }),
+    );
+
+    if (results.some((r) => r === null)) {
+      toast.error("Some files did not upload. Check your connection and try again.");
+      return null;
+    }
+
+    const paths = results as string[];
+    return {
+      imagePaths: paths.slice(0, images.length),
+      videoPath: video ? paths[images.length] : undefined,
+    };
+  }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
 
-    const found: { produceId?: string; quantity?: string } = {};
-    if (!produceId) found.produceId = "Choose what you are selling";
+    // The same function the server runs, so nothing is valid here and invalid
+    // there. Media is checked against what has been picked, not uploaded.
+    const found = validateDraft({
+      produceId,
+      grades: gradeQuantities,
+      readyIn,
+      imagePaths: images.map((i) => i.file.name),
+      videoPath: video?.file.name,
+    });
+    setErrors(found);
+    if (hasDraftErrors(found)) return;
 
-    const amount = Number(quantity);
-    if (!quantity.trim()) {
-      found.quantity = "How much do you have?";
-    } else if (!Number.isFinite(amount) || amount <= 0) {
-      found.quantity = "Enter a number greater than zero";
-    } else if (amount > 100_000) {
-      // Not a rule about farms, a rule about typos: an extra zero on a phone
-      // keypad is the most likely way this number goes wrong.
-      found.quantity = "That looks like a typo. Check the quantity.";
+    setStage("uploading");
+    const media = await uploadAll();
+    if (!media) {
+      setStage("idle");
+      return;
     }
 
-    setErrors(found);
-    if (Object.values(found).some(Boolean)) return;
-
-    setSubmitting(true);
+    setStage("posting");
     let response: Response;
     try {
       response = await fetch("/api/listings", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ produceId, quantity: amount, readyIn }),
+        body: JSON.stringify({
+          produceId,
+          grades: Object.fromEntries(
+            gradeQuantities.filter((g) => g.quantity > 0).map((g) => [g.grade, g.quantity]),
+          ),
+          readyIn,
+          imagePaths: media.imagePaths,
+          videoPath: media.videoPath,
+        }),
       });
     } catch {
-      setSubmitting(false);
+      setStage("idle");
       toast.error("Could not reach the server. Try again when you have signal.");
       return;
     }
 
-    const data = (await response.json().catch(() => ({}))) as {
-      id?: string;
-      error?: string;
-    };
-    setSubmitting(false);
+    const data = (await response.json().catch(() => ({}))) as { error?: string; field?: string };
+    setStage("idle");
 
     if (!response.ok) {
-      if (response.status === 402) {
-        toast.error("Subscription needed", {
-          description: data.error ?? "Posting produce needs an active plan.",
-          action: { label: "See plans", onClick: () => router.push("/farm/subscription") },
+      if (response.status === 402 || response.status === 403) {
+        toast.error(data.error ?? "This needs a plan.", {
+          action: { label: "Open", onClick: () => router.push("/farm/subscription") },
         });
         return;
       }
-      toast.error(data.error ?? "Could not post that.");
+      if (data.field) setErrors({ [data.field]: data.error } as DraftErrors);
+      else toast.error(data.error ?? "Could not post that.");
       return;
     }
 
     setOpen(false);
-    setProduceId("");
-    setQuantity("");
-    toast.success("Posted", {
-      description: "Buyers in your district can see it now.",
-    });
+    reset();
+    toast.success("Posted", { description: "Buyers in your district can see it now." });
     router.refresh();
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) reset();
+      }}
+    >
       <DialogTrigger asChild>
         <Button size="sm">
           <SproutIcon className="size-4" />
@@ -126,7 +230,7 @@ export function PostProduceDialog({ crops }: { crops: CropOption[] }) {
 
       {/* Scrolling body with a pinned footer, so Post is never below the fold
           on a short phone screen. Same shape as the crop and quote dialogs. */}
-      <DialogContent className="flex max-h-[85svh] flex-col gap-0 p-0 sm:max-w-md">
+      <DialogContent className="flex max-h-[85svh] flex-col gap-0 p-0 sm:max-w-lg">
         <DialogHeader className="border-b px-5 py-4">
           <DialogTitle>Post produce</DialogTitle>
           <DialogDescription>
@@ -135,14 +239,17 @@ export function PostProduceDialog({ crops }: { crops: CropOption[] }) {
         </DialogHeader>
 
         <form onSubmit={submit} noValidate className="contents">
-          <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 py-4">
+          <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="produce">What are you selling?</Label>
-              <Select value={produceId} onValueChange={(v) => {
-                setProduceId(v);
-                setErrors((e) => ({ ...e, produceId: undefined }));
-              }}>
-                <SelectTrigger id="produce" aria-invalid={Boolean(errors.produceId)}>
+              <Select
+                value={produceId}
+                onValueChange={(v) => {
+                  setProduceId(v);
+                  setErrors((e) => ({ ...e, produce: undefined }));
+                }}
+              >
+                <SelectTrigger id="produce" aria-invalid={Boolean(errors.produce)}>
                   <SelectValue placeholder="Choose a crop" />
                 </SelectTrigger>
                 <SelectContent>
@@ -158,38 +265,80 @@ export function PostProduceDialog({ crops }: { crops: CropOption[] }) {
                   ))}
                 </SelectContent>
               </Select>
-              {errors.produceId ? (
+              {errors.produce ? (
                 <p className="text-destructive flex items-center gap-1 text-xs">
                   <TriangleAlertIcon className="size-3 shrink-0" />
-                  {errors.produceId}
+                  {errors.produce}
                 </p>
               ) : null}
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="quantity">
-                How much? {crop ? <span className="text-faint">({crop.unit})</span> : null}
-              </Label>
-              <Input
-                id="quantity"
-                // `decimal` rather than `numeric`: a farmer entering 12.5
-                // quintals needs the point, and `numeric` hides it on Android.
-                inputMode="decimal"
-                value={quantity}
-                onChange={(e) => {
-                  setQuantity(e.target.value);
-                  setErrors((x) => ({ ...x, quantity: undefined }));
-                }}
-                aria-invalid={Boolean(errors.quantity)}
-                placeholder="800"
-              />
-              {errors.quantity ? (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-baseline justify-between gap-2">
+                <Label>How much of each grade?</Label>
+                {total > 0 ? (
+                  <span className="text-muted-foreground text-xs tabular-nums">
+                    {total} {unit} in total
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="flex flex-col gap-2">
+                {GRADES.map((grade) => (
+                  <div key={grade} className="flex items-center gap-3">
+                    <span className="bg-secondary flex size-9 shrink-0 items-center justify-center rounded-md font-medium">
+                      {grade.toUpperCase()}
+                    </span>
+                    <span className="text-muted-foreground min-w-0 flex-1 text-xs">
+                      {GRADE_HELP[grade]}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <Input
+                        aria-label={`Grade ${grade.toUpperCase()} quantity`}
+                        inputMode="decimal"
+                        placeholder="0"
+                        className="w-24 text-right"
+                        value={quantities[grade] ?? ""}
+                        onChange={(e) => {
+                          setQuantities((q) => ({ ...q, [grade]: e.target.value }));
+                          setErrors((x) => ({ ...x, grades: undefined }));
+                        }}
+                      />
+                      <span className="text-muted-foreground w-6 text-xs">{unit}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {errors.grades ? (
                 <p className="text-destructive flex items-center gap-1 text-xs">
                   <TriangleAlertIcon className="size-3 shrink-0" />
-                  {errors.quantity}
+                  {errors.grades}
                 </p>
-              ) : null}
+              ) : (
+                <p className="text-muted-foreground text-xs">
+                  Fill in only the grades you have. Buyers can bid on one grade or all of them.
+                </p>
+              )}
             </div>
+
+            <MediaPicker
+              images={images}
+              video={video}
+              disabled={busy}
+              onImages={(next) => {
+                setImages(next);
+                setErrors((e) => ({ ...e, images: undefined }));
+              }}
+              onVideo={setVideo}
+              onError={(message) => toast.error(message)}
+            />
+            {errors.images ? (
+              <p className="text-destructive -mt-3 flex items-center gap-1 text-xs">
+                <TriangleAlertIcon className="size-3 shrink-0" />
+                {errors.images}
+              </p>
+            ) : null}
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="ready">When is it ready?</Label>
@@ -208,11 +357,11 @@ export function PostProduceDialog({ crops }: { crops: CropOption[] }) {
           </div>
 
           <DialogFooter className="border-t px-5 py-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" disabled={busy} onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? "Posting…" : "Post"}
+            <Button type="submit" disabled={busy}>
+              {stage === "uploading" ? "Uploading photos…" : stage === "posting" ? "Posting…" : "Post"}
             </Button>
           </DialogFooter>
         </form>
