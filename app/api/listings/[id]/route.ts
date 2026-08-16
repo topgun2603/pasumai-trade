@@ -1,7 +1,13 @@
 import { requireCapability } from "@/lib/api/capability";
 import { GRADES, type Grade } from "@/lib/domain/enums";
-import { offeredGrades, totalQuantity, type GradeQuantity } from "@/lib/domain/listing-draft";
+import {
+  MAX_IMAGES,
+  offeredGrades,
+  totalQuantity,
+  type GradeQuantity,
+} from "@/lib/domain/listing-draft";
 import { adminDb, adminStorage } from "@/lib/firebase/admin";
+import { CATALOGUE } from "@/lib/mock/catalogue";
 
 /**
  * Edit and remove a listing.
@@ -86,6 +92,69 @@ export async function PATCH(request: Request, context: RouteContext<"/api/listin
     update.readyAt = new Date(Date.now() + READY_HOURS[body.readyIn] * 3_600_000);
   }
 
+  /*
+    The crop.
+
+    Allowed, with the record following: `produceName` and `unit` are stored
+    denormalised on the listing, so changing the crop and leaving those behind
+    would give a row reading "Tomato" that is actually onions in every list on
+    the platform.
+
+    Worth knowing this is not free — a buyer part-way through a bargain priced
+    against what was there when they opened it. The dialog says so when a
+    bargain is live; it does not refuse, because the farmer knows what they
+    posted and a typo on the crop is otherwise permanent.
+  */
+  if (typeof body.produceId === "string" && body.produceId) {
+    const produce = Object.values(CATALOGUE).find((p) => p.id === body.produceId);
+    if (!produce) return Response.json({ error: "Unknown crop." }, { status: 422 });
+    update.produceId = produce.id;
+    update.produceName = produce.names.en;
+    update.unit = produce.defaultUnit;
+  }
+
+  /*
+    Media.
+
+    Sent whole rather than as add/remove operations: the client already knows
+    the full set it wants, and a diff computed in two places is a diff that
+    disagrees with itself. Paths outside this farmer's folder are dropped, the
+    same as when posting.
+  */
+  const prefix = `listings/${farmerId}/`;
+  let removed: string[] = [];
+
+  if (Array.isArray(body.imagePaths)) {
+    const next = body.imagePaths
+      .filter((p): p is string => typeof p === "string" && p.startsWith(prefix))
+      .slice(0, MAX_IMAGES);
+
+    if (next.length === 0) {
+      return Response.json(
+        { error: "Keep at least one photo. Buyers decide on the pictures." },
+        { status: 422 },
+      );
+    }
+
+    const before = Array.isArray(data.imagePaths)
+      ? data.imagePaths.filter((p): p is string => typeof p === "string")
+      : [];
+    removed = before.filter((p) => !next.includes(p));
+
+    update.imagePaths = next;
+    update.photoCount = next.length;
+  }
+
+  if (body.videoPath !== undefined) {
+    const next =
+      typeof body.videoPath === "string" && body.videoPath.startsWith(prefix)
+        ? body.videoPath
+        : null;
+    const before = typeof data.videoPath === "string" ? data.videoPath : null;
+    if (before && before !== next) removed.push(before);
+    update.videoPath = next;
+  }
+
   if (body.status === "withdrawn" || body.status === "awaitingOffer") {
     // Only these two. A farmer cannot mark their own listing sold or agreed —
     // those follow from a bargain, and letting the seller set them by hand
@@ -99,7 +168,27 @@ export async function PATCH(request: Request, context: RouteContext<"/api/listin
 
   await ref.set(update, { merge: true });
 
-  return Response.json({ id, updated: Object.keys(update).filter((k) => k !== "updatedAt") });
+  // Photographs the farmer took out. Removed after the write, so a failure
+  // here leaves an unreferenced object rather than a listing pointing at a
+  // file that is gone.
+  if (removed.length > 0) {
+    const bucket = adminStorage();
+    await Promise.all(
+      removed.map(async (path) => {
+        try {
+          await bucket.file(path).delete();
+        } catch {
+          /* already gone */
+        }
+      }),
+    );
+  }
+
+  return Response.json({
+    id,
+    updated: Object.keys(update).filter((k) => k !== "updatedAt"),
+    filesRemoved: removed.length,
+  });
 }
 
 export async function DELETE(_request: Request, context: RouteContext<"/api/listings/[id]">) {

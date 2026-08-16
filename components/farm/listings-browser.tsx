@@ -54,7 +54,7 @@ export function ListingsBrowser({
   quickReplies: readonly QuickReply[];
   validForMinutes: number;
   editable: boolean;
-  crops: Array<{ id: string; en: string; unit: string }>;
+  crops: Array<{ id: string; en: string; ta: string; unit: string }>;
 }) {
   const router = useRouter();
   const [bargaining, setBargaining] = useState<FarmListing | null>(null);
@@ -311,6 +311,9 @@ export function ListingsBrowser({
       <EditListingDialog
         listing={editing}
         crops={crops}
+        // So the dialog can warn before the crop or a photograph changes under
+        // somebody mid-bargain.
+        openBargains={editing ? openCount(editing) : 0}
         onOpenChange={(open) => {
           if (!open) setEditing(null);
         }}

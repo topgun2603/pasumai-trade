@@ -33,6 +33,15 @@ export interface FarmListing {
   /** Signed, short-lived. The bucket is private; these are not public URLs. */
   readonly imageUrls: string[];
   readonly videoUrl?: string;
+  /**
+   * The storage paths behind those URLs.
+   *
+   * The editor needs them: a signed URL expires and cannot be written back,
+   * so "keep this photograph" has to mean keeping its path. Kept in the same
+   * order as `imageUrls` so the two index together.
+   */
+  readonly imagePaths: string[];
+  readonly videoPath?: string;
   readonly photoCount: number;
   /** True for the seeded demo rows, which have no per-grade breakdown. */
   readonly legacy: boolean;
@@ -93,7 +102,10 @@ async function signRead(paths: readonly string[]): Promise<string[]> {
   return signed.filter((url): url is string => url !== null);
 }
 
-function shape(id: string, data: Record<string, unknown>): Omit<FarmListing, "imageUrls" | "videoUrl"> {
+function shape(
+  id: string,
+  data: Record<string, unknown>,
+): Omit<FarmListing, "imageUrls" | "videoUrl" | "imagePaths" | "videoPath"> {
   const grades = readGrades(data.grades);
   const flat = typeof data.quantity === "number" ? data.quantity : 0;
 
@@ -145,7 +157,7 @@ export async function readFarmerListings(farmerId: string): Promise<FarmListing[
         signRead(videoPath ? [videoPath] : []),
       ]);
 
-      return { ...base, imageUrls, videoUrl: videoUrls[0] };
+      return { ...base, imageUrls, videoUrl: videoUrls[0], imagePaths, videoPath };
     }),
   );
 
