@@ -2,7 +2,7 @@ import { InfoIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { connection } from "next/server";
 
-import { BargainConsole } from "@/components/negotiation/bargain-console";
+import { LiveBargains } from "@/components/negotiation/live-bargains";
 import { PageHeader } from "@/components/page-header";
 import { readControls } from "@/lib/firebase/controls-read";
 import { readNegotiations } from "@/lib/firebase/negotiations-read";
@@ -67,8 +67,8 @@ export default async function BargainsPage() {
         </div>
       )}
 
-      <BargainConsole
-        threads={threads}
+      <LiveBargains
+        initial={threads}
         viewer="buyer"
         now={now}
         quickReplies={quickReplies}

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 
-import { BargainConsole } from "@/components/negotiation/bargain-console";
+import { LiveBargains } from "@/components/negotiation/live-bargains";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { requireFarmer } from "@/lib/auth/farm";
@@ -104,8 +104,12 @@ export default async function FarmBargainsPage({
             </Button>
           </div>
         ) : (
-          <BargainConsole
-            threads={mine}
+          <LiveBargains
+            initial={mine}
+            // Open only, and the stream re-applies it: a bargain somebody
+            // accepts while this is on screen belongs under Sales from that
+            // moment, not in the live list.
+            filter="open"
             viewer="farmer"
             now={clock}
             quickReplies={controls.phrases}
