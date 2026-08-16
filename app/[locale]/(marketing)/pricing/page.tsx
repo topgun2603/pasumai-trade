@@ -43,12 +43,30 @@ export default async function PricingPage({
   const lifetime = STANDARD_TERMS.find((t) => t.highlight)!;
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-14 px-5 py-16">
-      <header className="flex max-w-2xl flex-col gap-4">
-        <h1 className="font-heading-display text-4xl tracking-tight sm:text-5xl">
-          Looking is free. Trading is what you pay for.
+    <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-16 px-5 py-16">
+      {/*
+        A single wash of colour behind the top of the page. Pinned to the
+        viewport width rather than the container so it reads as light on the
+        page and not as a box somebody drew, and inert so it never eats a click.
+      */}
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] overflow-hidden"
+        aria-hidden
+      >
+        <div className="absolute -top-40 left-1/2 size-[680px] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute -top-24 right-[8%] size-[380px] rounded-full bg-violet-500/10 blur-3xl" />
+      </div>
+
+      <header className="flex max-w-2xl flex-col gap-5">
+        <span className="border-border bg-card/70 text-muted-foreground w-fit rounded-full border px-3 py-1 text-xs backdrop-blur">
+          From ₹199 a month · ₹4,999 once
+        </span>
+        <h1 className="font-heading text-4xl leading-[1.05] tracking-tight text-balance sm:text-6xl">
+          Looking is free.
+          <br />
+          <span className="text-primary">Trading</span> is what you pay for.
         </h1>
-        <p className="text-muted-foreground text-lg">
+        <p className="text-muted-foreground max-w-xl text-lg text-pretty">
           One price list for farmers, buyers, transport and crew. The longer the term, the less it
           costs a month — and every term buys exactly the same thing.
         </p>
@@ -59,30 +77,42 @@ export default async function PricingPage({
         register needs to know what they get for nothing, and burying it under
         seven cards would read as though registration itself costs money.
       */}
-      <section className="border-primary/25 bg-accent flex flex-col gap-3 rounded-xl border p-6">
-        <span className="flex items-center gap-2 font-medium">
-          <EyeIcon className="size-4" /> Free, with any account
-        </span>
-        <ul className="flex flex-wrap gap-x-6 gap-y-1">
-          {FREE_CAPABILITIES.map((capability) => (
-            <li key={capability} className="text-sm">
-              {CAPABILITY_LABELS[capability]}
+      <section className="border-primary/20 bg-accent/60 relative flex flex-col gap-4 overflow-hidden rounded-2xl border p-6 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:gap-8">
+        <div className="flex flex-col gap-2">
+          <span className="flex items-center gap-2 font-medium">
+            <span className="bg-primary/15 text-primary flex size-7 items-center justify-center rounded-full">
+              <EyeIcon className="size-3.5" />
+            </span>
+            Free, with any account
+          </span>
+          <p className="text-muted-foreground max-w-md text-sm">
+            No card, no trial clock. Registration takes a minute and costs nothing.
+          </p>
+        </div>
+
+        <ul className="flex flex-wrap gap-2">
+          {[
+            ...FREE_CAPABILITIES.map((c) => CAPABILITY_LABELS[c]),
+            "Every settled price, grade by grade",
+            "Search farmers, buyers and agencies",
+          ].map((line) => (
+            <li
+              key={line}
+              className="bg-background/70 text-foreground/80 rounded-full px-3 py-1 text-xs"
+            >
+              {line}
             </li>
           ))}
-          <li className="text-sm">See every settled price, grade by grade</li>
-          <li className="text-sm">Search farmers, buyers and agencies</li>
         </ul>
-        <p className="text-muted-foreground text-sm">
-          No card, no trial clock. Registration takes a minute and costs nothing.
-        </p>
       </section>
 
       <section className="flex flex-col gap-8">
         <div className="flex flex-col gap-2">
-          <h2 className="text-2xl font-semibold tracking-tight">Choose a term</h2>
-          <p className="text-muted-foreground text-sm">
+          <h2 className="font-heading text-3xl tracking-tight">Choose a term</h2>
+          <p className="text-muted-foreground max-w-2xl text-sm text-pretty">
             Posting, bargaining, ordering and dispatch — all of it, on every term. A longer term is
-            cheaper per month and carries a higher badge, and buys nothing else.
+            cheaper per month and carries a higher badge, and buys nothing else. The bar under each
+            price is that month&rsquo;s cost against paying monthly.
           </p>
         </div>
 
@@ -100,17 +130,19 @@ export default async function PricingPage({
           ))}
         </div>
 
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-3">
-            <span className="bg-border h-px flex-1" />
-            <span className="text-muted-foreground text-xs">or stop paying altogether</span>
-            <span className="bg-border h-px flex-1" />
+        <div className="flex flex-col gap-5 pt-2">
+          <div className="flex items-center gap-4">
+            <span className="from-border h-px flex-1 bg-gradient-to-r to-transparent" />
+            <span className="text-muted-foreground text-xs tracking-wide uppercase">
+              or stop paying altogether
+            </span>
+            <span className="to-border h-px flex-1 bg-gradient-to-r from-transparent" />
           </div>
-          <div className="sm:max-w-sm">
+          <div>
             <PlanCard
               option={lifetime}
               footer={
-                <Button asChild className="w-full">
+                <Button asChild className="w-full bg-violet-600 text-white hover:bg-violet-700 focus-visible:ring-violet-500">
                   <Link href={`/${locale}/signup?as=farmer`}>
                     Start free
                     <ArrowRightIcon className="size-4" />
@@ -123,8 +155,8 @@ export default async function PricingPage({
       </section>
 
       {/* Badges, shown together so the ladder reads as a ladder. */}
-      <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-medium">What you wear</h2>
+      <section className="border-border bg-card/50 flex flex-col gap-3 rounded-2xl border p-6">
+        <h2 className="font-heading text-2xl tracking-tight">What you wear</h2>
         <p className="text-muted-foreground max-w-2xl text-sm">
           Your badge shows on your listings and in every bargain, so the other side of the trade
           can see how long you have been here. It says what you paid for — never that you are
@@ -141,9 +173,13 @@ export default async function PricingPage({
       </section>
 
       {/* Franchise, apart from the ladder, because it genuinely is. */}
-      <section className="border-border bg-card flex flex-col gap-4 rounded-xl border p-6">
-        <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <h2 className="text-lg font-medium">Franchise</h2>
+      <section className="border-primary/25 relative flex flex-col gap-4 overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/[0.07] to-transparent p-6">
+        <span
+          className="from-primary absolute inset-x-0 top-0 h-1 bg-gradient-to-r to-emerald-500"
+          aria-hidden
+        />
+        <div className="flex flex-wrap items-baseline justify-between gap-3 pt-1">
+          <h2 className="font-heading text-2xl tracking-tight">Franchise</h2>
           <Badge variant="outline" className={BADGES.y1.className}>
             Franchise Partner
           </Badge>
@@ -153,18 +189,19 @@ export default async function PricingPage({
           priced as a partnership rather than a subscription. The first year covers the work of
           coming on — connecting outlets, training staff, covering a district — which happens once.
         </p>
-        <div className="flex flex-wrap gap-6 pt-1">
+        <div className="flex flex-wrap items-end gap-8 pt-1">
           <div className="flex flex-col">
-            <span className="text-3xl font-semibold tracking-tight tabular-nums">
+            <span className="font-heading text-4xl leading-none tracking-tight tabular-nums">
               {formatMoney(FRANCHISE_FIRST_YEAR)}
             </span>
-            <span className="text-muted-foreground text-xs">first year</span>
+            <span className="text-muted-foreground pt-1 text-xs">first year</span>
           </div>
+          <span className="text-faint pb-2 text-2xl">→</span>
           <div className="flex flex-col">
-            <span className="text-3xl font-semibold tracking-tight tabular-nums">
+            <span className="font-heading text-primary text-4xl leading-none tracking-tight tabular-nums">
               {formatMoney(FRANCHISE_RENEWAL)}
             </span>
-            <span className="text-muted-foreground text-xs">every year after</span>
+            <span className="text-muted-foreground pt-1 text-xs">every year after</span>
           </div>
         </div>
         <Button asChild variant="outline" className="self-start">
@@ -175,7 +212,7 @@ export default async function PricingPage({
         </Button>
       </section>
 
-      <section className="bg-secondary flex flex-col gap-2 rounded-xl px-6 py-5">
+      <section className="bg-secondary/70 flex flex-col gap-2 rounded-2xl px-6 py-5">
         <h2 className="font-medium">How you pay</h2>
         <p className="text-muted-foreground text-sm">
           Card and UPI through Razorpay, in your console, and you are on immediately. Paying by

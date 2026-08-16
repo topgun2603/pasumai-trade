@@ -173,8 +173,14 @@ export function SubscribePanel({
   const cta = (option: TermOption) => (
     <Button
       type="button"
-      className="w-full"
-      variant={option.highlight ? "default" : option.recommended ? "default" : "outline"}
+      // Violet on the lifetime band: a primary-green button sitting on it is
+      // the one colour collision on the page.
+      className={
+        option.highlight
+          ? "w-full bg-violet-600 text-white hover:bg-violet-700 focus-visible:ring-violet-500"
+          : "w-full"
+      }
+      variant={option.recommended && !option.highlight ? "default" : "outline"}
       disabled={pending !== null}
       onClick={() => choose(option)}
     >
@@ -299,15 +305,15 @@ export function SubscribePanel({
       </div>
 
       {lifetime ? (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <span className="bg-border h-px flex-1" />
-            <span className="text-muted-foreground text-xs">or stop paying altogether</span>
-            <span className="bg-border h-px flex-1" />
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-4">
+            <span className="from-border h-px flex-1 bg-gradient-to-r to-transparent" />
+            <span className="text-muted-foreground text-xs tracking-wide uppercase">
+              or stop paying altogether
+            </span>
+            <span className="to-border h-px flex-1 bg-gradient-to-r from-transparent" />
           </div>
-          <div className="sm:max-w-sm">
-            <PlanCard option={lifetime} footer={cta(lifetime)} />
-          </div>
+          <PlanCard option={lifetime} footer={cta(lifetime)} />
         </div>
       ) : null}
     </div>
