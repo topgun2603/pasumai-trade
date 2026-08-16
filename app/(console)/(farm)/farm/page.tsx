@@ -1,22 +1,18 @@
-import {
-  HandshakeIcon,
-  PackageCheckIcon,
-  SproutIcon,
-} from "lucide-react";
+import { HandshakeIcon, PackageCheckIcon, SproutIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 
 import { JourneyChecklist } from "@/components/farm/journey-checklist";
+import { ListingCard } from "@/components/farm/listing-card";
 import { StatTile } from "@/components/franchise/stat-tile";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { requireFarmer } from "@/lib/auth/farm";
 import { formatMoney } from "@/lib/domain/money";
-import { produceName } from "@/lib/domain/models";
 import { lastProposalBy } from "@/lib/domain/negotiation";
 import { isReady } from "@/lib/domain/readiness";
-import { openListings } from "@/lib/mock/listings";
+import { farmTotals, readFarmerListings } from "@/lib/firebase/listings-read";
 import { negotiations } from "@/lib/mock/negotiations";
 
 export const metadata: Metadata = { title: "Today · Farmer" };
@@ -36,11 +32,10 @@ export default async function FarmTodayPage() {
   const now = new Date();
   const clock = now.getTime();
 
-  // Mock listing ids are lower case; account ids are upper. Compared without
-  // case so seeded data lines up with a real session.
-  const mine = openListings(now).filter(
-    (l) => l.farmer.id.toLowerCase() === farmer.id.toLowerCase(),
-  );
+  // From Firestore, which is where posting writes. Reading the mock catalogue
+  // here meant a farmer posted produce and their own console never showed it.
+  const mine = await readFarmerListings(farmer.id);
+  const totals = farmTotals(mine);
 
   const threads = negotiations(clock).filter((t) => t.farmerId === farmer.id);
   const open = threads.filter((t) => t.status === "open");
@@ -84,9 +79,13 @@ export default async function FarmTodayPage() {
             <div className="grid gap-4 sm:grid-cols-3">
               <StatTile
                 label="Produce listed"
-                value={mine.length}
+                value={totals.open}
                 icon={SproutIcon}
-                hint="Open right now"
+                hint={
+                  totals.quantity > 0
+                    ? `${totals.quantity} ${totals.unit} on offer`
+                    : "Nothing on offer yet"
+                }
               />
               <StatTile
                 label="Waiting on you"
@@ -185,36 +184,9 @@ export default async function FarmTodayPage() {
                   </Button>
                 </div>
               ) : (
-                <ul className="flex flex-col gap-2">
-                  {mine.slice(0, 4).map((listing) => (
-                    <li
-                      key={listing.id}
-                      className="border-border flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3"
-                    >
-                      <span className="flex flex-col leading-tight">
-                        <span className="flex flex-col leading-tight">
-                          <span className="font-medium">
-                            {produceName(listing.produce, "en")}
-                          </span>
-                          <span lang="ta" className="text-faint text-xs">
-                            {produceName(
-                              listing.produce,
-                              "ta",
-                              listing.farmer.district,
-                            )}
-                          </span>
-                        </span>
-                        <span className="text-muted-foreground text-sm">
-                          {listing.quantity} {listing.unit}
-                        </span>
-                      </span>
-                      <span className="text-muted-foreground flex items-center gap-1.5 text-sm">
-                        <HandshakeIcon className="size-4" />
-                        {listing.status === "awaitingOffer"
-                          ? "No offers yet"
-                          : "Offer on the table"}
-                      </span>
-                    </li>
+                <ul className="flex flex-col gap-3">
+                  {mine.slice(0, 3).map((listing) => (
+                    <ListingCard key={listing.id} listing={listing} />
                   ))}
                 </ul>
               )}

@@ -3,15 +3,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 
+import { ListingCard } from "@/components/farm/listing-card";
 import { PostProduceDialog } from "@/components/farm/post-produce-dialog";
 import { PageHeader } from "@/components/page-header";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireFarmer } from "@/lib/auth/farm";
 import { produceName } from "@/lib/domain/models";
 import { isReady, nextStep } from "@/lib/domain/readiness";
+import { farmTotals, readFarmerListings } from "@/lib/firebase/listings-read";
 import { CATALOGUE } from "@/lib/mock/catalogue";
-import { openListings } from "@/lib/mock/listings";
 
 export const metadata: Metadata = { title: "My produce · Farmer" };
 
@@ -19,11 +19,12 @@ export default async function FarmListingsPage() {
   await connection();
 
   const { farmer, flags, journey } = await requireFarmer();
-  const now = new Date();
 
-  const mine = openListings(now).filter(
-    (l) => l.farmer.id.toLowerCase() === farmer.id.toLowerCase(),
-  );
+  // From Firestore, which is where posting writes. This page used to read the
+  // mock catalogue, so a farmer could post, get a 201, and watch nothing
+  // appear.
+  const listings = await readFarmerListings(farmer.id);
+  const totals = farmTotals(listings);
 
   // Both flags. The lock names whichever step is actually in the way, because
   // "Subscribe to post" shown to somebody whose verification is pending sends
@@ -54,7 +55,7 @@ export default async function FarmListingsPage() {
         description="What you have listed, and what buyers have offered on it."
         aside={
           /*
-            Shown to everyone, locked for those who have not subscribed. The
+            Shown to everyone, locked for those not yet through the steps. The
             point of a paywall on a marketplace is that people can see what
             they are missing — hiding the button would just look like the
             feature does not exist.
@@ -73,7 +74,33 @@ export default async function FarmListingsPage() {
       />
 
       <div className="flex flex-col gap-4 p-5">
-        {mine.length === 0 ? (
+        {/* The running total, which is the number a farmer actually tracks:
+            not how many listings they have, but how much is on the platform
+            and in what grade. */}
+        {listings.length > 0 ? (
+          <div className="border-border bg-card flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border px-4 py-3">
+            <span className="text-sm">
+              <span className="font-medium tabular-nums">{totals.open}</span>{" "}
+              <span className="text-muted-foreground">open</span>
+            </span>
+            <span className="text-sm">
+              <span className="font-medium tabular-nums">
+                {totals.quantity} {totals.unit}
+              </span>{" "}
+              <span className="text-muted-foreground">on offer</span>
+            </span>
+            {totals.byGrade.map((g) => (
+              <span key={g.grade} className="text-muted-foreground text-sm">
+                Grade {g.grade.toUpperCase()}{" "}
+                <span className="text-foreground font-medium tabular-nums">
+                  {g.quantity} {totals.unit}
+                </span>
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        {listings.length === 0 ? (
           <div className="border-border text-muted-foreground flex flex-col items-center gap-3 rounded-lg border border-dashed px-4 py-14 text-center">
             <SproutIcon className="size-7" />
             <p className="max-w-sm text-sm">
@@ -90,37 +117,8 @@ export default async function FarmListingsPage() {
           </div>
         ) : (
           <ul className="flex flex-col gap-3">
-            {mine.map((listing) => (
-              <li
-                key={listing.id}
-                className="border-border bg-card flex flex-wrap items-center justify-between gap-4 rounded-lg border px-4 py-3.5"
-              >
-                <div className="flex flex-col leading-tight">
-                  <span className="font-medium">{produceName(listing.produce, "en")}</span>
-                  <span lang="ta" className="text-faint text-xs">
-                    {produceName(listing.produce, "ta", listing.farmer.district)}
-                  </span>
-                </div>
-
-                <span className="text-muted-foreground text-sm tabular-nums">
-                  {listing.quantity} {listing.unit}
-                </span>
-
-                <Badge
-                  variant="outline"
-                  className={
-                    listing.status === "awaitingOffer"
-                      ? "text-muted-foreground"
-                      : "border-success/40 text-success"
-                  }
-                >
-                  {listing.status === "awaitingOffer" ? "No offers yet" : "Offer received"}
-                </Badge>
-
-                <Button asChild size="sm" variant="outline">
-                  <Link href="/farm/bargains">Open bargain</Link>
-                </Button>
-              </li>
+            {listings.map((listing) => (
+              <ListingCard key={listing.id} listing={listing} />
             ))}
           </ul>
         )}
