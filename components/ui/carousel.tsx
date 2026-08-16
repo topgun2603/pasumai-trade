@@ -3,6 +3,7 @@
 import { ChevronLeftIcon, ChevronRightIcon, ImageOffIcon, PlayIcon } from "lucide-react";
 import { useRef, useState } from "react";
 
+import type { CarouselItem } from "@/lib/media";
 import { cn } from "@/lib/utils";
 
 /**
@@ -22,12 +23,7 @@ import { cn } from "@/lib/utils";
  * the lot expects it in the same swipe as the photographs.
  */
 
-export interface CarouselItem {
-  readonly kind: "image" | "video";
-  readonly url: string;
-  /** Still frame for a video, when one is available. */
-  readonly poster?: string;
-}
+export type { CarouselItem };
 
 export function Carousel({
   items,
@@ -234,15 +230,4 @@ export function Carousel({
       ) : null}
     </div>
   );
-}
-
-/** Builds the slide list from a listing's media: photographs first, video last. */
-export function mediaItems(imageUrls: readonly string[], videoUrl?: string): CarouselItem[] {
-  return [
-    ...imageUrls.map((url): CarouselItem => ({ kind: "image", url })),
-    // Last, deliberately. The first slide is what a buyer sees in a list, and
-    // a video that has to load before it means anything is a worse first
-    // impression than a photograph.
-    ...(videoUrl ? [{ kind: "video" as const, url: videoUrl }] : []),
-  ];
 }

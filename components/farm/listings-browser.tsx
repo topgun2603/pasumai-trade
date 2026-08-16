@@ -18,7 +18,8 @@ import { EditListingDialog } from "@/components/farm/edit-listing-dialog";
 import { DataTable, type Column, type FilterTab } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Carousel, mediaItems } from "@/components/ui/carousel";
+import { Carousel } from "@/components/ui/carousel";
+import { mediaItems } from "@/lib/media";
 import {
   DropdownMenu,
   DropdownMenuContent,

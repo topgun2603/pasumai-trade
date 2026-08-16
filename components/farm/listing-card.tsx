@@ -3,7 +3,8 @@ import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Carousel, mediaItems } from "@/components/ui/carousel";
+import { Carousel } from "@/components/ui/carousel";
+import { mediaItems } from "@/lib/media";
 import type { FarmListing } from "@/lib/firebase/listings-read";
 
 /**
