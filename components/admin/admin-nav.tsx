@@ -200,7 +200,7 @@ export function AdminNav({
 
       <div className="border-sidebar-border shrink-0 border-t p-3 flex flex-col gap-3">
         <Link
-          href="/market"
+          href="/listings"
           className="text-muted-foreground hover:text-foreground focus-visible:ring-ring flex items-center gap-2 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
         >
           <ArrowLeftRightIcon className="size-4 shrink-0" />

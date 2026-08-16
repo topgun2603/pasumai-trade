@@ -90,8 +90,12 @@ export interface Claims {
  */
 export const HOME_FOR_ROLE: Record<Role, string> = {
   admin: "/admin",
-  franchise: "/market",
-  buyer: "/market",
+  // Listings, not the market. The market is a catalogue of stock the platform
+  // has already bought and graded, and nothing pools procurement into it yet —
+  // so it is withdrawn until that pipeline exists. Listings is where a buyer
+  // can actually do something today.
+  franchise: "/listings",
+  buyer: "/listings",
   transport: "/agency",
   manpower: "/agency",
   farmer: "/farm",

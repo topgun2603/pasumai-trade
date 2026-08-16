@@ -2,7 +2,6 @@
 
 import {
   BadgeCheckIcon,
-  ClipboardListIcon,
   CreditCardIcon,
   HandshakeIcon,
   LeafIcon,
@@ -34,8 +33,7 @@ import { cn } from "@/lib/utils";
  * farmers are the supply side, used less often and by fewer people.
  */
 const LINKS = [
-  { href: "/market", label: "Market", icon: StoreIcon },
-  { href: "/listings", label: "Listings", icon: ClipboardListIcon },
+  { href: "/listings", label: "Produce", icon: StoreIcon },
   { href: "/bargains", label: "Bargains", icon: HandshakeIcon },
   { href: "/orders", label: "Orders", icon: PackageIcon },
   { href: "/dispatch", label: "Dispatch", icon: TruckIcon },

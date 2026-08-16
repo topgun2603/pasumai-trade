@@ -95,14 +95,14 @@ export function SignInForm({
       value: "franchise",
       label: t.doors.franchise,
       blurb: t.signin.franchiseBlurb,
-      destination: "/market",
+      destination: "/listings",
       icon: StoreIcon,
     },
     {
       value: "buyer",
       label: t.doors.buyer,
       blurb: t.signin.buyerBlurb,
-      destination: "/market",
+      destination: "/listings",
       icon: UserRoundIcon,
     },
     {

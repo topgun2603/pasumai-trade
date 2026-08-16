@@ -158,7 +158,8 @@ export function MarketBrowser({
           <div className="flex flex-col gap-1">
             <h1 className="text-2xl font-semibold tracking-tight">Market</h1>
             <p className="text-muted-foreground text-sm">
-              Graded stock available now. Prices move daily with the mandi and
+              Graded stock available now. Prices move daily with what farmers and
+              buyers settled at, and
               with shelf life, so what you see is today&rsquo;s rate.
             </p>
           </div>

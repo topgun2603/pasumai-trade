@@ -8,17 +8,34 @@ import {
 } from "@/lib/i18n/config";
 
 /**
- * Sends a bare `/` to the right language.
+ * Two redirects, and nothing else.
  *
  * Proxy — Middleware's name since Next 16 — is the correct place for this and
  * *only* this. The docs are explicit that it is not a session or authorisation
- * layer, so it does no auth work: it redirects, and nothing else.
+ * layer, so it does no auth work: it redirects, and that is all.
  *
- * Order of preference: an explicit choice remembered in a cookie, then the
- * browser's `Accept-Language`, then English.
+ *  - a bare `/` goes to the right language;
+ *  - `/market` goes to `/listings`, because the market is withdrawn.
  */
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  /*
+    The market was a catalogue of stock already bought and graded, and nothing
+    feeds it yet — so it is withdrawn until the pipeline from an agreed bargain
+    through grading exists.
+
+    Redirected here rather than from the page itself. `redirect()` inside a
+    route whose layout has already begun streaming cannot send a 307, so Next
+    falls back to a meta refresh — a visible second of blank page. This answers
+    before any of that starts, and before the layout does its session work for
+    a page nobody is going to see.
+  */
+  if (pathname === "/market" || pathname.startsWith("/market/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/listings";
+    return NextResponse.redirect(url);
+  }
 
   if (pathname !== "/") return NextResponse.next();
 
@@ -33,6 +50,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Only the site root. Console routes, API routes and assets never reach it.
-  matcher: "/",
+  // The site root and the withdrawn market. Every other console route, API
+  // route and asset goes straight past.
+  matcher: ["/", "/market/:path*"],
 };
