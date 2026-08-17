@@ -6,6 +6,7 @@ import {
   CreditCardIcon,
   GaugeIcon,
   HardHatIcon,
+  PackageIcon,
   LeafIcon,
   MoonIcon,
   ShieldCheckIcon,
@@ -45,6 +46,14 @@ const LINKS: Array<{
   exact?: boolean;
 }> = [
   { href: "/agency", label: "Overview", icon: GaugeIcon, exact: true },
+  {
+    // First after the overview: this is the screen an owner keeps open, and a
+    // load nobody sees is a load nobody takes.
+    href: "/agency/pickups",
+    label: "Loads going",
+    icon: PackageIcon,
+    service: "transport",
+  },
   {
     href: "/agency/workers",
     label: "Workers",

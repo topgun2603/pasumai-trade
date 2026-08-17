@@ -2,7 +2,7 @@
 
 import { CheckCircle2Icon, CircleSlashIcon, TimerOffIcon } from "lucide-react";
 
-import { AssignTransport, type AgencyOption, type TransportState } from "@/components/farm/assign-transport";
+import { CallVehicle, type NearbyType, type PickupState } from "@/components/farm/call-vehicle";
 import { DataTable, type Column, type FilterTab } from "@/components/data-table";
 import { EntityTag } from "@/components/entity-tag";
 import { Badge } from "@/components/ui/badge";
@@ -80,16 +80,16 @@ function soldLine(thread: Negotiation) {
 
 export function BargainHistory({
   threads,
-  agencies,
-  district,
-  transport,
+  nearby,
+  village,
+  pickups,
 }: {
   threads: Negotiation[];
-  /** Agencies that can actually collect from this farmer today. */
-  agencies: AgencyOption[];
-  district: string;
-  /** What has already been arranged, keyed by bargain. */
-  transport: Record<string, TransportState>;
+  /** What kinds of vehicle are about, and how near. */
+  nearby: NearbyType[];
+  village: string;
+  /** The request out for each bargain, keyed by negotiation id. */
+  pickups: Record<string, PickupState>;
 }) {
   const columns: Column<Negotiation>[] = [
     {
@@ -140,13 +140,13 @@ export function BargainHistory({
         // Only a sold lot needs a lorry. A withdrawn or expired bargain has
         // nothing to collect, and offering to arrange one would be nonsense.
         t.status === "agreed" ? (
-          <AssignTransport
+          <CallVehicle
             negotiationId={t.id}
             produceName={t.produceName}
             load={`${agreedQuantity(t)} ${t.unit}`}
-            agencies={agencies}
-            transport={transport[t.id] ?? null}
-            district={district}
+            nearby={nearby}
+            pickup={pickups[t.id] ?? null}
+            village={village}
           />
         ) : (
           <span className="text-faint text-xs">—</span>
@@ -196,13 +196,13 @@ export function BargainHistory({
         </span>
         {rates(t)}
         {t.status === "agreed" ? (
-          <AssignTransport
+          <CallVehicle
             negotiationId={t.id}
             produceName={t.produceName}
             load={`${agreedQuantity(t)} ${t.unit}`}
-            agencies={agencies}
-            transport={transport[t.id] ?? null}
-            district={district}
+            nearby={nearby}
+            pickup={pickups[t.id] ?? null}
+            village={village}
           />
         ) : null}
         <span className="text-faint text-xs">

@@ -3,56 +3,45 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import { BargainHistory } from "@/components/farm/bargain-history";
+import type { NearbyType, PickupState } from "@/components/farm/call-vehicle";
 import { PageHeader } from "@/components/page-header";
-import type { AgencyOption, TransportState } from "@/components/farm/assign-transport";
 import { requireFarmer } from "@/lib/auth/farm";
-import { availableAgencies } from "@/lib/domain/dispatch-request";
+import { agreedQuantity } from "@/lib/domain/dispatch-request";
+import { isPoint } from "@/lib/domain/distance";
 import { isSettled } from "@/lib/domain/negotiation";
+import { byType, nearbyVehicles } from "@/lib/domain/pickup-request";
+import { DEFAULT_POLICY } from "@/lib/domain/policy";
 import { readNegotiations } from "@/lib/firebase/negotiations-read";
-import { readTransport } from "@/lib/firebase/transport-read";
+import { candidates, readPickups } from "@/lib/firebase/pickup-read";
 import { agencies, vehicles } from "@/lib/mock/admin";
+import { GEOGRAPHY } from "@/lib/mock/locations";
 import { negotiations } from "@/lib/mock/negotiations";
 
 export const metadata: Metadata = { title: "Sales · Farmer" };
 
 /**
- * Finished bargains, and only finished ones.
+ * Finished bargains, and the vehicle for each.
  *
  * Live bargaining is its own section next door. This page is the record — what
- * sold, at what price, and what came to nothing.
+ * sold, at what price, and what came to nothing — plus the one thing a farmer
+ * still has to do about a settled sale: get it collected.
  *
- * The split is not cosmetic. A live bargain is a decision with a clock on it
- * and a settled one is a receipt, and a farmer who has to scroll past three
- * months of sales to answer today's offer will miss the offer.
+ * Transport is called, not chosen. The farmer sees what kinds of vehicle are
+ * near them and asks for one; every suitable owner gets it and the first to
+ * accept has the job. Picking a company from a list was the old flow, and it
+ * made a farmer with produce cut and lying in the sun compare freight vendors.
  */
-export default async function FarmBargainsPage() {
+export default async function FarmSalesPage() {
   await connection();
 
   const { farmer } = await requireFarmer();
   const clock = new Date().getTime();
-
-  const [{ threads }, transport] = await Promise.all([
-    readNegotiations(negotiations(clock)),
-    readTransport(),
-  ]);
-
-  /*
-    Only agencies that could actually collect: contracted for transport, papers
-    in date, and covering this farmer's district. Listing the rest greyed out
-    would read as "the platform has no transport" to a farmer who cannot tell
-    why they are unavailable.
-  */
   const now = new Date(clock);
-  const fleet = vehicles(now);
-  const options: AgencyOption[] = availableAgencies(agencies(now), farmer.district, clock).map(
-    (a) => ({
-      id: a.id,
-      name: a.name,
-      town: a.town,
-      districts: a.districts,
-      fleetSize: fleet.filter((v) => v.agencyId === a.id).length,
-    }),
-  );
+
+  const [{ threads }, pickups] = await Promise.all([
+    readNegotiations(negotiations(clock)),
+    readPickups(farmer.id),
+  ]);
 
   // Terminal only. `isSettled` is the domain's own word for "nobody can speak
   // in this any more", so the two stay in step if a status is ever added.
@@ -61,6 +50,61 @@ export default async function FarmBargainsPage() {
     .sort((a, b) => (b.agreedAt ?? b.openedAt).getTime() - (a.agreedAt ?? a.openedAt).getTime());
 
   const sold = history.filter((t) => t.status === "agreed");
+
+  /*
+    Where the farm is, so "nearby" means something. The village is a place with
+    a pin on it; a village nobody has pinned yields no distance at all, and the
+    screen says "in your district" rather than inventing kilometres.
+  */
+  const village = GEOGRAPHY.places.find(
+    (place) => place.name.toLowerCase() === farmer.village?.toLowerCase(),
+  );
+  const from = village && isPoint({ lat: village.lat, lng: village.lng })
+    ? { lat: village.lat as number, lng: village.lng as number }
+    : null;
+
+  const fleet = candidates({
+    vehicles: vehicles(now),
+    agencies: agencies(now),
+    places: GEOGRAPHY.places,
+    now: clock,
+  });
+
+  /*
+    Sized against the largest load still needing a vehicle, so the counts on
+    screen are ones the farmer can actually use. Sizing against the smallest
+    would promise lorries that cannot take the big lot; against nothing at all
+    would list vehicles that fit none of it.
+  */
+  const needing = sold.filter((t) => !pickups[t.id] || pickups[t.id].status === "expired");
+  const largest = Math.max(0, ...needing.map(agreedQuantity));
+
+  const nearby: NearbyType[] = byType(
+    nearbyVehicles(fleet, from, {
+      quantityKg: largest,
+      needsRefrigeration: false,
+      district: farmer.district,
+      roadFactorPercent: DEFAULT_POLICY.roadFactorPercent,
+    }),
+  );
+
+  const state: Record<string, PickupState> = Object.fromEntries(
+    Object.entries(pickups).map(([negotiationId, request]) => [
+      negotiationId,
+      {
+        id: request.id,
+        // A window that has closed is expired here, whether or not anything has
+        // swept the document — the farmer must be able to ask again.
+        status:
+          request.status === "searching" && clock >= request.expiresAt.getTime()
+            ? ("expired" as const)
+            : request.status,
+        registration: request.acceptedBy?.registration,
+        agencyName: request.acceptedBy?.agencyName,
+        expiresAt: request.expiresAt.toISOString(),
+      },
+    ]),
+  );
 
   return (
     <>
@@ -86,9 +130,9 @@ export default async function FarmBargainsPage() {
         ) : (
           <BargainHistory
             threads={history}
-            agencies={options}
-            district={farmer.district}
-            transport={transport as Record<string, TransportState>}
+            nearby={nearby}
+            village={farmer.village ?? farmer.district}
+            pickups={state}
           />
         )}
       </div>

@@ -414,6 +414,21 @@ export interface Vehicle {
   readonly documents: readonly ComplianceDocument[];
 }
 
+/**
+ * Whether this vehicle can be sent to a farm today.
+ *
+ * The sibling of `agencyDispatchable` and `workerDispatchable`, and the one
+ * that was missing. The document check is the point: an RC or a fitness
+ * certificate lapsing is paperwork, but **insurance** lapsing means a load on
+ * the road uninsured, on a movement the platform arranged. A farmer picking a
+ * lorry from a list cannot see any of that, which is exactly why it is checked
+ * here rather than shown to them.
+ */
+export function vehicleDispatchable(vehicle: Vehicle, now: number): boolean {
+  if (!canTransact(vehicle.status)) return false;
+  return worstExpiry(vehicle.documents, now) !== "expired";
+}
+
 /* -------------------------------------------------------------------------
    Queue
    ------------------------------------------------------------------------- */

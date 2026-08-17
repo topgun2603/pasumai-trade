@@ -175,6 +175,27 @@ service cloud.firestore {
     }
 
     /* --------------------------------------------------------------------
+       Pickup requests
+       -------------------------------------------------------------------- */
+
+    match /pickups/{pickupId} {
+      // Deliberately readable by every transport account, not only the one a
+      // job is "for" — a broadcast that only its addressee can see is not a
+      // broadcast. What it exposes is a farmer's village, a crop and a
+      // quantity, which is exactly what a driver needs to decide whether to
+      // take it.
+      //
+      // The farmer who raised it reads their own; nobody else's concerns them.
+      allow read: if isAdmin()
+                  || hasRole('transport')
+                  || (hasRole('farmer') && resource.data.farmerId == accountId());
+
+      // Accepting is a race with one winner, and that is settled in a Firestore
+      // transaction inside a route handler — never here. A client that could
+      // write this document could award itself every job on the platform.
+    }
+
+    /* --------------------------------------------------------------------
        Notifications
        -------------------------------------------------------------------- */
 
