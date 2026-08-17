@@ -6,7 +6,8 @@ import { AdminPageHeader } from "@/components/admin/page-header";
 import { requireConsole } from "@/lib/auth/require";
 import { suitability } from "@/lib/domain/pickup-request";
 import { candidates, readOpenPickups } from "@/lib/firebase/pickup-read";
-import { agencies, vehicles } from "@/lib/mock/admin";
+import { vehicles } from "@/lib/mock/admin";
+import { readAgencies } from "@/lib/firebase/agency-read";
 import { GEOGRAPHY } from "@/lib/mock/locations";
 
 export const metadata: Metadata = { title: "Loads going · Transport" };
@@ -35,7 +36,7 @@ export default async function AgencyPickupsPage() {
 
   const fleet = candidates({
     vehicles: vehicles(now),
-    agencies: agencies(now),
+    agencies: await readAgencies(now),
     places: GEOGRAPHY.places,
     now: clock,
   });

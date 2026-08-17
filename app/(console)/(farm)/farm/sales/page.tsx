@@ -12,8 +12,9 @@ import { isSettled } from "@/lib/domain/negotiation";
 import { byType, nearbyVehicles } from "@/lib/domain/pickup-request";
 import { DEFAULT_POLICY } from "@/lib/domain/policy";
 import { readNegotiations } from "@/lib/firebase/negotiations-read";
+import { readAgencies } from "@/lib/firebase/agency-read";
 import { candidates, readPickups } from "@/lib/firebase/pickup-read";
-import { agencies, vehicles } from "@/lib/mock/admin";
+import { vehicles } from "@/lib/mock/admin";
 import { GEOGRAPHY } from "@/lib/mock/locations";
 import { negotiations } from "@/lib/mock/negotiations";
 
@@ -65,7 +66,9 @@ export default async function FarmSalesPage() {
 
   const fleet = candidates({
     vehicles: vehicles(now),
-    agencies: agencies(now),
+    // Registered agencies, not only the seeded ones — otherwise a farmer never
+    // sees a vehicle from a firm that joined the platform this week.
+    agencies: await readAgencies(now),
     places: GEOGRAPHY.places,
     now: clock,
   });

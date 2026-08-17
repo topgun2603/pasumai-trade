@@ -1,6 +1,7 @@
 import { requireRole } from "@/lib/api/write-guard";
 import { GEOGRAPHY } from "@/lib/mock/locations";
-import { agencies, vehicles } from "@/lib/mock/admin";
+import { vehicles } from "@/lib/mock/admin";
+import { readAgencies } from "@/lib/firebase/agency-read";
 import { claim } from "@/lib/domain/pickup-request";
 import { transportKey } from "@/lib/domain/notification-key";
 import { adminDb } from "@/lib/firebase/admin";
@@ -50,7 +51,7 @@ export async function POST(
 
   const fleet = candidates({
     vehicles: vehicles(now),
-    agencies: agencies(now),
+    agencies: await readAgencies(now),
     places: GEOGRAPHY.places,
     now: now.getTime(),
   });

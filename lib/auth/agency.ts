@@ -3,7 +3,7 @@ import "server-only";
 import { notFound } from "next/navigation";
 
 import { offers, type Agency, type AgencyService } from "@/lib/domain/admin";
-import { agencies } from "@/lib/mock/admin";
+import { readAgency } from "@/lib/firebase/agency-read";
 
 import { AGENCY_ROLES } from "./claims";
 import { requireConsole } from "./require";
@@ -37,9 +37,15 @@ export interface AgencySession {
 export async function requireAgency(): Promise<AgencySession> {
   const session = await requireConsole([...AGENCY_ROLES]);
 
-  const agency = agencies(new Date()).find(
-    (a) => a.id === session.claims.accountId,
-  );
+  /*
+    From Firestore, not from the samples.
+
+    This used to look only in the hard-coded sample array, which held for
+    exactly as long as nobody registered a real agency. The first one
+    operations created got a login, signed in, and was told it did not exist —
+    a 404 on an account the platform had itself issued.
+  */
+  const agency = await readAgency(session.claims.accountId ?? "", new Date());
 
   // A claim pointing at no agency. Treated as not found rather than as an
   // empty console, because the console would otherwise look like a working
