@@ -204,13 +204,45 @@ needs `iam.serviceAccountTokenCreator`, the runtime identity needs
 those needs `resourcemanager.projects.setIamPolicy`, which the Admin SDK
 service account does not have and should not be given.
 
-If the CLI reports **"We failed to modify the IAM policy for the project"**,
-check project resolution before reaching for IAM. The CLI resolves the project
-from `projects.default` in `.firebaserc`; with no default alias it fails to
-identify the project and then reports the failure as an IAM problem, which
-sends you looking in the wrong place entirely. `npx firebase-tools
-functions:list` with no `--project` flag tells you in one command whether
-resolution works.
+### "We failed to modify the IAM policy for the project"
+
+The CLI reports most setup problems as that one sentence, and it points at the
+wrong place. Run this first:
+
+```bash
+npm run check:deploy
+```
+
+It checks the chain in the order it actually breaks — plan, APIs, service
+agents, bindings — and prints the commands for whatever is missing. It changes
+nothing.
+
+The binding the CLI could not write is usually rejected because **the principal
+does not exist**, not because permission was refused. Service agents are
+provisioned lazily: a project that has never run Eventarc or Pub/Sub has no
+such account to grant a role to, and granting a role to an account that is not
+there fails. Underneath that, the usual reason nothing has been provisioned is
+that the project is still on **Spark** — 2nd-gen functions require Blaze, full
+stop.
+
+So, in order: Blaze, then `compute.googleapis.com` (2nd-gen functions run on
+Cloud Run and use the Compute Engine default service account as their runtime
+identity), then
+
+```bash
+gcloud beta services identity create --service=pubsub.googleapis.com   --project=pasumai-trade
+gcloud beta services identity create --service=eventarc.googleapis.com --project=pasumai-trade
+```
+
+which provisions the two agents explicitly. Propagation takes a few minutes —
+an immediate retry can still fail. Then deploy as an Owner and the CLI writes
+the bindings itself.
+
+A second, unrelated cause of the same message: the CLI resolves the project
+from `projects.default` in `.firebaserc`, and with no default alias it fails to
+identify the project and reports *that* as an IAM problem too. `npx
+firebase-tools functions:list` with no `--project` flag tells you in one
+command whether resolution works.
 
 ### The region, and why it is not Mumbai
 

@@ -13,7 +13,8 @@
     "grant": "tsx scripts/grant.ts",
     "check:region": "tsx scripts/check-functions-region.ts",
     "functions:build": "npm --prefix functions run build",
-    "functions:typecheck": "npm --prefix functions run typecheck"
+    "functions:typecheck": "npm --prefix functions run typecheck",
+    "check:deploy": "tsx scripts/check-functions-deploy.ts"
   },
   "dependencies": {
     "@tanstack/react-table": "^8.21.3",
