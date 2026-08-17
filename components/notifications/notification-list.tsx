@@ -1,13 +1,16 @@
 "use client";
 
 import {
+  BadgeCheckIcon,
   BellIcon,
   CheckCheckIcon,
+  FileQuestionIcon,
   HandshakeIcon,
   MessageSquareIcon,
   PackageIcon,
   SproutIcon,
   TruckIcon,
+  UploadIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -51,9 +54,19 @@ const ICONS: Record<NotificationKind, typeof BellIcon> = {
   bargainClosed: HandshakeIcon,
   orderPlaced: PackageIcon,
   transportArranged: TruckIcon,
+  checkApproved: BadgeCheckIcon,
+  checkRejected: BadgeCheckIcon,
+  checkNeedsInfo: FileQuestionIcon,
+  checkNeedsReupload: UploadIcon,
+  accountVerified: BadgeCheckIcon,
 };
 
 const TONES: Partial<Record<NotificationKind, string>> = {
+  checkApproved: "text-success",
+  accountVerified: "text-success",
+  checkRejected: "text-destructive",
+  checkNeedsInfo: "text-warning",
+  checkNeedsReupload: "text-warning",
   bargainAgreed: "text-success",
   orderPlaced: "text-success",
   transportArranged: "text-primary",
@@ -61,6 +74,7 @@ const TONES: Partial<Record<NotificationKind, string>> = {
 
 const GROUP_LABELS: Record<NotificationGroup | "all", string> = {
   all: "All",
+  verification: "Verification",
   bargaining: "Bargaining",
   settled: "Sold",
   produce: "New produce",

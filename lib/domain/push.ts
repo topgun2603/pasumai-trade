@@ -31,6 +31,13 @@ import type { NotificationKind } from "./notification";
  *    already bargaining and watching the screen. The bell is enough.
  */
 const PUSHABLE: readonly NotificationKind[] = [
+  // Verification blocks everything else on the platform, and somebody waiting
+  // on an approval is checking the app for it. Being told beats being checked
+  // on.
+  "checkRejected",
+  "checkNeedsInfo",
+  "checkNeedsReupload",
+  "accountVerified",
   "bargainOpened",
   "bargainAgreed",
   "bargainClosed",

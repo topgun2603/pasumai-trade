@@ -1,7 +1,13 @@
 import "server-only";
 
 import type { Role } from "@/lib/auth/claims";
-import type { Check, CheckKind, CheckMethod, CheckState } from "@/lib/domain/kyc";
+import type {
+  Check,
+  CheckKind,
+  CheckMethod,
+  CheckState,
+  ReviewNote,
+} from "@/lib/domain/kyc";
 import { COLLECTION_FOR_SIGNUP, canSelfSignup } from "@/lib/domain/signup";
 
 import { adminDb } from "./admin";
@@ -15,7 +21,18 @@ import { adminDb } from "./admin";
  */
 
 const KINDS: CheckKind[] = ["identity", "pan", "gst", "bank", "fssai"];
-const STATES: CheckState[] = ["notStarted", "pending", "verified", "review", "failed"];
+const STATES: CheckState[] = [
+  "notStarted",
+  "pending",
+  "verified",
+  "review",
+  // Without these two a check sent back to an applicant reads as unreadable on
+  // the next load and is dropped — losing the request along with the record of
+  // having made it.
+  "moreInfo",
+  "reupload",
+  "failed",
+];
 
 function toDate(value: unknown): Date | undefined {
   if (!value) return undefined;
@@ -47,6 +64,27 @@ export function shapeChecks(raw: unknown): Check[] {
         verifiedName: typeof d.verifiedName === "string" ? d.verifiedName : undefined,
         approvedBy: typeof d.approvedBy === "string" ? d.approvedBy : undefined,
         reason: typeof d.reason === "string" ? d.reason : undefined,
+        notes: Array.isArray(d.notes)
+          ? d.notes.flatMap((raw): ReviewNote[] => {
+              const n = raw as Record<string, unknown>;
+              const by = n.by === "applicant" ? "applicant" : "operations";
+              if (!STATES.includes(n.state as CheckState)) return [];
+              // A note with no readable timestamp cannot be placed in the
+              // conversation, and a trail out of order is worse than a short
+              // one.
+              const at = toDate(n.at);
+              if (!at) return [];
+              return [
+                {
+                  at,
+                  by,
+                  state: n.state as CheckState,
+                  operator: typeof n.operator === "string" ? n.operator : undefined,
+                  message: typeof n.message === "string" ? n.message : undefined,
+                },
+              ];
+            })
+          : undefined,
         checkedAt: toDate(d.checkedAt),
       },
     ];
@@ -64,6 +102,15 @@ export function serialiseChecks(checks: readonly Check[]): Record<string, unknow
     approvedBy: c.approvedBy ?? null,
     reason: c.reason ?? null,
     checkedAt: c.checkedAt ?? null,
+    // The trail, or the conversation is lost on the next write and a queue that
+    // could be tracked becomes a state that mysteriously changed.
+    notes: (c.notes ?? []).map((n) => ({
+      at: n.at,
+      by: n.by,
+      state: n.state,
+      operator: n.operator ?? null,
+      message: n.message ?? null,
+    })),
   }));
 }
 

@@ -29,6 +29,16 @@ export const NOTIFICATION_KINDS = [
   "orderPlaced",
   /** A farmer handed a settled lot to an agency. */
   "transportArranged",
+  /** Operations approved a document. */
+  "checkApproved",
+  /** Operations refused one, with a reason. */
+  "checkRejected",
+  /** Operations asked a question and are waiting on an answer. */
+  "checkNeedsInfo",
+  /** The document was unreadable; send it again. */
+  "checkNeedsReupload",
+  /** Every check passed. The account can trade. */
+  "accountVerified",
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -159,6 +169,46 @@ export const NOTIFICATION_COPY: Record<NotificationKind, Copy> = {
     ml: "{amount}{produce} യ്ക്ക് {who} ഓർഡർ നൽകി.",
     hi: "{who} ने {amount}{produce} का ऑर्डर दिया।",
   },
+  checkApproved: {
+    en: "{who} was approved.",
+    ta: "{who} அங்கீகரிக்கப்பட்டது.",
+    te: "{who} ఆమోదించబడింది.",
+    kn: "{who} ಅನುಮೋದಿಸಲಾಗಿದೆ.",
+    ml: "{who} അംഗീകരിച്ചു.",
+    hi: "{who} स्वीकृत हुआ।",
+  },
+  checkRejected: {
+    en: "{who} was not accepted. Open verification to see why.",
+    ta: "{who} ஏற்கப்படவில்லை. காரணத்தைப் பார்க்க சரிபார்ப்பைத் திறக்கவும்.",
+    te: "{who} ఆమోదించలేదు. కారణం చూడటానికి ధృవీకరణ తెరవండి.",
+    kn: "{who} ಸ್ವೀಕರಿಸಿಲ್ಲ. ಕಾರಣ ನೋಡಲು ಪರಿಶೀಲನೆ ತೆರೆಯಿರಿ.",
+    ml: "{who} സ്വീകരിച്ചില്ല. കാരണം കാണാൻ പരിശോധന തുറക്കുക.",
+    hi: "{who} स्वीकार नहीं हुआ। कारण देखने के लिए सत्यापन खोलें।",
+  },
+  checkNeedsInfo: {
+    en: "We need something more about {who}.",
+    ta: "{who} குறித்து மேலும் விவரம் தேவை.",
+    te: "{who} గురించి మరింత సమాచారం కావాలి.",
+    kn: "{who} ಕುರಿತು ಇನ್ನಷ್ಟು ಮಾಹಿತಿ ಬೇಕು.",
+    ml: "{who} സംബന്ധിച്ച് കൂടുതൽ വിവരം വേണം.",
+    hi: "{who} के बारे में कुछ और चाहिए।",
+  },
+  checkNeedsReupload: {
+    en: "{who} could not be read. Please send it again.",
+    ta: "{who} படிக்க முடியவில்லை. மீண்டும் அனுப்பவும்.",
+    te: "{who} చదవలేకపోయాము. మళ్లీ పంపండి.",
+    kn: "{who} ಓದಲಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಕಳುಹಿಸಿ.",
+    ml: "{who} വായിക്കാൻ കഴിഞ്ഞില്ല. വീണ്ടും അയയ്ക്കുക.",
+    hi: "{who} पढ़ा नहीं जा सका। कृपया दोबारा भेजें।",
+  },
+  accountVerified: {
+    en: "Your account is verified. You can trade now.",
+    ta: "உங்கள் கணக்கு சரிபார்க்கப்பட்டது. இப்போது வர்த்தகம் செய்யலாம்.",
+    te: "మీ ఖాతా ధృవీకరించబడింది. ఇప్పుడు వ్యాపారం చేయవచ్చు.",
+    kn: "ನಿಮ್ಮ ಖಾತೆ ಪರಿಶೀಲಿಸಲಾಗಿದೆ. ಈಗ ವ್ಯಾಪಾರ ಮಾಡಬಹುದು.",
+    ml: "നിങ്ങളുടെ അക്കൗണ്ട് പരിശോധിച്ചു. ഇനി വ്യാപാരം ചെയ്യാം.",
+    hi: "आपका खाता सत्यापित है। अब आप व्यापार कर सकते हैं।",
+  },
   transportArranged: {
     en: "{agency} is collecting {amount}{produce}.",
     ta: "{amount}{produce} ஐ {agency} எடுத்துச் செல்கிறது.",
@@ -288,6 +338,13 @@ export function inReadingOrder(
  * anything sell" is one question, "is anybody bargaining" is another.
  */
 export const NOTIFICATION_GROUPS = {
+  verification: [
+    "checkApproved",
+    "checkRejected",
+    "checkNeedsInfo",
+    "checkNeedsReupload",
+    "accountVerified",
+  ],
   bargaining: ["bargainOpened", "bargainCountered", "bargainMessage"],
   settled: ["bargainAgreed", "bargainClosed", "orderPlaced"],
   produce: ["produceListed"],

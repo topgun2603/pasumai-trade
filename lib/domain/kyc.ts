@@ -105,8 +105,66 @@ export type CheckState =
   | "verified"
   /** Manual evidence submitted, waiting on operations. */
   | "review"
+  /**
+   * Operations have asked a question and are waiting on an answer.
+   *
+   * Not a rejection. Somebody whose GST certificate is in a company name that
+   * does not match their bank account has not failed anything — a person needs
+   * to ask which is right. Refusing them outright would send them back to the
+   * start of a queue for something a sentence could settle.
+   */
+  | "moreInfo"
+  /**
+   * The evidence itself was no good — a blurred photograph, a cropped page, the
+   * wrong side of a card. Distinct from `moreInfo` because the fix is different:
+   * take the picture again rather than answer anything.
+   */
+  | "reupload"
   /** eKYC contradicted it, or operations refused it. */
   | "failed";
+
+/**
+ * Whose move it is.
+ *
+ * The question every verification screen and every queue is really asking, and
+ * the one that decides who gets notified. Operations chasing an applicant who
+ * is already waiting on operations is how a queue stops meaning anything.
+ */
+export type Waiting = "nobody" | "applicant" | "operations";
+
+export function waitingOn(state: CheckState): Waiting {
+  switch (state) {
+    case "review":
+      return "operations";
+    case "notStarted":
+    case "pending":
+    case "moreInfo":
+    case "reupload":
+    case "failed":
+      return "applicant";
+    case "verified":
+      return "nobody";
+  }
+}
+
+/**
+ * One thing operations said, or the applicant did.
+ *
+ * Append-only, and the reason the queue can be tracked rather than merely
+ * acted on: "rejected" with no history is a dead end that a person then
+ * telephones about. A trail shows that the certificate was asked for twice,
+ * what was asked, and what came back.
+ */
+export interface ReviewNote {
+  readonly at: Date;
+  /** Operations, or the person being verified. */
+  readonly by: "operations" | "applicant";
+  /** Operator identity, for the audit trail. Never shown to the applicant. */
+  readonly operator?: string;
+  readonly state: CheckState;
+  /** What was asked or said. Written to be read by the applicant. */
+  readonly message?: string;
+}
 
 export interface Check {
   readonly kind: CheckKind;
@@ -127,6 +185,8 @@ export interface Check {
   readonly approvedBy?: string;
   /** Why it failed, in words the person can act on. */
   readonly reason?: string;
+  /** Everything said about this check, oldest first. */
+  readonly notes?: readonly ReviewNote[];
 }
 
 /* -------------------------------------------------------------------------
@@ -141,6 +201,14 @@ export type KycState =
   | "verified"
   /** Everything required is submitted, and at least one needs a person. */
   | "awaitingApproval"
+  /**
+   * Operations have asked for something and are waiting on the applicant.
+   *
+   * Kept apart from `inProgress`, which is somebody who has simply not finished
+   * yet. This one has been asked a question, and the difference decides both
+   * what their screen says and whether chasing them is fair.
+   */
+  | "needsApplicant"
   /** At least one required check was refused. */
   | "rejected";
 
@@ -149,6 +217,7 @@ export const KYC_LABELS: Record<KycState, string> = {
   inProgress: "In progress",
   verified: "Verified",
   awaitingApproval: "Waiting for approval",
+  needsApplicant: "Waiting on you",
   rejected: "Rejected",
 };
 
@@ -173,6 +242,18 @@ export function kycState(checks: readonly Check[], role: Role): KycState {
   if (required.some((kind) => found(kind)?.state === "failed")) return "rejected";
   if (required.every((kind) => found(kind)?.state === "verified")) return "verified";
 
+  // Anything operations have asked about outranks the rest. Somebody who has
+  // been asked a question needs to see that above "in progress", which reads as
+  // though the platform is still working on it.
+  if (
+    required.some((kind) => {
+      const state = found(kind)?.state;
+      return state === "moreInfo" || state === "reupload";
+    })
+  ) {
+    return "needsApplicant";
+  }
+
   const submitted = required.every((kind) => {
     const state = found(kind)?.state;
     return state === "verified" || state === "review";
@@ -186,6 +267,8 @@ export function kycState(checks: readonly Check[], role: Role): KycState {
 export function outstandingChecks(checks: readonly Check[], role: Role): CheckKind[] {
   return REQUIRED_CHECKS[role].filter((kind) => {
     const state = checks.find((c) => c.kind === kind)?.state;
+    // `moreInfo` and `reupload` are outstanding: they are back with the
+    // applicant and there is something for them to do.
     return state !== "verified" && state !== "review";
   });
 }
@@ -290,7 +373,13 @@ export function approve(check: Check, approvedBy: string, now: Date): Check {
   if (check.state !== "review") {
     throw new KycError(`This check is ${check.state}, not waiting for review.`);
   }
-  return { ...check, state: "verified", approvedBy, checkedAt: now };
+  return {
+    ...check,
+    state: "verified",
+    approvedBy,
+    checkedAt: now,
+    notes: note(check, "operations", "verified", undefined, approvedBy, now),
+  };
 }
 
 export function reject(check: Check, approvedBy: string, reason: string, now: Date): Check {
@@ -299,7 +388,109 @@ export function reject(check: Check, approvedBy: string, reason: string, now: Da
     // — it should suspend the account, not quietly flip a check.
     throw new KycError("Suspend the account instead of rejecting a verified check.");
   }
-  return { ...check, state: "failed", approvedBy, reason, checkedAt: now };
+  return {
+    ...check,
+    state: "failed",
+    approvedBy,
+    reason,
+    checkedAt: now,
+    notes: note(check, "operations", "failed", reason, approvedBy, now),
+  };
+}
+
+/** Append to the trail without losing what is already there. */
+function note(
+  check: Check,
+  by: ReviewNote["by"],
+  state: CheckState,
+  message: string | undefined,
+  operator: string | undefined,
+  at: Date,
+): ReviewNote[] {
+  return [...(check.notes ?? []), { at, by, state, message, operator }];
+}
+
+/**
+ * Operations asking a question rather than deciding.
+ *
+ * The middle ground the queue did not have. An applicant whose certificate is
+ * in a slightly different company name has not failed anything, and rejecting
+ * them for it sends them back to the start of a queue over something a sentence
+ * settles. The question is required — "more information needed" with no
+ * question is a delay the applicant cannot act on.
+ */
+export function askForMore(
+  check: Check,
+  operator: string,
+  question: string,
+  now: Date,
+): Check {
+  if (check.state === "verified") {
+    throw new KycError("This check is already verified. Suspend the account instead.");
+  }
+  if (!question.trim()) {
+    throw new KycError("Say what is needed. A request with no question cannot be answered.");
+  }
+  return {
+    ...check,
+    state: "moreInfo",
+    approvedBy: operator,
+    reason: question,
+    checkedAt: now,
+    notes: note(check, "operations", "moreInfo", question, operator, now),
+  };
+}
+
+/**
+ * Operations asking for the document again.
+ *
+ * Separate from `askForMore` because the fix is different — take the
+ * photograph again rather than answer a question — and because the applicant's
+ * screen should offer an upload rather than a text box.
+ */
+export function askForReupload(
+  check: Check,
+  operator: string,
+  whatIsWrong: string,
+  now: Date,
+): Check {
+  if (check.state === "verified") {
+    throw new KycError("This check is already verified. Suspend the account instead.");
+  }
+  if (!whatIsWrong.trim()) {
+    throw new KycError(
+      "Say what is wrong with it. \"Upload it again\" produces the same photograph.",
+    );
+  }
+  return {
+    ...check,
+    state: "reupload",
+    approvedBy: operator,
+    reason: whatIsWrong,
+    checkedAt: now,
+    notes: note(check, "operations", "reupload", whatIsWrong, operator, now),
+  };
+}
+
+/**
+ * The applicant answering, or sending the document again.
+ *
+ * Puts the check back in front of operations and records what was said, so the
+ * queue shows a conversation rather than a state that mysteriously changed.
+ */
+export function respond(check: Check, message: string | undefined, now: Date): Check {
+  if (check.state !== "moreInfo" && check.state !== "reupload") {
+    throw new KycError("Nothing was asked about this check.");
+  }
+  return {
+    ...check,
+    state: "review",
+    // The operator's question is answered; carrying it forward would show as
+    // the reason on a check that is now waiting on us.
+    reason: undefined,
+    checkedAt: now,
+    notes: note(check, "applicant", "review", message, undefined, now),
+  };
 }
 
 /* -------------------------------------------------------------------------

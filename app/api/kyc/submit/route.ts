@@ -5,6 +5,7 @@ import {
   kycState,
   maskAadhaar,
   recordManual,
+  respond,
   type Check,
   type CheckKind,
 } from "@/lib/domain/kyc";
@@ -134,7 +135,25 @@ export async function POST(request: Request) {
     );
   }
 
-  const check = recordManual(kind, outcome.reference, now);
+  /*
+    A re-submission is an answer, not a fresh start.
+
+    Somebody sent back for a clearer photograph, or asked whose name the account
+    is in, is replying to a question — and `recordManual` would drop a brand new
+    check on top, taking the whole conversation with it. Operations would then
+    see a first-time submission and have no idea they had already asked twice.
+
+    `respond` keeps the trail and puts it back in front of them; a message may
+    ride along with it, which is how an applicant answers a question rather than
+    only re-uploading a file.
+  */
+  const answering = already?.state === "moreInfo" || already?.state === "reupload";
+  const message = typeof body.message === "string" ? body.message.trim() : "";
+
+  const check = answering
+    ? { ...respond(already, message || undefined, now), reference: outcome.reference }
+    : recordManual(kind, outcome.reference, now);
+
   const checks: Check[] = [...existing.filter((c) => c.kind !== kind), check];
   const state = kycState(checks, role);
 

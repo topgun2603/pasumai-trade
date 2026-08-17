@@ -18,6 +18,11 @@ import {
   REQUIRED_CHECKS,
   type Check,
   type CheckKind,
+  askForMore,
+  askForReupload,
+  respond,
+  waitingOn,
+  type CheckState,
 } from "./kyc";
 
 const NOW = new Date("2026-08-15T10:00:00+05:30");
@@ -247,5 +252,113 @@ describe("GSTIN", () => {
     // real GSTIN costs a customer; accepting a mistyped one costs an operator
     // ten seconds at review, where it is checked against the register anyway.
     expect(isWellFormedGstin("27AAPFU0939F1ZA")).toBe(true);
+  });
+});
+
+/**
+ * The middle ground between approving and refusing.
+ *
+ * Operations could previously only say yes or no. Most of what actually comes
+ * back from a queue is neither: a certificate in a slightly different company
+ * name, a photograph with the corner cut off. Refusing those sends somebody to
+ * the back of a queue over something a sentence settles.
+ */
+describe("asking rather than deciding", () => {
+  const submitted = () => recordManual("bank", "HDFC0001234", NOW);
+
+  it("asks a question and waits on the applicant", () => {
+    const asked = askForMore(submitted(), "ops@pasumai", "Whose name is the account in?", NOW);
+    expect(asked.state).toBe("moreInfo");
+    expect(asked.reason).toContain("Whose name");
+    expect(waitingOn(asked.state)).toBe("applicant");
+  });
+
+  it("asks for the document again, which is a different fix", () => {
+    const asked = askForReupload(submitted(), "ops@pasumai", "The bottom edge is cut off.", NOW);
+    expect(asked.state).toBe("reupload");
+    expect(waitingOn(asked.state)).toBe("applicant");
+  });
+
+  it("refuses to ask for nothing", () => {
+    // "More information needed" with no question is a delay the applicant
+    // cannot act on, and "upload it again" with no reason produces the same
+    // photograph.
+    expect(() => askForMore(submitted(), "ops", "  ", NOW)).toThrow(KycError);
+    expect(() => askForReupload(submitted(), "ops", "", NOW)).toThrow(KycError);
+  });
+
+  it("will not reopen something already verified", () => {
+    const done = approve(submitted(), "ops@pasumai", NOW);
+    expect(() => askForMore(done, "ops", "One more thing?", NOW)).toThrow(KycError);
+    expect(() => askForReupload(done, "ops", "Again please", NOW)).toThrow(KycError);
+  });
+
+  it("puts an answer back in front of operations", () => {
+    const asked = askForMore(submitted(), "ops@pasumai", "Whose name?", NOW);
+    const answered = respond(asked, "It is my father's account.", NOW);
+
+    expect(answered.state).toBe("review");
+    expect(waitingOn(answered.state)).toBe("operations");
+    // The question is answered; leaving it as the reason would show a query on
+    // a check that is now ours to look at.
+    expect(answered.reason).toBeUndefined();
+  });
+
+  it("refuses an answer to a question nobody asked", () => {
+    expect(() => respond(submitted(), "Here you go", NOW)).toThrow(KycError);
+  });
+
+  it("keeps the whole conversation, oldest first", () => {
+    // Rejected with no history is a dead end somebody then telephones about.
+    let check = submitted();
+    check = askForReupload(check, "ops@pasumai", "Too blurred to read.", NOW);
+    check = respond(check, undefined, NOW);
+    check = askForMore(check, "ops@pasumai", "Whose name is it in?", NOW);
+    check = respond(check, "Mine.", NOW);
+    check = approve(check, "ops@pasumai", NOW);
+
+    expect(check.notes?.map((n) => `${n.by}:${n.state}`)).toEqual([
+      "operations:reupload",
+      "applicant:review",
+      "operations:moreInfo",
+      "applicant:review",
+      "operations:verified",
+    ]);
+    expect(check.state).toBe("verified");
+  });
+
+  it("never shows the operator to the applicant's side of the trail", () => {
+    const asked = askForMore(submitted(), "ops@pasumai", "Whose name?", NOW);
+    const answered = respond(asked, "Mine.", NOW);
+    expect(answered.notes?.at(-1)?.operator).toBeUndefined();
+  });
+});
+
+describe("whose move it is", () => {
+  it("has an answer for every state", () => {
+    const states: CheckState[] = [
+      "notStarted",
+      "pending",
+      "verified",
+      "review",
+      "moreInfo",
+      "reupload",
+      "failed",
+    ];
+    for (const state of states) {
+      expect(["nobody", "applicant", "operations"]).toContain(waitingOn(state));
+    }
+  });
+
+  it("puts an account that has been asked something in front of the applicant", () => {
+    // Above "in progress", which reads as though the platform is still working
+    // on it while in fact nothing moves until they reply.
+    // A farmer needs identity and bank. One is done; the other has been sent
+    // back, so nothing moves until they act.
+    const checks = [
+      approve(recordManual("identity", "XXXX XXXX 1234", NOW), "ops", NOW),
+      askForReupload(recordManual("bank", "HDFC0001", NOW), "ops", "Blurred.", NOW),
+    ];
+    expect(kycState(checks, "farmer")).toBe("needsApplicant");
   });
 });

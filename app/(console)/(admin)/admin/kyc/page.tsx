@@ -35,6 +35,14 @@ export default async function AdminKycPage() {
         reference: c.reference,
         // Formatted on the server so the server and client renders agree.
         submittedLabel: c.checkedAt ? relative(now - c.checkedAt.getTime()) : undefined,
+        // What has already been said. An account on its third pass through the
+        // queue looks identical to a first submission without it.
+        notes: (c.notes ?? []).map((n) => ({
+          by: n.by,
+          state: n.state,
+          message: n.message,
+          at: relative(now - n.at.getTime()),
+        })),
       })),
   }));
 
