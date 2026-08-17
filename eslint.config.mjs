@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Compiled Cloud Functions. `firebase deploy` rebuilds it from source on
+    // the way up, so it is output rather than code — and it is CommonJS, which
+    // this config rightly forbids in anything hand-written.
+    "functions/lib/**",
   ]),
 ]);
 
