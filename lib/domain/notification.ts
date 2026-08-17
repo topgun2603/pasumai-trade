@@ -214,18 +214,22 @@ const FALLBACKS: Record<"produce" | "who" | "agency", Copy> = {
  */
 export function describe(notification: Notification, locale: string): string {
   const copy = NOTIFICATION_COPY[notification.kind];
-  const template = copy[locale] ?? copy.en;
+  const template = copy[locale] ?? copy.en ?? "";
   const { produceName, quantity, unit, counterparty, agencyName } = notification.subject;
 
+  // `?? ""` on the English too. Every entry above has it, but the copy tables
+  // are indexed by an arbitrary locale string, and the functions package
+  // compiles this file with `noUncheckedIndexedAccess` — where "guaranteed by
+  // a test" is not the same as "guaranteed by the type".
   const stand = (key: keyof typeof FALLBACKS) =>
-    FALLBACKS[key][locale] ?? FALLBACKS[key].en;
+    FALLBACKS[key][locale] ?? FALLBACKS[key].en ?? "";
 
   // Numbers get no stand-in — "some kg" would be the platform inventing a
   // figure. The whole amount phrase drops instead, connector and all.
   const amount =
     quantity === undefined
       ? ""
-      : (AMOUNT[locale] ?? AMOUNT.en)
+      : (AMOUNT[locale] ?? AMOUNT.en ?? "")
           .replace("{quantity}", String(quantity))
           .replace("{unit}", unit ?? "")
           .replace(/\s{2,}/g, " ");
@@ -239,9 +243,7 @@ export function describe(notification: Notification, locale: string): string {
 
   return (
     template
-      .replace(/\{(\w+)\}/g, (match, key: string) =>
-        key in values ? values[key] : match,
-      )
+      .replace(/\{(\w+)\}/g, (match, key: string) => values[key] ?? match)
       // Squeeze the gap a dropped number leaves, so a half-known row reads as a
       // sentence rather than as a form with holes in it.
       .replace(/\s{2,}/g, " ")

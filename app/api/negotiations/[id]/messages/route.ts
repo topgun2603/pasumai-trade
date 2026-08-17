@@ -1,6 +1,5 @@
 import { GRADES } from "@/lib/domain/enums";
 import { canSay, phraseById } from "@/lib/domain/bargain-vocabulary";
-import { readBargainVocabulary } from "@/lib/firebase/bargain-vocabulary-read";
 import type { GradeBand } from "@/lib/domain/models";
 import {
   applyMessage,
@@ -9,8 +8,12 @@ import {
   type MessageKind,
   partyFor,
 } from "@/lib/domain/negotiation";
+import { forBargain } from "@/lib/domain/notification-events";
+import { bargainMessageKey, transportKey } from "@/lib/domain/notification-key";
 import { adminDb } from "@/lib/firebase/admin";
+import { readBargainVocabulary } from "@/lib/firebase/bargain-vocabulary-read";
 import { shapeNegotiation } from "@/lib/firebase/negotiations-read";
+import { writeNotifications } from "@/lib/firebase/notifications-write";
 import { readRemaining } from "@/lib/firebase/remaining-read";
 import { requireCapability } from "@/lib/api/capability";
 
@@ -237,6 +240,48 @@ export async function POST(
       updatedAt: sentAt,
     },
     { merge: true },
+  );
+
+  /*
+    Tell the other side, now.
+
+    Written here as well as by the Firestore trigger, and deliberately: this
+    runs in Mumbai beside the person who is waiting, so the bell is current
+    before their screen has finished reloading, where the trigger sits in
+    us-central1 next to the database. Both use the same deterministic id
+    (`lib/domain/notification-key.ts`), so whichever lands second collides and
+    is dropped — the trigger keeps its job of catching writes that never came
+    through here at all.
+
+    Not awaited into the response's correctness: the price is agreed whether or
+    not the bell updates, and `writeNotifications` swallows its own failures for
+    that reason.
+  */
+  const notifications = forBargain({
+    before: negotiation as unknown as Record<string, unknown>,
+    after: {
+      ...(snapshot.data() as Record<string, unknown>),
+      farmerId: next.farmerId,
+      buyerId: next.buyerId,
+      farmerName: next.farmerName,
+      buyerName: next.buyerName,
+      produceName: next.produceName,
+      quantity: next.quantity,
+      unit: next.unit,
+      status: next.status,
+      messages: next.messages,
+    },
+    negotiationId: id,
+  });
+
+  await writeNotifications(
+    notifications.map((draft) => ({
+      ...draft,
+      id:
+        draft.kind === "transportArranged"
+          ? transportKey(id, draft.accountId)
+          : bargainMessageKey(id, next.messages.length, draft.accountId),
+    })),
   );
 
   // Agreement is binding, so this is where the procurement order gets created.

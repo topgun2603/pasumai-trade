@@ -6,7 +6,17 @@ import {
 } from "firebase-functions/v2/firestore";
 import { logger } from "firebase-functions";
 
-import { forBargain, forListing, forOrder } from "./events";
+import {
+  forBargain,
+  forListing,
+  forOrder,
+} from "../../lib/domain/notification-events";
+import {
+  bargainMessageKey,
+  listingKey,
+  orderKey,
+  transportKey,
+} from "../../lib/domain/notification-key";
 import { notify } from "./notify";
 import { TRIGGER_OPTIONS } from "./region";
 
@@ -67,13 +77,15 @@ export const onProduceListed = onDocumentCreated(
       .get();
 
     await notify(
-      event.id,
       forListing({
         listing,
         listingId: event.params.listingId,
         farmerName: String(farmer.data()?.name ?? ""),
         buyerIds: buyers.docs.map((doc) => doc.id),
-      }),
+      }).map((draft) => ({
+        ...draft,
+        id: listingKey(event.params.listingId, draft.accountId),
+      })),
     );
   },
 );
@@ -88,13 +100,24 @@ export const onProduceListed = onDocumentCreated(
 export const onBargainActivity = onDocumentWritten(
   { ...TRIGGER_OPTIONS, document: "negotiations/{negotiationId}" },
   async (event) => {
+    const after = event.data?.after.data();
+    const messages = Array.isArray(after?.messages) ? after.messages.length : 0;
+    const negotiationId = event.params.negotiationId;
+
     await notify(
-      event.id,
       forBargain({
         before: event.data?.before.data(),
-        after: event.data?.after.data(),
-        negotiationId: event.params.negotiationId,
-      }),
+        after,
+        negotiationId,
+      }).map((draft) => ({
+        ...draft,
+        // Transport is not a message, so it is keyed on the bargain rather
+        // than on a message count that did not change.
+        id:
+          draft.kind === "transportArranged"
+            ? transportKey(negotiationId, draft.accountId)
+            : bargainMessageKey(negotiationId, messages, draft.accountId),
+      })),
     );
   },
 );
@@ -106,6 +129,11 @@ export const onOrderPlaced = onDocumentCreated(
     const order = event.data?.data();
     if (!order) return;
 
-    await notify(event.id, forOrder({ order, orderId: event.params.orderId }));
+    await notify(
+      forOrder({ order, orderId: event.params.orderId }).map((draft) => ({
+        ...draft,
+        id: orderKey(event.params.orderId, draft.accountId),
+      })),
+    );
   },
 );

@@ -8,14 +8,14 @@ import { logger } from "firebase-functions";
  * A single write can therefore invoke a trigger twice, and a farmer seeing "a
  * buyer opened a bargain" twice for one bargain is the platform looking broken.
  *
- * The fix is the documented one: the event id is stable across redeliveries, so
- * it becomes part of the document id. A second delivery writes the same
- * document at the same path, and Firestore's `create` refuses it — which is
- * exactly what we want, and cheaper than reading first.
+ * The id is derived from *what happened* rather than from the delivery — see
+ * `lib/domain/notification-key.ts`. That absorbs a redelivery of the same
+ * event, and also the same fact arriving by a different road: the route
+ * handler that caused the write notifies immediately, from Mumbai, and this
+ * trigger notifies from beside the database. Whichever is second writes the
+ * same document at the same path, and `create` refuses it.
  *
- * `${eventId}-${accountId}` rather than the event id alone, because one event
- * legitimately fans out to several people: a bargain agreed notifies both
- * sides, and a lot listed notifies every buyer covering the district.
+ * Keying on Eventarc's event id would only have handled the first of those.
  *
  * They live under `accounts/{accountId}/notifications`, not in one flat
  * collection, and that is a security decision before it is a performance one.
@@ -29,6 +29,8 @@ import { logger } from "firebase-functions";
 export type Audience = "farmer" | "buyer";
 
 export interface Draft {
+  /** Deterministic, from `lib/domain/notification-key.ts`. */
+  readonly id: string;
   readonly accountId: string;
   readonly audience: Audience;
   readonly kind: string;
@@ -52,11 +54,8 @@ function clean(subject: Draft["subject"]): DocumentData {
  * overwriting — overwriting would resurrect a notification the person had
  * already read, which is worse than a duplicate.
  */
-export async function notify(
-  eventId: string,
-  drafts: readonly Draft[],
-): Promise<void> {
-  const rows = drafts.filter((d) => d.accountId);
+export async function notify(drafts: readonly Draft[]): Promise<void> {
+  const rows = drafts.filter((d) => d.accountId && d.id);
   if (rows.length === 0) return;
 
   const db = getFirestore();
@@ -65,13 +64,12 @@ export async function notify(
   // single duplicate — the ordinary case on a redelivery — would drop the
   // notifications for everybody else in it.
   const writes = rows.map(async (draft) => {
-    const id = `${eventId}-${draft.accountId}`;
     try {
       await db
         .collection("accounts")
         .doc(draft.accountId)
         .collection("notifications")
-        .doc(id)
+        .doc(draft.id)
         .create({
           // Denormalised alongside the path. The path is what secures it; this
           // is what lets an operations query across the collection group say
@@ -85,13 +83,12 @@ export async function notify(
           // Explicit null rather than absent, so "unread" is a value the query
           // can filter on rather than the absence of a field.
           readAt: null,
-          eventId,
         });
     } catch (error) {
       // ALREADY_EXISTS is the redelivery we designed for, and is not a
       // problem. Anything else is.
       if ((error as { code?: number }).code === 6) {
-        logger.debug("notification already written", { id });
+        logger.debug("notification already written", { id: draft.id });
         return;
       }
       throw error;
@@ -99,5 +96,5 @@ export async function notify(
   });
 
   await Promise.all(writes);
-  logger.info("notifications written", { eventId, count: rows.length });
+  logger.info("notifications written", { count: rows.length });
 }

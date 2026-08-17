@@ -182,6 +182,19 @@ export function rateFor(
 }
 
 /**
+ * The grades a proposal actually prices, best first.
+ *
+ * Screens kept reaching for grade A and calling it the offer. Grades trade
+ * separately — a buyer who wants only the B grade prices B alone — so `rateFor`
+ * returns undefined for A, the caller reads it as zero, and the button offers
+ * to accept ₹0 for a grade nobody mentioned. Ask what was priced instead of
+ * assuming.
+ */
+export function pricedGrades(bands: readonly GradeBand[]): Grade[] {
+  return GRADES.filter((grade) => rateFor(bands, grade) !== undefined);
+}
+
+/**
  * How far apart the two sides are, grade by grade, in minor units.
  *
  * Positive means the farmer is asking more than the buyer has offered, which

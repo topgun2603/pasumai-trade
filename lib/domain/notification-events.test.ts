@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { forBargain, forListing, forOrder } from "./events";
+import { forBargain, forListing, forOrder } from "./notification-events";
 
 /**
  * Who gets told what.

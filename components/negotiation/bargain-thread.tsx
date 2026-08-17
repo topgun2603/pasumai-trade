@@ -38,6 +38,7 @@ import {
   isSettled,
   lastProposalBy,
   PARTY_LABELS,
+  pricedGrades,
   quantityFor,
   rateFor,
   roundCount,
@@ -353,6 +354,11 @@ export function BargainThread({
   const settled = isSettled(negotiation);
   const acceptCheck = canAccept(negotiation, viewer, now);
 
+  // The single grade on the table, where there is only one. Drives the accept
+  // button's label, which used to name grade A whatever was actually offered.
+  const offered = pricedGrades(theirs?.bands ?? []);
+  const onlyOffered = offered.length === 1 ? offered[0] : undefined;
+
   /** How much is left at a grade, or the whole lot where nothing was passed. */
   const leftAt = (grade: Grade) =>
     remaining
@@ -503,8 +509,22 @@ export function BargainThread({
                 title={acceptCheck.allowed ? undefined : acceptCheck.refusal.message}
               >
                 <CheckIcon className="size-4" />
-                Accept {formatRate(money(rateFor(theirs.bands ?? [], "a") ?? 0), unitLabel)}{" "}
-                / A
+                {/*
+                  What was actually offered, not grade A. A buyer bidding on the
+                  B grade alone used to be offered "Accept ₹0/kg / A" — a rate
+                  nobody quoted, for a grade nobody mentioned, on the button
+                  that binds the sale.
+
+                  Named only when a single grade is on the table. Several rates
+                  do not fit on a button, and the card directly above lists
+                  every one of them.
+                */}
+                {onlyOffered
+                  ? `Accept ${formatRate(
+                      money(rateFor(theirs.bands ?? [], onlyOffered)!),
+                      unitLabel,
+                    )} for grade ${GRADE_LABELS[onlyOffered]}`
+                  : "Accept these rates"}
               </Button>
               <Button variant="outline" onClick={() => setCountering((v) => !v)}>
                 <ArrowRightIcon className="size-4" />

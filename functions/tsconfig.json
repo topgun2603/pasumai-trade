@@ -10,7 +10,11 @@
     "target": "es2022",
     "lib": ["es2022"],
     "outDir": "lib",
-    "rootDir": "src",
+    /* The repo root, not `src`. The notification rules live in the app's domain
+       layer — one copy, tested with the rest of the domain — and this package
+       compiles that file into its own bundle rather than keeping a second copy
+       to drift. It moves `main` down a level; see package.json. */
+    "rootDir": "..",
     "sourceMap": true,
     "strict": true,
     "noUncheckedIndexedAccess": true,
@@ -19,9 +23,9 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src"],
+  "include": ["src", "../lib/domain/notification-events.ts", "../lib/domain/notification.ts", "../lib/domain/notification-key.ts"],
   /* Tests run from the repo root under Vitest and must never reach the
      deployed bundle — a Cloud Functions cold start should not be loading
      assertions. */
-  "exclude": ["lib", "node_modules", "src/**/*.test.ts"]
+  "exclude": ["lib", "node_modules", "src/**/*.test.ts", "../lib/**/*.test.ts"]
 }

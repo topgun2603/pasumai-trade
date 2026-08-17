@@ -1,4 +1,4 @@
-import type { Draft } from "./notify";
+import type { NotificationAudience, NotificationKind } from "./notification";
 
 /**
  * Who gets told what, as plain data in and plain data out.
@@ -11,9 +11,23 @@ import type { Draft } from "./notify";
  * fetch what the rule needs, write what it returns.
  *
  * Nothing here touches Firestore or knows what a snapshot is. It takes the
- * document shapes the triggers already hold and returns the notifications they
- * should write.
+ * document shapes both writers already hold and returns the notifications they
+ * should write — so the route handler in Mumbai and the trigger in us-central1
+ * apply one rule rather than two that drift.
+ *
+ * Deliberately importing nothing but types: the functions package compiles this
+ * file into its own bundle, where `server-only` and the `@/` alias do not
+ * exist.
  */
+
+/** A notification about to be written, before it has an id. */
+export interface Draft {
+  readonly accountId: string;
+  readonly audience: NotificationAudience;
+  readonly kind: NotificationKind;
+  readonly subject: Record<string, string | number | undefined>;
+  readonly href: string;
+}
 
 /** A Firestore document, as far as this module is concerned. */
 type Doc = Record<string, unknown>;

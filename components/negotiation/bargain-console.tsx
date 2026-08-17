@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { BargainThread } from "@/components/negotiation/bargain-thread";
 import type { VocabularyEntry } from "@/lib/domain/bargain-vocabulary";
 import { Badge } from "@/components/ui/badge";
-import { QUANTITY_UNITS } from "@/lib/domain/enums";
+import { GRADE_LABELS, QUANTITY_UNITS } from "@/lib/domain/enums";
 import type { GradeQuantity } from "@/lib/domain/listing-draft";
 import type { LotBook } from "@/lib/domain/lot-book";
 import { formatRate, money } from "@/lib/domain/money";
@@ -17,6 +17,7 @@ import {
   gap,
   hasExpired,
   lastProposalBy,
+  pricedGrades,
   rateFor,
   standingProposal,
   type Negotiation,
@@ -358,11 +359,23 @@ export function BargainConsole({
 
                 <span className="text-faint flex items-center justify-between gap-2 text-xs">
                   <span className="truncate">
+                    {/* The grades actually priced. Reading grade A off every
+                        proposal reported "₹0/kg / A" for a bid on the B
+                        grade — a rate nobody quoted. */}
                     {last?.kind === "proposal"
-                      ? `${last.author === viewer ? "You" : "They"} proposed ${formatRate(
-                          money(rateFor(last.bands ?? [], "a") ?? 0),
-                          QUANTITY_UNITS[thread.unit].en,
-                        )} / A`
+                      ? (() => {
+                          const priced = pricedGrades(last.bands ?? []);
+                          const lead = priced[0];
+                          const who = last.author === viewer ? "You" : "They";
+                          if (!lead) return `${who} proposed rates`;
+                          return (
+                            `${who} proposed ${formatRate(
+                              money(rateFor(last.bands ?? [], lead)!),
+                              QUANTITY_UNITS[thread.unit].en,
+                            )} / ${GRADE_LABELS[lead]}` +
+                            (priced.length > 1 ? ` +${priced.length - 1}` : "")
+                          );
+                        })()
                       : (last?.text ?? "No messages")}
                   </span>
                   {last ? <span>{relativeTime(last.sentAt, now)}</span> : null}
