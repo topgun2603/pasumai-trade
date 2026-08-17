@@ -230,13 +230,20 @@ Cloud Run and use the Compute Engine default service account as their runtime
 identity), then
 
 ```bash
+gcloud services enable compute.googleapis.com --project=pasumai-trade
 gcloud beta services identity create --service=pubsub.googleapis.com   --project=pasumai-trade
 gcloud beta services identity create --service=eventarc.googleapis.com --project=pasumai-trade
 ```
 
-which provisions the two agents explicitly. Propagation takes a few minutes —
-an immediate retry can still fail. Then deploy as an Owner and the CLI writes
-the bindings itself.
+`services identity create` is the part with no Console equivalent: enabling an
+API is *supposed* to provision its service agent, and sometimes has not — this
+forces it. Propagation takes a few minutes, so an immediate retry can still
+fail. Then deploy as an Owner and the CLI writes the bindings itself.
+
+gcloud is not a dependency of this repo and is often not installed. Rather than
+download it, run those three in
+[Cloud Shell](https://shell.cloud.google.com/?project=pasumai-trade) — it is
+already signed in as whoever opens it and has gcloud built in.
 
 A second, unrelated cause of the same message: the CLI resolves the project
 from `projects.default` in `.firebaserc`, and with no default alias it fails to
