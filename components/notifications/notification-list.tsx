@@ -129,12 +129,13 @@ export function NotificationList({
           <div className="flex flex-wrap gap-1">
             {(["all", ...(Object.keys(NOTIFICATION_GROUPS) as NotificationGroup[])] as const).map(
               (id) => {
-                const count =
+                const inGroup =
                   id === "all"
-                    ? notifications.length
+                    ? notifications
                     : notifications.filter((n) =>
                         (NOTIFICATION_GROUPS[id] as readonly string[]).includes(n.kind),
-                      ).length;
+                      );
+                const fresh = unreadCount(inGroup);
 
                 return (
                   <Button
@@ -144,8 +145,33 @@ export function NotificationList({
                     onClick={() => setGroup(id)}
                   >
                     {GROUP_LABELS[id]}
-                    <Badge variant="outline" className="tabular ml-1">
-                      {count}
+                    {/*
+                      The unread count where there is one, the total where there
+                      is not. A section counting everything it holds disagrees
+                      with the rail beside it — which counts only what is
+                      unread — and two numbers for the same thing is worse than
+                      either. Where nothing is unread the total is still worth
+                      showing, so an empty-looking section can be told from a
+                      section that is merely all read.
+                    */}
+                    <Badge
+                      variant="outline"
+                      // Colour is the only thing separating "1 unread" from "1,
+                      // all read", and colour alone is not a distinction
+                      // everybody can see. The label says which it is.
+                      aria-label={
+                        fresh > 0
+                          ? `${fresh} unread`
+                          : `${inGroup.length}, all read`
+                      }
+                      className={cn(
+                        "tabular ml-1",
+                        fresh > 0
+                          ? "border-primary/40 bg-primary/10 text-primary"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {fresh > 0 ? fresh : inGroup.length}
                     </Badge>
                   </Button>
                 );
