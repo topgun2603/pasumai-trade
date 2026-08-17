@@ -14,6 +14,7 @@ import { adminDb } from "@/lib/firebase/admin";
 import { readBargainVocabulary } from "@/lib/firebase/bargain-vocabulary-read";
 import { shapeNegotiation } from "@/lib/firebase/negotiations-read";
 import { writeNotifications } from "@/lib/firebase/notifications-write";
+import { sendPushes } from "@/lib/firebase/push-send";
 import { readRemaining } from "@/lib/firebase/remaining-read";
 import { requireCapability } from "@/lib/api/capability";
 
@@ -274,14 +275,35 @@ export async function POST(
     negotiationId: id,
   });
 
-  await writeNotifications(
-    notifications.map((draft) => ({
-      ...draft,
-      id:
-        draft.kind === "transportArranged"
-          ? transportKey(id, draft.accountId)
-          : bargainMessageKey(id, next.messages.length, draft.accountId),
+  const written = notifications.map((draft) => ({
+    ...draft,
+    id:
+      draft.kind === "transportArranged"
+        ? transportKey(id, draft.accountId)
+        : bargainMessageKey(id, next.messages.length, draft.accountId),
+  }));
+
+  await writeNotifications(written);
+
+  /*
+    And a push, for the few kinds that earn an interruption — `isPushable`
+    decides, and it is a shorter list than the bell holds on purpose.
+
+    In the farmer's own language, off the same record the buyer reads in
+    English. Best effort: a phone that cannot be reached does not fail a
+    bargain, and `sendPushes` swallows its own failures.
+  */
+  await sendPushes(
+    written.map((draft) => ({
+      id: draft.id,
+      accountId: draft.accountId,
+      audience: draft.audience,
+      kind: draft.kind,
+      subject: draft.subject,
+      href: draft.href,
+      createdAt: sentAt,
     })),
+    (audience) => (audience === "farmer" ? "ta" : "en"),
   );
 
   // Agreement is binding, so this is where the procurement order gets created.

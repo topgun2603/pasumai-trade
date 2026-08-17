@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import { NotificationList } from "@/components/notifications/notification-list";
+import { PushToggle } from "@/components/notifications/push-toggle";
 import { PageHeader } from "@/components/page-header";
 import { BUYING_ROLES } from "@/lib/auth/claims";
 import { requireConsole } from "@/lib/auth/require";
@@ -33,9 +34,15 @@ export default async function NotificationsPage() {
         title="Notifications"
         description="New produce in your districts, bargains, settled prices and transport."
         aside={
-          <p className="text-faint text-xs">
-            {feed.unread}
-            {isCapped(feed) ? "+" : ""} unread · {feed.notifications.length} shown
+          <p className="text-faint flex items-center gap-3 text-xs">
+            <span>
+              {feed.unread}
+              {isCapped(feed) ? "+" : ""} unread · {feed.notifications.length} shown
+            </span>
+            {/* Asked for, never volunteered: a permission prompt nobody invited
+                is the one people dismiss, and a dismissed prompt cannot be
+                asked again. */}
+            <PushToggle />
           </p>
         }
       />
