@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { EntityTag } from "@/components/entity-tag";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -120,23 +121,30 @@ export function AssignTransport({
     const accepted = transport.status === "accepted";
     return (
       <span className="flex items-center gap-2">
+        {/* The agency in the transport colour, with the confirmed/waiting state
+            as a separate mark. Colour says who; the icon says how far along. */}
+        <EntityTag kind="transport" name={transport.agencyName} compact />
         <Badge
           variant="outline"
           className={cn(
+            "shrink-0",
             accepted
               ? "border-success/40 bg-success-soft text-success"
               : "border-warning/40 bg-warning-soft text-warning",
           )}
         >
           {accepted ? <CheckCircle2Icon className="size-3" /> : <ClockIcon className="size-3" />}
-          {transport.agencyName}
           {/* What this vehicle is for. A lot split between buyers has one of
               these per buyer, and they are only distinguishable by the load. */}
           {transport.quantity !== undefined ? (
-            <span className="tabular opacity-70">
-              · {transport.quantity} {transport.unit ?? ""}
+            <span className="tabular">
+              {transport.quantity} {transport.unit ?? ""}
             </span>
-          ) : null}
+          ) : accepted ? (
+            "Confirmed"
+          ) : (
+            "Waiting"
+          )}
         </Badge>
         {!accepted ? (
           <Button size="sm" variant="outline" disabled={busy} onClick={cancel}>

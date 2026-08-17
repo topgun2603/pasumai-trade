@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { EntityTag } from "@/components/entity-tag";
 import { BargainThread } from "@/components/negotiation/bargain-thread";
 import type { VocabularyEntry } from "@/lib/domain/bargain-vocabulary";
 import { Badge } from "@/components/ui/badge";
@@ -335,9 +336,17 @@ export function BargainConsole({
                   )}
                 </span>
 
-                <span className="text-muted-foreground text-xs">
-                  {viewer === "buyer" ? thread.farmerName : thread.buyerName} ·{" "}
-                  {thread.quantity} {QUANTITY_UNITS[thread.unit].en}
+                {/* The other side, in their own colour. A farmer with four
+                    threads open is looking for which buyer, not which row. */}
+                <span className="text-muted-foreground flex flex-wrap items-center gap-2 text-xs">
+                  <EntityTag
+                    kind={viewer === "buyer" ? "farmer" : "buyer"}
+                    name={viewer === "buyer" ? thread.farmerName : thread.buyerName}
+                    compact
+                  />
+                  <span className="tabular">
+                    {thread.quantity} {QUANTITY_UNITS[thread.unit].en}
+                  </span>
                 </span>
 
                 {top || most ? (

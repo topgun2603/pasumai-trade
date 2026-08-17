@@ -4,6 +4,7 @@ import { CheckCircle2Icon, CircleSlashIcon, TimerOffIcon } from "lucide-react";
 
 import { AssignTransport, type AgencyOption, type TransportState } from "@/components/farm/assign-transport";
 import { DataTable, type Column, type FilterTab } from "@/components/data-table";
+import { EntityTag } from "@/components/entity-tag";
 import { Badge } from "@/components/ui/badge";
 import { agreedQuantity } from "@/lib/domain/dispatch-request";
 import { formatMoney } from "@/lib/domain/money";
@@ -104,7 +105,14 @@ export function BargainHistory({
         </span>
       ),
     },
-    { key: "buyer", header: "Buyer", sortValue: (t) => t.buyerName, cell: (t) => t.buyerName },
+    {
+      key: "buyer",
+      header: "Buyer",
+      sortValue: (t) => t.buyerName,
+      // Tagged rather than typed out. This column sits beside Transport, and as
+      // plain text the two were the same grey name in adjacent cells.
+      cell: (t) => <EntityTag kind="buyer" name={t.buyerName} compact />,
+    },
     {
       key: "outcome",
       header: "Outcome",
@@ -182,8 +190,9 @@ export function BargainHistory({
             {o.label}
           </Badge>
         </div>
-        <span className="text-muted-foreground text-sm">
-          {t.buyerName} · {soldLine(t)}
+        <span className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
+          <EntityTag kind="buyer" name={t.buyerName} compact />
+          {soldLine(t)}
         </span>
         {rates(t)}
         {t.status === "agreed" ? (

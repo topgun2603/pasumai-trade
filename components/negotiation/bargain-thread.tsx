@@ -24,6 +24,7 @@ import {
   TOPIC_LABELS,
   type VocabularyEntry,
 } from "@/lib/domain/bargain-vocabulary";
+import { EntityTag } from "@/components/entity-tag";
 import { LotSplit } from "@/components/negotiation/lot-split";
 import type { GradeQuantity } from "@/lib/domain/listing-draft";
 import type { LotBook } from "@/lib/domain/lot-book";
@@ -426,11 +427,16 @@ export function BargainThread({
             {negotiation.produceName} · {negotiation.quantity}{" "}
             {QUANTITY_UNITS[negotiation.unit].en}
           </span>
-          <span className="text-faint text-xs">
-            {viewer === "buyer" ? negotiation.farmerName : negotiation.buyerName} ·{" "}
-            {roundCount(negotiation)} round
-            {roundCount(negotiation) === 1 ? "" : "s"} · listing{" "}
-            {negotiation.listingId}
+          <span className="text-faint flex flex-wrap items-center gap-2 text-xs">
+            <EntityTag
+              kind={viewer === "buyer" ? "farmer" : "buyer"}
+              name={viewer === "buyer" ? negotiation.farmerName : negotiation.buyerName}
+              compact
+            />
+            <span>
+              {roundCount(negotiation)} round
+              {roundCount(negotiation) === 1 ? "" : "s"}
+            </span>
           </span>
         </div>
 

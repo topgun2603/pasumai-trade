@@ -9,6 +9,7 @@ import { OpenBargainDialog } from "@/components/market/open-bargain-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Carousel } from "@/components/ui/carousel";
+import { EntityTag } from "@/components/entity-tag";
 import { LotSplit } from "@/components/negotiation/lot-split";
 import type { VocabularyEntry } from "@/lib/domain/bargain-vocabulary";
 import type { LotBook } from "@/lib/domain/lot-book";
@@ -139,8 +140,8 @@ export function ProduceMarket({
       header: "Farmer",
       sortValue: (l) => l.farmerName,
       cell: (l) => (
-        <span className="flex flex-col leading-tight">
-          <span>{l.farmerName}</span>
+        <span className="flex flex-col items-start gap-1 leading-tight">
+          <EntityTag kind="farmer" name={l.farmerName} compact />
           <span className="text-muted-foreground flex items-center gap-1 text-xs">
             <MapPinIcon className="size-3" />
             {l.village}, {l.district}
