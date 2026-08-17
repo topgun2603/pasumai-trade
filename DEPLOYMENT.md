@@ -197,6 +197,21 @@ npm --prefix functions ci     # first time only
 npx firebase-tools deploy --only functions
 ```
 
+Deploy as an **Owner** of the project, not with the service account. A first
+2nd-gen deploy grants roles to three Google-managed service agents — Pub/Sub
+needs `iam.serviceAccountTokenCreator`, the runtime identity needs
+`eventarc.eventReceiver`, and Eventarc needs its own agent role — and writing
+those needs `resourcemanager.projects.setIamPolicy`, which the Admin SDK
+service account does not have and should not be given.
+
+If the CLI reports **"We failed to modify the IAM policy for the project"**,
+check project resolution before reaching for IAM. The CLI resolves the project
+from `projects.default` in `.firebaserc`; with no default alias it fails to
+identify the project and then reports the failure as an IAM problem, which
+sends you looking in the wrong place entirely. `npx firebase-tools
+functions:list` with no `--project` flag tells you in one command whether
+resolution works.
+
 ### The region, and why it is not Mumbai
 
 A 2nd-gen Firestore trigger is an [Eventarc](https://firebase.google.com/docs/functions/firestore-events)
