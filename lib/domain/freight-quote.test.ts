@@ -36,7 +36,13 @@ const PICKUP = {
 };
 
 describe("quoting", () => {
-  const base = { pickup: PICKUP, existing: [], agencyId: "AG-1", now: at(1) };
+  const base = {
+    pickup: PICKUP,
+    existing: [] as FreightQuote[],
+    agencyId: "AG-1",
+    feePaise: 250000,
+    now: at(1),
+  };
 
   it("takes an ordinary fee", () => {
     expect(canQuote({ ...base, feePaise: 250000 })).toEqual({ ok: true });
