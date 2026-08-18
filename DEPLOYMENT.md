@@ -75,6 +75,19 @@ thing standing between the internet and farmer personal data, but it is still
 worth having on previews: a preview deploy of a branch is a full copy of the
 console pointed at the same Firestore project.
 
+It answers before the app does, though, which the post-deploy smoke test walks
+straight into: an unauthenticated request to a generated deployment URL gets a
+302 to `vercel.com/sso-api`, so every check fails on a page that was never
+loaded. The fix is the supported bypass rather than turning protection off:
+
+  Deployment Protection → **Protection Bypass for Automation** → generate the
+  secret, then add it under GitHub → Settings → Secrets and variables →
+  Actions as `VERCEL_AUTOMATION_BYPASS_SECRET`.
+
+`.github/scripts/smoke-test.sh` sends it as `x-vercel-protection-bypass`. Leave
+it unset and the step still runs, but it says plainly that this is why
+everything came back 302.
+
 ---
 
 ## One-time setup

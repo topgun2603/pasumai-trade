@@ -5,6 +5,11 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import {
+  RosterSubmitError,
+  submitRoster,
+} from "@/components/agency/submit-roster";
+
+import {
   ErrorSummary,
   Field,
   fieldProps,
@@ -36,14 +41,16 @@ import {
 
 const TYPES = Object.entries(VEHICLE_TYPE_LABELS) as [VehicleType, string][];
 
-interface VehicleAttachments {
+/* A type rather than an interface, so it can be handed to `submitRoster`,
+   which takes any slot map. */
+type VehicleAttachments = {
   vehiclePhoto: UploadedFile | null;
   numberPlate: UploadedFile | null;
   rc: UploadedFile | null;
   insurance: UploadedFile | null;
   fitness: UploadedFile | null;
   permit: UploadedFile | null;
-}
+};
 
 const NO_FILES: VehicleAttachments = {
   vehiclePhoto: null,
@@ -100,18 +107,22 @@ export function VehicleRegistrationForm({
     setFileErrors((e) => (e[key] ? { ...e, [key]: undefined } : e));
   }
 
-  function submit(event: React.FormEvent) {
+  async function submit(event: React.FormEvent) {
     event.preventDefault();
     const found = validateVehicle(values);
     setErrors(found);
 
     const missing: Partial<Record<keyof VehicleAttachments, string>> = {
-      vehiclePhoto: files.vehiclePhoto ? undefined : "A photo of the vehicle is required",
+      vehiclePhoto: files.vehiclePhoto
+        ? undefined
+        : "A photo of the vehicle is required",
       numberPlate: files.numberPlate
         ? undefined
         : "A photo of the number plate is required",
       rc: files.rc ? undefined : "RC copy is required",
-      insurance: files.insurance ? undefined : "Insurance certificate is required",
+      insurance: files.insurance
+        ? undefined
+        : "Insurance certificate is required",
       fitness: files.fitness ? undefined : "Fitness certificate is required",
       permit: files.permit ? undefined : "Permit is required",
     };
@@ -120,13 +131,23 @@ export function VehicleRegistrationForm({
     if (hasErrors(found) || Object.values(missing).some(Boolean)) return;
 
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
+    try {
+      await submitRoster("vehicles", { ...values }, files);
       toast.success(`${values.registration.toUpperCase()} registered`, {
         description: "Cannot be dispatched until documents are verified.",
       });
       router.push("/agency/fleet");
-    }, 500);
+      // Left submitting: the push is under way and re-enabling the button only
+      // invites a second lorry with the same plate.
+      router.refresh();
+    } catch (error) {
+      setSubmitting(false);
+      if (error instanceof RosterSubmitError && error.fields)
+        setErrors(error.fields);
+      toast.error(
+        error instanceof Error ? error.message : "Could not save that.",
+      );
+    }
   }
 
   const messages = [
@@ -193,8 +214,14 @@ export function VehicleRegistrationForm({
           required
           error={errors.district}
         >
-          <Select value={values.district} onValueChange={(v) => set("district", v)}>
-            <SelectTrigger id="district" aria-invalid={Boolean(errors.district)}>
+          <Select
+            value={values.district}
+            onValueChange={(v) => set("district", v)}
+          >
+            <SelectTrigger
+              id="district"
+              aria-invalid={Boolean(errors.district)}
+            >
               <SelectValue placeholder="Select district">
                 {values.district}
               </SelectValue>
@@ -275,7 +302,13 @@ export function VehicleRegistrationForm({
         title="Registration certificate"
         description="The RC does not expire, so only the number is captured."
       >
-        <Field label="RC number" htmlFor="rcNumber" required error={errors.rcNumber} wide>
+        <Field
+          label="RC number"
+          htmlFor="rcNumber"
+          required
+          error={errors.rcNumber}
+          wide
+        >
           <Input
             {...fieldProps("rcNumber", errors.rcNumber)}
             value={values.rcNumber}
@@ -290,7 +323,12 @@ export function VehicleRegistrationForm({
         title="Insurance"
         description="Checked before every dispatch. A lapsed policy takes the vehicle off the road immediately."
       >
-        <Field label="Insurer" htmlFor="insurer" required error={errors.insurer}>
+        <Field
+          label="Insurer"
+          htmlFor="insurer"
+          required
+          error={errors.insurer}
+        >
           <Input
             {...fieldProps("insurer", errors.insurer)}
             value={values.insurer}

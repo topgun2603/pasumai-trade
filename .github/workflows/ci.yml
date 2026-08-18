@@ -172,13 +172,9 @@ jobs:
       # The deployed bundle is the one that matters, so check the real thing
       # rather than trusting that a green build implies a working site.
       - name: Smoke test
-        run: |
-          url="${{ steps.deploy.outputs.url }}"
-          for path in / /en /market /admin/controls; do
-            code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$url$path")"
-            echo "$code  $path"
-            if [ "$code" != "200" ]; then
-              echo "::error::$path returned $code"
-              exit 1
-            fi
-          done
+        env:
+          URL: ${{ steps.deploy.outputs.url }}
+          # Deployment Protection answers a bare curl with its own sign-in
+          # redirect, so without this the smoke test never reaches the site.
+          BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: .github/scripts/smoke-test.sh

@@ -5,6 +5,11 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import {
+  RosterSubmitError,
+  submitRoster,
+} from "@/components/agency/submit-roster";
+
+import {
   ErrorSummary,
   Field,
   fieldProps,
@@ -41,11 +46,13 @@ import {
   type ManpowerForm,
 } from "@/lib/domain/registration";
 
-interface ManpowerAttachments {
+/* A type rather than an interface, so it can be handed to `submitRoster`,
+   which takes any slot map. */
+type ManpowerAttachments = {
   portrait: UploadedFile | null;
   aadhaar: UploadedFile | null;
   bankProof: UploadedFile | null;
-}
+};
 
 const NO_FILES: ManpowerAttachments = {
   portrait: null,
@@ -113,7 +120,7 @@ export function WorkerRegistrationForm({
     );
   }
 
-  function submit(event: React.FormEvent) {
+  async function submit(event: React.FormEvent) {
     event.preventDefault();
     const found = validateManpower(values);
     setErrors(found);
@@ -134,13 +141,24 @@ export function WorkerRegistrationForm({
     if (hasErrors(found) || Object.values(missing).some(Boolean)) return;
 
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
+    try {
+      await submitRoster("workers", { ...values }, files);
       toast.success(`${values.name} registered`, {
-        description: "Sent to operations for verification. Cannot be assigned to a job until then.",
+        description:
+          "Sent to operations for verification. Cannot be assigned to a job until then.",
       });
       router.push("/agency/workers");
-    }, 500);
+      // Left submitting: the push is under way, and re-enabling the button only
+      // invites the same person being filed twice.
+      router.refresh();
+    } catch (error) {
+      setSubmitting(false);
+      if (error instanceof RosterSubmitError && error.fields)
+        setErrors(error.fields);
+      toast.error(
+        error instanceof Error ? error.message : "Could not save that.",
+      );
+    }
   }
 
   const messages = [
@@ -178,7 +196,12 @@ export function WorkerRegistrationForm({
           />
         </Field>
 
-        <Field label="District" htmlFor="district" required error={errors.district}>
+        <Field
+          label="District"
+          htmlFor="district"
+          required
+          error={errors.district}
+        >
           <Select
             value={values.district}
             onValueChange={(v) => set("district", v)}
@@ -243,7 +266,10 @@ export function WorkerRegistrationForm({
                   checked={values.skills.includes(skill)}
                   onCheckedChange={() => toggleSkill(skill)}
                 />
-                <Label htmlFor={`skill-${skill}`} className="text-sm font-normal">
+                <Label
+                  htmlFor={`skill-${skill}`}
+                  className="text-sm font-normal"
+                >
                   {MANPOWER_SKILL_LABELS[skill]}
                 </Label>
               </li>

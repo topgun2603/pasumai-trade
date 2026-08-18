@@ -90,6 +90,17 @@ function documents(raw: unknown): ComplianceDocument[] {
         // missing date as "does not expire" rather than as "expired".
         expiresAt: toDate(d.expiresAt),
         verifiedAt: toDate(d.verifiedAt),
+        files: Array.isArray(d.files)
+          ? d.files.flatMap((f) => {
+              // Shaped field by field like everything else here: a document
+              // written before uploads were real carries no files at all.
+              if (!f || typeof f !== "object") return [];
+              const file = f as Record<string, unknown>;
+              return typeof file.path === "string" && file.path
+                ? [{ path: file.path, contentType: str(file.contentType) }]
+                : [];
+            })
+          : [],
       },
     ];
   });

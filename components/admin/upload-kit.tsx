@@ -23,6 +23,14 @@ export interface UploadedFile {
   readonly type: string;
   /** Object URL for preview. Revoked when the file is replaced or cleared. */
   readonly previewUrl: string;
+  /**
+   * The compressed bytes, kept so the file can actually be sent.
+   *
+   * This used to hold only a preview URL, which is why every form using it
+   * could show a document and then submit without one — the bytes existed
+   * nowhere but in a URL the browser would revoke.
+   */
+  readonly blob: Blob;
 }
 
 const MAX_BYTES = 8 * 1024 * 1024;
@@ -121,6 +129,7 @@ function useFileSlot(
       size: processed.size,
       type: processed.type || file.type,
       previewUrl,
+      blob: processed,
     });
     setBusy(false);
   }

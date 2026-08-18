@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 
-import { PlusIcon } from "lucide-react";
+import { BadgeCheckIcon } from "lucide-react";
 import Link from "next/link";
 
 import { AgenciesTable } from "@/components/admin/agencies-table";
@@ -37,11 +37,16 @@ export default async function AdminAgenciesPage() {
       <AdminPageHeader
         title="Agencies"
         description="The labour and transport contractors the platform works with. They register their own workers and vehicles under their own login; operations verifies them. An agency's own lapsed document grounds everything it registered — the worker is never the problem in that case."
+        /*
+          The queue, not a Register button. Transport and manpower agencies
+          register themselves at `/signup?as=transport` and `?as=manpower`; the
+          button here opened a form that waited half a second and wrote nothing.
+        */
         aside={
-          <Button asChild>
-            <Link href="/admin/transport/agencies/new">
-              <PlusIcon className="size-4" />
-              Register agency
+          <Button asChild variant="outline">
+            <Link href="/admin/kyc">
+              <BadgeCheckIcon className="size-4" />
+              Verification queue
             </Link>
           </Button>
         }

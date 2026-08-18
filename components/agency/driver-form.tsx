@@ -5,6 +5,11 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import {
+  RosterSubmitError,
+  submitRoster,
+} from "@/components/agency/submit-roster";
+
+import {
   ErrorSummary,
   Field,
   fieldProps,
@@ -32,12 +37,14 @@ import {
   type FieldErrors,
 } from "@/lib/domain/registration";
 
-interface DriverAttachments {
+/* A type rather than an interface, so it can be handed to `submitRoster`,
+   which takes any slot map. */
+type DriverAttachments = {
   portrait: UploadedFile | null;
   licenceFront: UploadedFile | null;
   licenceBack: UploadedFile | null;
   aadhaar: UploadedFile | null;
-}
+};
 
 const NO_FILES: DriverAttachments = {
   portrait: null,
@@ -96,17 +103,23 @@ export function DriverRegistrationForm({
     setFileErrors((e) => (e[key] ? { ...e, [key]: undefined } : e));
   }
 
-  function submit(event: React.FormEvent) {
+  async function submit(event: React.FormEvent) {
     event.preventDefault();
     const found = validateDriver(values);
     setErrors(found);
 
     const missing: Partial<Record<keyof DriverAttachments, string>> = {
-      portrait: files.portrait ? undefined : "A photo of the driver is required",
+      portrait: files.portrait
+        ? undefined
+        : "A photo of the driver is required",
       // Both sides: the class endorsements and validity are printed on the
       // reverse, and those are what decide whether a load can be carried.
-      licenceFront: files.licenceFront ? undefined : "Licence front is required",
-      licenceBack: files.licenceBack ? undefined : "Licence reverse is required",
+      licenceFront: files.licenceFront
+        ? undefined
+        : "Licence front is required",
+      licenceBack: files.licenceBack
+        ? undefined
+        : "Licence reverse is required",
       aadhaar: files.aadhaar ? undefined : "Masked Aadhaar is required",
     };
     setFileErrors(missing);
@@ -114,13 +127,23 @@ export function DriverRegistrationForm({
     if (hasErrors(found) || Object.values(missing).some(Boolean)) return;
 
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
+    try {
+      await submitRoster("drivers", { ...values }, files);
       toast.success(`${values.name} registered`, {
         description: "Cannot be dispatched until the licence is verified.",
       });
       router.push("/agency/drivers");
-    }, 500);
+      // Left submitting: the push is under way, and re-enabling the button only
+      // invites the same person being filed twice.
+      router.refresh();
+    } catch (error) {
+      setSubmitting(false);
+      if (error instanceof RosterSubmitError && error.fields)
+        setErrors(error.fields);
+      toast.error(
+        error instanceof Error ? error.message : "Could not save that.",
+      );
+    }
   }
 
   const messages = [
@@ -173,9 +196,20 @@ export function DriverRegistrationForm({
           />
         </Field>
 
-        <Field label="District" htmlFor="district" required error={errors.district}>
-          <Select value={values.district} onValueChange={(v) => set("district", v)}>
-            <SelectTrigger id="district" aria-invalid={Boolean(errors.district)}>
+        <Field
+          label="District"
+          htmlFor="district"
+          required
+          error={errors.district}
+        >
+          <Select
+            value={values.district}
+            onValueChange={(v) => set("district", v)}
+          >
+            <SelectTrigger
+              id="district"
+              aria-invalid={Boolean(errors.district)}
+            >
               <SelectValue placeholder="Select district">
                 {values.district}
               </SelectValue>
@@ -190,7 +224,12 @@ export function DriverRegistrationForm({
           </Select>
         </Field>
 
-        <Field label="PIN code" htmlFor="pincode" required error={errors.pincode}>
+        <Field
+          label="PIN code"
+          htmlFor="pincode"
+          required
+          error={errors.pincode}
+        >
           <Input
             {...fieldProps("pincode", errors.pincode)}
             value={values.pincode}

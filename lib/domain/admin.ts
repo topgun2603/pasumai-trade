@@ -91,6 +91,15 @@ export interface ComplianceDocument {
   /** Absent for documents that do not lapse, such as PAN. */
   readonly expiresAt?: Date;
   readonly verifiedAt?: Date;
+  /**
+   * Where the scans actually are.
+   *
+   * Storage paths, not URLs — whatever displays one signs it at the moment of
+   * reading, so a record that leaks does not carry a working link with it.
+   * Empty until the agency forms began uploading for real; a record written
+   * before that has a reference and nothing to look at.
+   */
+  readonly files?: readonly { readonly path: string; readonly contentType: string }[];
 }
 
 export type ExpiryState = "valid" | "expiringSoon" | "expired" | "noExpiry";
