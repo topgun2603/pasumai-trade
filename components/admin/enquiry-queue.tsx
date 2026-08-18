@@ -99,6 +99,48 @@ export function EnquiryQueue({ rows }: { rows: EnquiryRow[] }) {
     router.refresh();
   }
 
+  /** Message, reason box and trail — needed in the card and in the expander. */
+  function detail(row: EnquiryRow) {
+    return (
+      <div className="flex flex-col gap-2">
+        {row.message ? (
+          <p className="text-muted-foreground max-w-2xl text-sm">{row.message}</p>
+        ) : null}
+
+        {asking?.id === row.id ? (
+          <Input
+            autoFocus
+            placeholder={PROMPTS[asking.move]}
+            value={notes[row.id] ?? ""}
+            onChange={(e) => setNotes((n) => ({ ...n, [row.id]: e.target.value }))}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") move(row, asking.move);
+              if (e.key === "Escape") setAsking(null);
+            }}
+          />
+        ) : null}
+
+        {row.notes.length > 0 ? (
+          <ol className="border-border flex flex-col gap-1 border-l pl-3">
+            {row.notes.map((note, i) => (
+              <li key={i} className="text-xs">
+                <span className="text-muted-foreground">
+                  {STATUS_LABELS[note.status as EnquiryStatus] ?? note.status}
+                </span>
+                {note.message ? <span className="text-foreground"> — {note.message}</span> : null}
+                <span className="text-faint">
+                  {" "}
+                  · {note.at}
+                  {note.operator ? ` · ${note.operator}` : ""}
+                </span>
+              </li>
+            ))}
+          </ol>
+        ) : null}
+      </div>
+    );
+  }
+
   const columns: Column<EnquiryRow>[] = [
     {
       key: "name",
@@ -187,48 +229,10 @@ export function EnquiryQueue({ rows }: { rows: EnquiryRow[] }) {
           .filter(Boolean)
           .join(" ")
       }
-      expand={(row) => (
-        <div className="flex flex-col gap-2">
-          {row.message ? (
-            <p className="text-muted-foreground max-w-2xl text-sm">{row.message}</p>
-          ) : (
-            <p className="text-faint text-sm">They left no message.</p>
-          )}
-
-          {asking?.id === row.id ? (
-            <Input
-              autoFocus
-              placeholder={PROMPTS[asking.move]}
-              value={notes[row.id] ?? ""}
-              onChange={(e) => setNotes((n) => ({ ...n, [row.id]: e.target.value }))}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") move(row, asking.move);
-                if (e.key === "Escape") setAsking(null);
-              }}
-            />
-          ) : null}
-
-          {row.notes.length > 0 ? (
-            <ol className="border-border flex flex-col gap-1 border-l pl-3">
-              {row.notes.map((note, i) => (
-                <li key={i} className="text-xs">
-                  <span className="text-muted-foreground">
-                    {STATUS_LABELS[note.status as EnquiryStatus] ?? note.status}
-                  </span>
-                  {note.message ? (
-                    <span className="text-foreground"> — {note.message}</span>
-                  ) : null}
-                  <span className="text-faint">
-                    {" "}
-                    · {note.at}
-                    {note.operator ? ` · ${note.operator}` : ""}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          ) : null}
-        </div>
-      )}
+      // The same block in both views. Defaulting to cards would otherwise have
+      // hidden the reason box that closing an enquiry requires — the operator
+      // would press Close and watch nothing happen.
+      expand={(row) => detail(row)}
       rowActions={(row) => {
         const busy = pending === row.id;
         return (
@@ -289,9 +293,7 @@ export function EnquiryQueue({ rows }: { rows: EnquiryRow[] }) {
             {row.interest === "farmer" ? "Sell produce" : "Buy produce"} · {row.district} ·{" "}
             {row.askedLabel}
           </p>
-          {row.message ? (
-            <p className="text-muted-foreground text-xs">{row.message}</p>
-          ) : null}
+          {detail(row)}
         </div>
       )}
     />

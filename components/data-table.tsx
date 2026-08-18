@@ -128,7 +128,19 @@ export function DataTable<T extends { id: string }>({
   const [query, setQuery] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [view, setView] = useState<"table" | "cards">("table");
+  /*
+    Cards first wherever a list can draw them.
+
+    A row of cells answers "how do these compare"; a card answers "what is
+    this one". Almost everything in both consoles is the second question — an
+    operator opens the enquiry list to deal with a person, and a farmer opens
+    their listings to look at a lot. The table is still one click away for the
+    times comparison is the point, which is what the toggle is for.
+
+    A list with no card renderer stays a table, because there is nothing else
+    it could be.
+  */
+  const [view, setView] = useState<"table" | "cards">(card ? "cards" : "table");
   const [expanded, setExpanded] = useState<string | null>(null);
 
   // Tab counts come from the unfiltered set on purpose: a count that shrinks
@@ -272,26 +284,29 @@ export function DataTable<T extends { id: string }>({
           </DropdownMenu>
 
           {card ? (
+            // Grid on the left, table on the right. The order is not decoration:
+            // a pair of toggles reads left to right as primary then secondary,
+            // and the default should be the one your eye lands on first.
             <div className="flex" role="group" aria-label="View">
-              <Button
-                variant={view === "table" ? "secondary" : "outline"}
-                size="icon"
-                aria-label="Table view"
-                aria-pressed={view === "table"}
-                className="rounded-r-none"
-                onClick={() => setView("table")}
-              >
-                <Rows3Icon className="size-4" />
-              </Button>
               <Button
                 variant={view === "cards" ? "secondary" : "outline"}
                 size="icon"
                 aria-label="Card view"
                 aria-pressed={view === "cards"}
-                className="rounded-l-none border-l-0"
+                className="rounded-r-none"
                 onClick={() => setView("cards")}
               >
                 <LayoutGridIcon className="size-4" />
+              </Button>
+              <Button
+                variant={view === "table" ? "secondary" : "outline"}
+                size="icon"
+                aria-label="Table view"
+                aria-pressed={view === "table"}
+                className="rounded-l-none border-l-0"
+                onClick={() => setView("table")}
+              >
+                <Rows3Icon className="size-4" />
               </Button>
             </div>
           ) : null}
