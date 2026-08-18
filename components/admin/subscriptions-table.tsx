@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
+
 import { BanknoteIcon, CheckIcon, ClockIcon, InfinityIcon, XIcon } from "lucide-react";
 
 import { DataTable, type Column, type FilterTab } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/empty-state";
+import { describePlan } from "@/lib/domain/subscription";
 import { CHANNEL_LABELS, type Channel, type ReminderStage } from "@/lib/domain/subscription-reminder";
 
 /**
@@ -149,39 +152,53 @@ export function SubscriptionsTable({ rows }: { rows: SubscriptionRow[] }) {
     },
   ];
 
+  /*
+    Filters within one plan, not across them.
+
+    "Lifetime" used to be one of these and no longer makes sense: a plan is
+    lifetime or it is not, so inside the six-month tab it read "Lifetime 0" —
+    a filter that can only ever be empty. Grouping by plan answered that
+    question already.
+  */
   const tabs: FilterTab<SubscriptionRow>[] = [
     { value: "all", label: "All" },
     {
       value: "ending",
       label: "Ending soon",
-      match: (row) => !row.lifetime && row.daysLeft !== null && row.daysLeft >= 0 && row.daysLeft <= 14,
+      match: (row) =>
+        !row.lifetime && row.daysLeft !== null && row.daysLeft >= 0 && row.daysLeft <= 14,
     },
     {
       value: "lapsed",
       label: "Lapsed",
       match: (row) => !row.lifetime && row.daysLeft !== null && row.daysLeft < 0,
     },
-    { value: "lifetime", label: "Lifetime", match: (row) => row.lifetime },
   ];
 
   /*
-    A table per plan rather than one list with a plan column.
+    Tabs rather than a stack.
 
-    The question operations actually ask is per plan — how many are on the
-    six-month term, how many lifetime, which of the monthly ones lapse this
-    week. A single sortable column makes that a re-sort every time, and the
-    counts have to be worked out by eye. Each section carries its own search
-    and paging, so reading the monthly plans does not move the page you are on
-    for the annual ones.
+    Five plans stacked meant five search boxes, five paginators and a page you
+    scroll through to reach the one you wanted. Operations look at one plan at a
+    time — how many on six months, which of the monthly ones lapse this week —
+    so one is shown at a time, and the rest are a click away with their counts
+    already visible.
 
-    Ordered by how many are on each, so the plan carrying the platform is at
-    the top rather than wherever the alphabet puts it.
+    Ordered by how many are on each, so the plan carrying the platform is the
+    one that opens.
   */
   const plans = [...new Set(rows.map((row) => row.termLabel))]
-    .map((term) => ({ term, rows: rows.filter((row) => row.termLabel === term) }))
-    .sort((a, b) => b.rows.length - a.rows.length || a.term.localeCompare(b.term));
+    .map((term) => ({
+      term,
+      plan: describePlan(term),
+      rows: rows.filter((row) => row.termLabel === term),
+    }))
+    .sort((a, b) => b.rows.length - a.rows.length || a.plan.title.localeCompare(b.plan.title));
 
-  if (rows.length === 0) {
+  const [openPlan, setOpenPlan] = useState(plans[0]?.term ?? "");
+  const active = plans.find((plan) => plan.term === openPlan) ?? plans[0];
+
+  if (rows.length === 0 || !active) {
     return (
       <EmptyState
         icon={BanknoteIcon}
@@ -192,90 +209,141 @@ export function SubscriptionsTable({ rows }: { rows: SubscriptionRow[] }) {
     );
   }
 
-  return (
-    <div className="flex flex-col gap-6">
-      {plans.map(({ term, rows: inPlan }, index) => {
-        const lapsing = inPlan.filter(
-          (row) => !row.lifetime && row.daysLeft !== null && row.daysLeft <= 14,
-        ).length;
-        const tint = PLAN_TINTS[index % PLAN_TINTS.length];
+  const activeTint = PLAN_TINTS[plans.indexOf(active) % PLAN_TINTS.length];
+  const lapsing = active.rows.filter(
+    (row) => !row.lifetime && row.daysLeft !== null && row.daysLeft <= 14,
+  ).length;
 
-        return (
-          <section
-            key={term}
-            className={cn("flex flex-col gap-3 rounded-xl border p-4", tint.panel)}
-          >
-            <div className="flex flex-wrap items-center gap-2">
+  return (
+    <div className="flex flex-col gap-4">
+      {/* One tab per plan, each carrying its own count and colour so the shape
+          of the book is visible without opening every chapter. */}
+      <div
+        role="tablist"
+        aria-label="Plans"
+        className="border-border flex flex-wrap gap-1 border-b pb-2"
+      >
+        {plans.map((plan, index) => {
+          const tint = PLAN_TINTS[index % PLAN_TINTS.length];
+          const open = plan.term === active.term;
+
+          return (
+            <button
+              key={plan.term}
+              type="button"
+              role="tab"
+              aria-selected={open}
+              onClick={() => setOpenPlan(plan.term)}
+              className={cn(
+                "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors",
+                open
+                  ? cn("font-medium", tint.panel, tint.text)
+                  : "border-transparent text-muted-foreground hover:bg-secondary",
+              )}
+            >
               <span aria-hidden className={cn("size-2 rounded-full", tint.dot)} />
-              <h3 className={cn("text-xs font-semibold tracking-wide uppercase", tint.text)}>
-                {term}
-              </h3>
-              <span className="text-muted-foreground text-xs">
-                {inPlan.length} subscription{inPlan.length === 1 ? "" : "s"}
+              {plan.plan.title}
+              {plan.plan.tier ? (
+                <span className="text-muted-foreground text-xs font-normal">
+                  {plan.plan.tier}
+                </span>
+              ) : null}
+              <span
+                className={cn(
+                  "tabular rounded-full px-1.5 text-xs",
+                  open ? "bg-background/70" : "bg-secondary",
+                )}
+              >
+                {plan.rows.length}
               </span>
-              {/* The number worth acting on, beside the heading rather than
-                  buried in a column somebody has to sort. */}
-              {lapsing > 0 ? (
-                <Badge variant="outline" className="border-warning/40 bg-warning-soft text-warning">
-                  <ClockIcon className="size-3" />
-                  {lapsing} ending or lapsed
-                </Badge>
+            </button>
+          );
+        })}
+      </div>
+
+      <section className={cn("flex flex-col gap-3 rounded-xl border p-4", activeTint.panel)}>
+        <div className="flex flex-wrap items-center gap-2">
+          <span aria-hidden className={cn("size-2 rounded-full", activeTint.dot)} />
+          <h3 className={cn("font-medium", activeTint.text)}>
+            {active.plan.title}
+            {active.plan.tier ? (
+              <span className="text-muted-foreground font-normal"> · {active.plan.tier}</span>
+            ) : null}
+          </h3>
+          <span className="text-muted-foreground text-sm">
+            {active.rows.length} subscription{active.rows.length === 1 ? "" : "s"}
+          </span>
+
+          {/* A plan nobody can buy any more, still being paid for. Worth saying
+              rather than leaving somebody to wonder why it is not on pricing. */}
+          {active.plan.retired ? (
+            <Badge variant="outline" className="text-muted-foreground">
+              No longer sold
+            </Badge>
+          ) : null}
+
+          {lapsing > 0 ? (
+            <Badge variant="outline" className="border-warning/40 bg-warning-soft text-warning">
+              <ClockIcon className="size-3" />
+              {lapsing} ending or lapsed
+            </Badge>
+          ) : null}
+        </div>
+
+        <DataTable
+          // Keyed by plan, so switching tabs resets the search and the page
+          // rather than carrying one plan's filter onto another's list.
+          key={active.term}
+          rows={active.rows}
+          columns={columns}
+          tabs={tabs}
+          entityLabel="subscriptions"
+          searchPlaceholder="Name or account id"
+          searchText={(row) => `${row.name} ${row.accountId} ${row.kind} ${row.status}`}
+          initialPageSize={10}
+          empty={{
+            icon: BanknoteIcon,
+            title: "Nobody on this plan",
+            description: "Accounts appear here as soon as they buy it.",
+          }}
+          expand={(row) => (
+            <div className="flex flex-col gap-1.5 text-sm">
+              <span className="text-muted-foreground">
+                {row.lifetime
+                  ? "A lifetime plan. It never expires and is never reminded."
+                  : `Reminders can reach this account by: ${
+                      row.reachable.length > 0
+                        ? row.reachable.map((c) => CHANNEL_LABELS[c]).join(", ")
+                        : "in-app only — no mobile number or email on file"
+                    }.`}
+              </span>
+              {!row.lifetime && row.daysLeft !== null && row.daysLeft < 0 ? (
+                <span className="text-destructive flex items-center gap-1.5">
+                  <XIcon className="size-3.5" />
+                  This account cannot trade until it renews.
+                </span>
               ) : null}
             </div>
-
-            <DataTable
-              rows={inPlan}
-              columns={columns}
-              tabs={tabs}
-              entityLabel="subscriptions"
-              searchPlaceholder="Name or account id"
-              searchText={(row) => `${row.name} ${row.accountId} ${row.kind} ${row.status}`}
-              initialPageSize={10}
-              empty={{
-                icon: BanknoteIcon,
-                title: "Nobody on this plan",
-                description: "Accounts appear here as soon as they buy it.",
-              }}
-              expand={(row) => (
-                <div className="flex flex-col gap-1.5 text-sm">
-                  <span className="text-muted-foreground">
-                    {row.lifetime
-                      ? "A lifetime plan. It never expires and is never reminded."
-                      : `Reminders can reach this account by: ${
-                          row.reachable.length > 0
-                            ? row.reachable.map((c) => CHANNEL_LABELS[c]).join(", ")
-                            : "in-app only — no mobile number or email on file"
-                        }.`}
-                  </span>
-                  {!row.lifetime && row.daysLeft !== null && row.daysLeft < 0 ? (
-                    <span className="text-destructive flex items-center gap-1.5">
-                      <XIcon className="size-3.5" />
-                      This account cannot trade until it renews.
-                    </span>
-                  ) : null}
-                </div>
-              )}
-              card={(row) => (
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="font-medium">{row.name}</span>
-                    <Badge variant="outline" className={STATUS_STYLE[row.status] ?? ""}>
-                      {row.status}
-                    </Badge>
-                  </div>
-                  <p className="text-muted-foreground text-xs">
-                    {row.kind}
-                    {row.amountLabel ? ` · ${row.amountLabel}` : ""}
-                  </p>
-                  <p className="text-faint text-xs">
-                    {row.lifetime ? "Never runs out" : `Runs out ${row.renewsLabel}`}
-                  </p>
-                </div>
-              )}
-            />
-          </section>
-        );
-      })}
+          )}
+          card={(row) => (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="font-medium">{row.name}</span>
+                <Badge variant="outline" className={STATUS_STYLE[row.status] ?? ""}>
+                  {row.status}
+                </Badge>
+              </div>
+              <p className="text-muted-foreground text-xs">
+                {row.kind}
+                {row.amountLabel ? ` · ${row.amountLabel}` : ""}
+              </p>
+              <p className="text-faint text-xs">
+                {row.lifetime ? "Never runs out" : `Runs out ${row.renewsLabel}`}
+              </p>
+            </div>
+          )}
+        />
+      </section>
     </div>
   );
 }

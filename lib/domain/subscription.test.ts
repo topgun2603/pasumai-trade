@@ -3,26 +3,27 @@ import { describe, expect, it } from "vitest";
 import { ROLES } from "@/lib/auth/claims";
 import { rupees } from "./money";
 import {
-  activate,
-  badgeFor,
   CAPABILITIES,
   CAPABILITIES_FOR_ROLE,
   CAPABILITY_LABELS,
-  checkCapability,
-  daysRemaining,
-  effectiveStatus,
   FREE_CAPABILITIES,
   GRACE_DAYS,
+  STANDARD_TERMS,
+  TERMS,
+  activate,
+  badgeFor,
+  checkCapability,
+  daysRemaining,
+  describePlan,
+  effectiveStatus,
   isSubscribed,
   perMonth,
   renew,
   requestSubscription,
   savingPercent,
-  STANDARD_TERMS,
   subscriptionReference,
   termOption,
   termsFor,
-  TERMS,
   type Subscription,
 } from "./subscription";
 
@@ -336,5 +337,32 @@ describe("buying a term", () => {
   it("extends a renewal from the end date, so paying early loses nothing", () => {
     const current = sub({ term: "y1", renewsAt: at(10) });
     expect(daysRemaining(renew(current, NOW), NOW)).toBe(370);
+  });
+});
+
+describe("naming a plan for a person", () => {
+  it("uses the same words the pricing page uses", () => {
+    // The console and the plan card must not describe one plan two ways.
+    expect(describePlan("m6")).toMatchObject({ title: "6 months", tier: "Silver", retired: false });
+    expect(describePlan("y1")).toMatchObject({ title: "1 year", tier: "Gold" });
+  });
+
+  it("names the lifetime plan by its badge", () => {
+    expect(describePlan("lifetime")).toMatchObject({ title: "Lifetime", tier: "Founder" });
+  });
+
+  it("recovers words from an older plan id rather than hiding it", () => {
+    // `farmer-grower` predates the ladder and still sits on live accounts.
+    // Somebody on an old plan is still somebody paying.
+    expect(describePlan("farmer-grower")).toMatchObject({
+      title: "Farmer grower",
+      retired: true,
+    });
+  });
+
+  it("never shows a raw id", () => {
+    for (const id of ["m1", "lifetime", "franchise-outlet", "something_odd"]) {
+      expect(describePlan(id).title).not.toBe(id);
+    }
   });
 });

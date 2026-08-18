@@ -554,3 +554,52 @@ export function renew(subscription: Subscription, paidAt: Date): Subscription {
 }
 
 export const ZERO_MONEY = money(0);
+
+/**
+ * A plan id, in words somebody can read.
+ *
+ * The admin console was printing the stored id straight onto the screen — `m6`,
+ * `y1`, `farmer-grower` — which is the name the database uses, not a name
+ * anybody outside the code knows. "6 months · Silver" says the same thing to a
+ * person who has never seen the schema.
+ *
+ * Handles three cases, and the third is the reason this exists rather than a
+ * lookup table:
+ *
+ *  - A current term (`m6`) — the label and tier the pricing page already shows,
+ *    so the console and the plan card cannot describe the same plan differently.
+ *  - `lifetime` — named by its badge, because "Founder" is what it is called
+ *    everywhere else.
+ *  - Anything else — an older plan id like `farmer-grower` that predates the
+ *    ladder and still sits on live accounts. Rather than showing a slug or
+ *    hiding it behind "Unknown", the words are recovered from the id itself.
+ *    An old plan is still somebody paying.
+ */
+export interface PlanDescription {
+  /** What to call it. Never an id. */
+  readonly title: string;
+  /** The tier name, where the plan has one. */
+  readonly tier?: string;
+  /** True for a plan no longer sold, which is worth marking rather than hiding. */
+  readonly retired: boolean;
+}
+
+export function describePlan(planId: string): PlanDescription {
+  const known = STANDARD_TERMS.find((option) => option.term === planId);
+  if (known) {
+    return {
+      title: known.label,
+      tier: known.badge.label,
+      retired: false,
+    };
+  }
+
+  // `farmer-grower` → `Farmer grower`. Crude on purpose: inventing a prettier
+  // name for a plan nobody sells any more would be inventing a fact.
+  const words = planId
+    .replace(/[-_]+/g, " ")
+    .trim()
+    .replace(/^./, (c) => c.toUpperCase());
+
+  return { title: words || "No plan", retired: true };
+}

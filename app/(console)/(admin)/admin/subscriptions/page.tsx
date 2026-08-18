@@ -70,7 +70,7 @@ export default async function AdminSubscriptionsPage() {
     <>
       <AdminPageHeader
         title="Subscriptions"
-        description="Every plan bought on the platform, soonest to lapse first. Reminders go out automatically — how far ahead, and on which channels, is set in Controls."
+        description="Who is paying, on what, and when it runs out. Pick a plan to see who is on it. Renewal reminders go out automatically — how far ahead, and on which channels, is set in Controls."
       />
 
       <div className="grid grid-cols-2 gap-3 border-b p-4 lg:grid-cols-4">
