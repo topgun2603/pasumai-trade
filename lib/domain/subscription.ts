@@ -328,7 +328,7 @@ export const BADGES: Record<Term, Badge> = {
   lifetime: {
     id: "founder",
     label: "Founder",
-    className: "border-violet-500/60 bg-violet-500/10 text-violet-600 dark:text-violet-400",
+    className: "border-stone-500/60 bg-stone-500/10 text-stone-700 dark:text-stone-300",
   },
 };
 

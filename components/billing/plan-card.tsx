@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
  * The ladder has to *look* like a ladder, or the seven cards read as seven
  * unrelated products and the eye picks whichever is cheapest. So each tier
  * carries a colour that escalates — muted, bronze, silver, gold, teal, sky,
- * violet — used in three places at once: the bar across the top, the badge
+ * its accent — used in three places at once: the bar across the top, the badge
  * chip and the ring on hover. Nothing else changes between them, which is the
  * point: the colour is the only signal, so it does the whole job.
  *
@@ -73,11 +73,26 @@ const TIERS: Record<string, Tier> = {
     ring: "hover:border-sky-500/60",
     fill: "bg-sky-500",
   },
+  /*
+    Ink and gold, not violet.
+
+    Founder sits above Diamond on a ladder that already spends amber on Gold,
+    teal on Platinum and sky on Diamond, and the brand green means "the
+    platform" — franchise wears it. Violet was the only colour left rather than
+    a colour anybody chose, and at the size this card is drawn it read as a
+    different product bolted onto the page.
+
+    Graphite with a gold hairline is the one premium signal that collides with
+    nothing here, and it is the convention every reader already knows from a
+    card in their wallet. Both halves carry dark-mode variants: graphite on a
+    dark background is invisible, which is how a "premium" tier ends up looking
+    like a disabled one.
+  */
   founder: {
-    bar: "from-violet-600 via-fuchsia-500 to-violet-600",
-    chip: "border-violet-500/50 bg-violet-500/15 text-violet-700 dark:text-violet-300",
-    ring: "hover:border-violet-500/70",
-    fill: "bg-violet-500",
+    bar: "from-stone-700 via-amber-400 to-stone-700 dark:from-stone-300 dark:to-stone-300",
+    chip: "border-stone-500/50 bg-stone-500/10 text-stone-700 dark:text-stone-200",
+    ring: "hover:border-stone-500/70",
+    fill: "bg-stone-700 dark:bg-stone-300",
   },
   franchise: {
     bar: "from-primary to-emerald-500",
@@ -199,7 +214,7 @@ function LifetimeCard({
       {/* A soft bloom behind the card. Blurred and inert, so it reads as light
           on the page rather than as another edge to parse. */}
       <span
-        className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-violet-600/20 via-fuchsia-500/20 to-violet-600/20 blur-xl"
+        className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-stone-700/20 via-amber-500/25 to-stone-700/20 blur-xl"
         aria-hidden
       />
 
@@ -210,31 +225,31 @@ function LifetimeCard({
         room the decision deserves, and the three parts — what it costs, what
         that buys, and the way in — sit side by side instead of stacked.
       */}
-      <div className="relative flex flex-col gap-6 overflow-hidden rounded-2xl border border-violet-500/50 bg-gradient-to-br from-violet-500/[0.10] via-transparent to-fuchsia-500/[0.10] p-6 md:flex-row md:items-center md:gap-10 dark:from-violet-500/[0.16] dark:to-fuchsia-500/[0.16]">
+      <div className="relative flex flex-col gap-6 overflow-hidden rounded-2xl border border-stone-500/50 bg-gradient-to-br from-stone-500/[0.10] via-transparent to-amber-500/[0.10] p-6 md:flex-row md:items-center md:gap-10 dark:from-stone-400/[0.14] dark:to-amber-400/[0.14]">
         <span
-          className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-violet-600 via-fuchsia-500 to-violet-600"
+          className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-stone-700 via-amber-400 to-stone-700 dark:from-stone-300 dark:to-stone-300"
           aria-hidden
         />
-        <span className="absolute top-4 right-4 rounded-full bg-violet-600 px-2 py-0.5 text-[10px] font-medium tracking-wide text-white uppercase">
+        <span className="absolute top-4 right-4 rounded-full bg-stone-800 px-2 py-0.5 text-[10px] font-medium tracking-wide text-white uppercase dark:bg-stone-200 dark:text-stone-900">
           Best value
         </span>
 
         <div className="flex shrink-0 flex-col gap-2 pt-1">
-          <span className="w-fit rounded-full border border-violet-500/50 bg-violet-500/15 px-2 py-0.5 text-[11px] font-medium text-violet-700 dark:text-violet-300">
+          <span className="w-fit rounded-full border border-stone-500/50 bg-stone-500/10 px-2 py-0.5 text-[11px] font-medium text-stone-700 dark:text-stone-200">
             <SparklesIcon className="mr-1 inline size-3" />
             {option.badge.label}
           </span>
-          <span className="font-heading bg-gradient-to-r from-violet-700 to-fuchsia-600 bg-clip-text text-5xl leading-none tracking-tight text-transparent tabular-nums sm:text-6xl dark:from-violet-300 dark:to-fuchsia-300">
+          <span className="font-heading bg-gradient-to-r from-stone-800 to-amber-600 bg-clip-text text-5xl leading-none tracking-tight text-transparent tabular-nums sm:text-6xl dark:from-stone-100 dark:to-amber-300">
             {formatMoney(option.price)}
           </span>
-          <span className="flex items-center gap-1.5 text-sm font-medium text-violet-700 dark:text-violet-300">
+          <span className="flex items-center gap-1.5 text-sm font-medium text-stone-700 dark:text-stone-300">
             <InfinityIcon className="size-4" />
             {option.label} — pay once, never again
           </span>
         </div>
 
         {/* A rule between the price and what it buys, on wide screens only. */}
-        <span className="hidden w-px self-stretch bg-violet-500/25 md:block" aria-hidden />
+        <span className="hidden w-px self-stretch bg-stone-500/25 md:block" aria-hidden />
 
         <ul className="flex flex-1 flex-col gap-2.5">
           {[
@@ -243,7 +258,7 @@ function LifetimeCard({
             "Founder badge on your listings and bargains",
           ].map((line) => (
             <li key={line} className="flex items-start gap-2 text-sm">
-              <CheckIcon className="mt-0.5 size-4 shrink-0 text-violet-600 dark:text-violet-400" />
+              <CheckIcon className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
               {line}
             </li>
           ))}

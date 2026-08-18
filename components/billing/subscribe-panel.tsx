@@ -177,7 +177,7 @@ export function SubscribePanel({
       // the one colour collision on the page.
       className={
         option.highlight
-          ? "w-full bg-violet-600 text-white hover:bg-violet-700 focus-visible:ring-violet-500"
+          ? "w-full bg-stone-800 text-white hover:bg-stone-900 focus-visible:ring-stone-500 dark:bg-stone-200 dark:text-stone-900 dark:hover:bg-stone-100"
           : "w-full"
       }
       variant={option.recommended && !option.highlight ? "default" : "outline"}
@@ -244,7 +244,7 @@ export function SubscribePanel({
         </div>
 
         {current.lifetime ? (
-          <Badge variant="outline" className="border-violet-500/50 text-violet-600">
+          <Badge variant="outline" className="border-stone-500/50 text-stone-700 dark:text-stone-300">
             <InfinityIcon className="size-3" />
             Lifetime
           </Badge>

@@ -54,7 +54,10 @@ export default async function PricingPage({
         aria-hidden
       >
         <div className="absolute -top-40 left-1/2 size-[680px] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -top-24 right-[8%] size-[380px] rounded-full bg-violet-500/10 blur-3xl" />
+        {/* Warm gold beside the brand green, where a violet wash used to sit.
+            Two unrelated hues over a page that is otherwise green read as a
+            gradient somebody left on by accident. */}
+        <div className="absolute -top-24 right-[8%] size-[380px] rounded-full bg-amber-500/10 blur-3xl" />
       </div>
 
       <header className="flex max-w-2xl flex-col gap-5">
@@ -142,7 +145,7 @@ export default async function PricingPage({
             <PlanCard
               option={lifetime}
               footer={
-                <Button asChild className="w-full bg-violet-600 text-white hover:bg-violet-700 focus-visible:ring-violet-500">
+                <Button asChild className="w-full bg-stone-800 text-white hover:bg-stone-900 focus-visible:ring-stone-500 dark:bg-stone-200 dark:text-stone-900 dark:hover:bg-stone-100">
                   <Link href={`/${locale}/signup?as=farmer`}>
                     Start free
                     <ArrowRightIcon className="size-4" />
@@ -232,7 +235,7 @@ export default async function PricingPage({
           <Link href={`/${locale}/signin`}>Sign in</Link>
         </Button>
         <span className="text-muted-foreground flex items-center gap-1.5 text-sm">
-          <InfinityIcon className="size-4 text-violet-600" />
+          <InfinityIcon className="size-4 text-amber-600 dark:text-amber-400" />
           {formatMoney(lifetime.price)} once, and never again
         </span>
       </div>
