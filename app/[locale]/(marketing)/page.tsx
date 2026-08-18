@@ -63,7 +63,7 @@ export async function generateMetadata({
   const t = getDictionary(locale);
 
   return {
-    title: `${t.hero.titleLine1} ${t.hero.titleAccent} ${t.hero.titleLine2}`,
+    title: `${t.hero.titleLine1} ${t.hero.titleLine2}`,
     description: t.hero.body,
     openGraph: { title: "Pasumai Trade", description: t.hero.body, type: "website" },
   };

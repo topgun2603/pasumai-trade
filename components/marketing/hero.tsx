@@ -100,10 +100,15 @@ export function Hero({
           </StaggerItem>
 
           <StaggerItem>
-            <h1 className="font-heading max-w-2xl text-4xl leading-[1.08] font-semibold tracking-tight text-balance sm:text-5xl lg:text-6xl">
+            {/*
+              Two lines, one colour. The middle fragment used to be picked out
+              in green, which at this size read as a highlighter pen through the
+              sentence rather than as emphasis. The whole heading is the brand
+              green now, which is also what carries the mark in the bar above it.
+            */}
+            <h1 className="font-heading text-primary max-w-2xl text-4xl leading-[1.12] font-bold tracking-tight text-balance sm:text-5xl lg:text-[3.4rem]">
               {t.hero.titleLine1}
               <br />
-              <span className="text-primary">{t.hero.titleAccent}</span>{" "}
               {t.hero.titleLine2}
             </h1>
           </StaggerItem>

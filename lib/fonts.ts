@@ -1,5 +1,4 @@
 import {
-  Fraunces,
   Geist,
   Geist_Mono,
   Noto_Sans_Devanagari,
@@ -7,6 +6,7 @@ import {
   Noto_Sans_Malayalam,
   Noto_Sans_Tamil,
   Noto_Sans_Telugu,
+  Poppins,
 } from "next/font/google";
 
 /**
@@ -31,20 +31,27 @@ export const sans = Geist({
 /**
  * Display face for headings.
  *
- * A serif, deliberately. Every agritech site in this market is set entirely in
- * a geometric sans, and the page it produces is indistinguishable from a
- * fintech landing page with different photographs. Fraunces is warm, slightly
- * agricultural in its shapes, and — the part that matters — legible at the
- * weights and sizes headings actually use.
+ * Poppins. This was Fraunces, a serif run with its `WONK` axis switched on —
+ * an axis whose entire purpose is to make letterforms irregular. At a body
+ * paragraph that reads as character; at a sixty-pixel hero it reads as a font
+ * that has gone wrong, which is what it was called out as.
+ *
+ * Geometric, round and wide, which is also what most of this market's audience
+ * has already learnt to read: a farmer opening this on a budget Android has
+ * seen these shapes in every government scheme poster and bank app they use.
+ * Distinctiveness is worth less here than a heading nobody has to squint at.
+ *
+ * Weights are listed because Poppins is not a variable font — an unlisted
+ * weight is silently synthesised by the browser and looks smeared.
  *
  * Latin only. Headings in the Indic scripts fall through to their own faces,
- * which is correct: a Latin display serif has nothing to say about Tamil.
+ * which is correct: a Latin display face has nothing to say about Tamil.
  */
-export const heading = Fraunces({
+export const heading = Poppins({
   variable: "--font-heading-display",
   subsets: ["latin"],
+  weight: ["500", "600", "700"],
   display: "swap",
-  axes: ["SOFT", "WONK", "opsz"],
 });
 
 export const mono = Geist_Mono({

@@ -1,12 +1,7 @@
-import {
-  ArrowRightIcon,
-  CheckIcon,
-  LeafIcon,
-  MailIcon,
-  MapPinIcon,
-} from "lucide-react";
+import { ArrowRightIcon, CheckIcon, MailIcon, MapPinIcon } from "lucide-react";
 import Link from "next/link";
 
+import { BrandLockup } from "@/components/marketing/brand-mark";
 import { Button } from "@/components/ui/button";
 import type { Dictionary } from "@/lib/i18n";
 import { LOCALES, LOCALE_META, type Locale } from "@/lib/i18n/config";
@@ -107,19 +102,7 @@ export function SiteFooter({ locale, t }: { locale: Locale; t: Dictionary }) {
 
       <div className="mx-auto grid w-full max-w-6xl gap-x-8 gap-y-10 px-5 py-12 sm:grid-cols-2 lg:grid-cols-12">
         <div className="flex flex-col gap-4 lg:col-span-4">
-          <span className="flex items-center gap-2.5">
-            <span className="bg-primary text-primary-foreground flex size-9 items-center justify-center rounded-md">
-              <LeafIcon className="size-4.5" />
-            </span>
-            <span className="flex flex-col leading-none">
-              <span className="text-[15px] font-semibold tracking-tight">
-                Pasumai Trade
-              </span>
-              <span lang="ta" className="text-faint text-[11px]">
-                பசுமை வர்த்தகம்
-              </span>
-            </span>
-          </span>
+          <BrandLockup markClassName="size-10" nameClassName="text-base" />
 
           <p className="text-muted-foreground max-w-xs text-sm">{t.footer.tagline}</p>
 

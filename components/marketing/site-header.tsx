@@ -1,11 +1,12 @@
 "use client";
 
-import { LeafIcon, MenuIcon, MoonIcon, SunIcon } from "lucide-react";
+import { MenuIcon, MoonIcon, SunIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
+import { BrandLockup } from "@/components/marketing/brand-mark";
 import { LanguageSwitcher } from "@/components/marketing/language-switcher";
 import { Button } from "@/components/ui/button";
 import {
@@ -89,19 +90,9 @@ export function SiteHeader({
         */}
         <Link
           href={`/${locale}`}
-          className="focus-visible:ring-ring flex shrink-0 items-center gap-2.5 rounded-md focus-visible:ring-2 focus-visible:outline-none"
+          className="focus-visible:ring-ring shrink-0 rounded-md focus-visible:ring-2 focus-visible:outline-none"
         >
-          <span className="bg-primary text-primary-foreground flex size-8 shrink-0 items-center justify-center rounded-md">
-            <LeafIcon className="size-4" />
-          </span>
-          <span className="flex flex-col leading-tight">
-            <span className="text-[15px] font-semibold tracking-tight whitespace-nowrap">
-              Pasumai Trade
-            </span>
-            <span lang="ta" className="text-faint text-[11px] whitespace-nowrap">
-              பசுமை வர்த்தகம்
-            </span>
-          </span>
+          <BrandLockup markClassName="size-8" nameClassName="text-[15px]" />
         </Link>
 
         {/*

@@ -36,10 +36,9 @@ export const en = {
     cardGrade: "Grade",
     cardNote: "Grade A only, agreed by the farmer and the buyer. Illustrative.",
     badge: "Tamil Nadu · {districts} districts · {farmers} farmers",
-    titleLine1: "Fair prices for farmers.",
-    titleAccent: "Graded produce",
-    titleLine2: "for buyers.",
-    body: "Farmers name their price. Buyers counter. You settle it together, grade by grade, and it is written down before a vehicle moves. Collection, grading and payment are handled — the money is held until the produce arrives.",
+    titleLine1: "Empowering Farmers.",
+    titleLine2: "Building A Greener Future.",
+    body: "Pasumai Trade connects farmers and buyers on one trusted platform. Fair trade. Better prices. Sustainable tomorrow.",
     imageAlt:
       "Terraced farmland with a collection shed and a goods vehicle on the road",
     statPoints: "Villages covered",
