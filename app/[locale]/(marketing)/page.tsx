@@ -35,9 +35,23 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { findDistrict } from "@/lib/domain/location";
+import { reachToShow } from "@/lib/domain/reach";
+import { readReach } from "@/lib/firebase/reach-read";
 import { getDictionary, isLocale } from "@/lib/i18n";
 import { resolveMedia } from "@/lib/marketing/media";
 import { GEOGRAPHY } from "@/lib/mock/locations";
+
+/**
+ * Rebuilt hourly, not on every request.
+ *
+ * The page reads the database for the three figures under the hero, which
+ * without this would make the whole landing page dynamic — the one route where
+ * a prerendered response matters most, both for a farmer on a village
+ * connection and for anything crawling it. Village and district coverage move
+ * when operations edit Controls, and a registration count that is an hour
+ * behind is a count nobody can tell from an exact one.
+ */
+export const revalidate = 3600;
 
 export async function generateMetadata({
   params,
@@ -77,10 +91,24 @@ export default async function LandingPage({
         "en-IN",
       ) || a.name.localeCompare(b.name, "en-IN"),
   );
-  const farmers = places.reduce((total, p) => total + p.farmerCount, 0);
-  const districts = new Set(
-    places.map((p) => findDistrict(GEOGRAPHY, p.districtId)?.name),
-  ).size;
+  /*
+    The three figures under the hero, from the database.
+
+    The seeded geography is now only the fallback — what to say when there are
+    no credentials to ask with, or the query fails. A landing page reporting
+    nought districts because a read timed out is worse than one showing the
+    figures it shipped with.
+
+    `reachToShow` holds each number up to its launch figure until the platform's
+    own has caught up. See `SHOWCASE_FLOOR` — that is where to change or switch
+    off the floor, and it is the only place the page is not stating a count.
+  */
+  const { reach } = await readReach({
+    villages: places.length,
+    farmers: places.reduce((total, p) => total + p.farmerCount, 0),
+    districts: new Set(places.map((p) => findDistrict(GEOGRAPHY, p.districtId)?.name)).size,
+  });
+  const shown = reachToShow(reach);
 
   const harvestMedia = resolveMedia("harvest");
   const consoleMedia = resolveMedia("console");
@@ -121,9 +149,9 @@ export default async function LandingPage({
       <Hero
         t={t}
         locale={locale}
-        districts={districts}
-        farmers={farmers}
-        villages={places.length}
+        districts={shown.districts.value}
+        farmers={shown.farmers.value}
+        villages={shown.villages.value}
       />
 
       {/* Live prices */}

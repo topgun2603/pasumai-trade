@@ -14,7 +14,6 @@ export const en = {
     forBuyers: "For buyers",
     coverage: "Coverage",
     signIn: "Sign in",
-    requestAccount: "Request an account",
     registerFree: "Register free",
     menu: "Menu",
     language: "Language",
@@ -226,7 +225,7 @@ export const en = {
   },
 
   apply: {
-    title: "Request an account",
+    title: "Register free",
     body: "Accounts are opened by our operations team after documents are checked. Buyers need GST, PAN and an FSSAI licence; farmers are onboarded by a franchise, who collects bank details in person.",
     haveAccount: "Already have an account?",
     signInHere: "Sign in here",

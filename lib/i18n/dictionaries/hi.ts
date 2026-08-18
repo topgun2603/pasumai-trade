@@ -10,7 +10,6 @@ export const hi: Dictionary = {
     forBuyers: "खरीदारों के लिए",
     coverage: "सेवा क्षेत्र",
     signIn: "साइन इन",
-    requestAccount: "खाता माँगें",
     registerFree: "मुफ़्त रजिस्टर करें",
     menu: "मेन्यू",
     language: "भाषा",
@@ -220,7 +219,7 @@ export const hi: Dictionary = {
   },
 
   apply: {
-    title: "खाता माँगें",
+    title: "मुफ़्त रजिस्टर करें",
     body: "कागज़ात जाँचने के बाद हमारी संचालन टीम ही खाते खोलती है। खरीदारों को GST, PAN और FSSAI लाइसेंस चाहिए; किसानों को फ़्रैंचाइज़ी पंजीकृत करती है और बैंक विवरण स्वयं जाकर लेती है।",
     haveAccount: "पहले से खाता है?",
     signInHere: "यहाँ साइन इन करें",
