@@ -333,6 +333,7 @@ export const en = {
   },
 
   common: {
+    backToTop: "Back to top",
     required: "required",
     changeLanguage: "Change language",
   },

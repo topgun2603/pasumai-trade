@@ -326,6 +326,7 @@ export const hi: Dictionary = {
   },
 
   common: {
+    backToTop: "ऊपर जाएँ",
     required: "आवश्यक",
     changeLanguage: "भाषा बदलें",
   },

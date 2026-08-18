@@ -336,6 +336,7 @@ export const ta: Dictionary = {
   },
 
   common: {
+    backToTop: "மேலே செல்ல",
     required: "தேவை",
     changeLanguage: "மொழியை மாற்று",
   },

@@ -18,6 +18,7 @@ import { BargainDemo } from "@/components/marketing/bargain-demo";
 import { Hero } from "@/components/marketing/hero";
 import { Journey } from "@/components/marketing/journey";
 import { LanguageBand } from "@/components/marketing/language-band";
+import { BackToTop } from "@/components/marketing/back-to-top";
 import { CoverageSection } from "@/components/marketing/coverage-section";
 import { LivePrices } from "@/components/marketing/live-prices";
 import { MediaFrame } from "@/components/marketing/media-frame";
@@ -463,6 +464,12 @@ export default async function LandingPage({
           </Reveal>
         </div>
       </section>
+      {/*
+        Last in the tree and fixed, so it layers over the page without needing
+        a z-index argument with anything above it. The footer is the only thing
+        below the coverage map, and this is what gets you back from either.
+      */}
+      <BackToTop label={t.common.backToTop} />
     </>
   );
 }

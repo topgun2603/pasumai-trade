@@ -327,6 +327,7 @@ export const kn: Dictionary = {
   },
 
   common: {
+    backToTop: "ಮೇಲಕ್ಕೆ ಹೋಗಿ",
     required: "ಅಗತ್ಯ",
     changeLanguage: "ಭಾಷೆ ಬದಲಾಯಿಸಿ",
   },

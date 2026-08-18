@@ -327,6 +327,7 @@ export const ml: Dictionary = {
   },
 
   common: {
+    backToTop: "മുകളിലേക്ക് പോകുക",
     required: "ആവശ്യമാണ്",
     changeLanguage: "ഭാഷ മാറ്റുക",
   },

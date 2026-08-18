@@ -327,6 +327,7 @@ export const te: Dictionary = {
   },
 
   common: {
+    backToTop: "పైకి వెళ్లండి",
     required: "అవసరం",
     changeLanguage: "భాష మార్చండి",
   },
