@@ -208,7 +208,6 @@ export interface BuyerForm {
   town: string;
   district: string;
   pincode: string;
-  sourcingDistricts: string[];
   gstin: string;
   pan: string;
   fssai: string;
@@ -227,10 +226,6 @@ export function validateBuyer(values: BuyerForm): FieldErrors<BuyerForm> {
     town: required(values.town, "Town or city"),
     district: required(values.district, "District"),
     pincode: checkPincode(values.pincode),
-    sourcingDistricts:
-      values.sourcingDistricts.length === 0
-        ? "Select at least one district to source from"
-        : undefined,
     gstin: checkGstin(values.gstin),
     pan: checkPan(values.pan),
     // Required only for food businesses, which a produce buyer always is.

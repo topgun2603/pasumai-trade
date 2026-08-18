@@ -252,7 +252,11 @@ export async function readKycAccounts(): Promise<PendingReview[]> {
   const db = adminDb();
   const sources: Array<{ collection: string; roles: Role[] }> = [
     { collection: "farmers", roles: ["farmer"] },
-    { collection: "buyers", roles: ["buyer", "franchise"] },
+    { collection: "buyers", roles: ["buyer"] },
+    // Its own collection since buyer and franchise were separated. Listed
+    // rather than folded into `buyers`, or a franchise's documents would stop
+    // reaching the review queue entirely.
+    { collection: "franchises", roles: ["franchise"] },
     { collection: "agencies", roles: ["transport", "manpower"] },
   ];
 

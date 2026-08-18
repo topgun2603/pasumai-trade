@@ -43,11 +43,13 @@ export async function readAnalytics(): Promise<AnalyticsData> {
 
   try {
     const db = adminDb();
-    const [listingDocs, bargainDocs, farmerDocs, buyerDocs, agencyDocs] = await Promise.all([
+    const [listingDocs, bargainDocs, farmerDocs, buyerDocs, franchiseDocs, agencyDocs] =
+      await Promise.all([
       db.collection("listings").get(),
       db.collection("negotiations").get(),
       db.collection("farmers").get(),
       db.collection("buyers").get(),
+      db.collection("franchises").get(),
       db.collection("agencies").get(),
     ]);
 
@@ -90,6 +92,9 @@ export async function readAnalytics(): Promise<AnalyticsData> {
     const accounts: AccountFact[] = [
       ...farmerDocs.docs.map((doc) => ({ kind: "farmer" as const, status: status(doc.data()) })),
       ...buyerDocs.docs.map((doc) => ({ kind: "buyer" as const, status: status(doc.data()) })),
+      // Counted with buyers on this page: both are the demand side, and the
+      // panel asks how many accounts are verified rather than what each does.
+      ...franchiseDocs.docs.map((doc) => ({ kind: "buyer" as const, status: status(doc.data()) })),
       ...agencyDocs.docs.map((doc) => ({ kind: "agency" as const, status: status(doc.data()) })),
     ];
 

@@ -85,7 +85,6 @@ function buyer(overrides: Partial<BuyerAccount> = {}): BuyerAccount {
     mobile: "+91 98430 11204",
     town: "Hosur",
     district: "Krishnagiri",
-    districts: ["Krishnagiri"],
     status: "verified",
     registeredAt: new Date(NOW - 400 * DAY),
     ordersPlaced: 486,

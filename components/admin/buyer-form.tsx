@@ -6,7 +6,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import {
-  CheckboxGroup,
   ErrorSummary,
   Field,
   fieldProps,
@@ -54,7 +53,6 @@ const EMPTY: BuyerForm = {
   town: "",
   district: "",
   pincode: "",
-  sourcingDistricts: [],
   gstin: "",
   pan: "",
   fssai: "",
@@ -64,7 +62,9 @@ const EMPTY: BuyerForm = {
   ifsc: "",
 };
 
-export function BuyerRegistrationForm({ districts }: { districts: string[] }) {
+// No `districts` prop any more: a buyer sources from anywhere in India, so
+// there is nothing to pick from.
+export function BuyerRegistrationForm() {
   const router = useRouter();
   const [values, setValues] = useState<BuyerForm>(EMPTY);
   const [files, setFiles] = useState<BuyerAttachments>(NO_FILES);
@@ -212,7 +212,7 @@ export function BuyerRegistrationForm({ districts }: { districts: string[] }) {
         </Field>
       </FormSection>
 
-      <FormSection title="Address and sourcing">
+      <FormSection title="Address">
         <Field
           label="Address"
           htmlFor="addressLine"
@@ -261,15 +261,6 @@ export function BuyerRegistrationForm({ districts }: { districts: string[] }) {
           />
         </Field>
 
-        <CheckboxGroup
-          id="sourcing"
-          legend="Districts this account may source from"
-          options={districts}
-          selected={values.sourcingDistricts}
-          onChange={(next) => set("sourcingDistricts", next)}
-          error={errors.sourcingDistricts}
-          hint="Produce from districts outside this list will not appear in their market"
-        />
       </FormSection>
 
       <FormSection

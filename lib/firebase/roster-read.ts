@@ -219,8 +219,16 @@ export function readAgencyRecords(): Promise<Agency[]> {
 
 const BUYER_KINDS: BuyerKind[] = ["franchise", "independent"];
 
-export function readBuyerAccounts(): Promise<BuyerAccount[]> {
-  return readAll("buyers", (id, data) => ({
+/**
+ * Buyers and franchises share a record shape and no longer share a collection.
+ *
+ * One shaper, two callers. They were the same thing until they were not, and
+ * the fields they carry are still identical — what differs is what each may
+ * do, which is a matter for the consoles and the guards rather than for the
+ * document.
+ */
+function shapeBuying(id: string, data: Record<string, unknown>): BuyerAccount {
+  return {
     id,
     name: str(data.name, id),
     kind: BUYER_KINDS.includes(data.kind as BuyerKind)
@@ -230,12 +238,6 @@ export function readBuyerAccounts(): Promise<BuyerAccount[]> {
     mobile: str(data.mobile),
     town: str(data.town, str(data.place)),
     district: str(data.district),
-    // A franchise serves several districts; an independent buyer serves its
-    // own. Absent means the one it registered in rather than none, which would
-    // read as a buyer nothing can be sold to.
-    districts: Array.isArray(data.districts)
-      ? data.districts.filter((d): d is string => typeof d === "string")
-      : [str(data.district)].filter(Boolean),
     ordersPlaced: num(data.ordersPlaced),
     lat: typeof data.lat === "number" ? data.lat : null,
     lng: typeof data.lng === "number" ? data.lng : null,
@@ -244,7 +246,15 @@ export function readBuyerAccounts(): Promise<BuyerAccount[]> {
     lifetimeValue: money(num(data.lifetimeValue)),
     photoUrl: typeof data.photoUrl === "string" ? data.photoUrl : undefined,
     documents: documents(data.documents),
-  }));
+  };
+}
+
+export function readBuyerAccounts(): Promise<BuyerAccount[]> {
+  return readAll("buyers", shapeBuying);
+}
+
+export function readFranchiseAccounts(): Promise<BuyerAccount[]> {
+  return readAll("franchises", shapeBuying);
 }
 
 export function readFarmerAccounts(): Promise<FarmerAccount[]> {

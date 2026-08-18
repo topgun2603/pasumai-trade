@@ -187,8 +187,6 @@ export interface BuyerAccount {
    */
   readonly lat?: number | null;
   readonly lng?: number | null;
-  /** Districts this account is allowed to source from. */
-  readonly districts: readonly string[];
   readonly status: VerificationStatus;
   readonly registeredAt: Date;
   readonly ordersPlaced: number;

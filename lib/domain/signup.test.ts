@@ -130,7 +130,9 @@ describe("the account a signup creates", () => {
 describe("account ids", () => {
   it("uses the prefix the seeded records already use", () => {
     expect(newAccountId("buyer", "abc123")).toMatch(/^B-/);
-    expect(newAccountId("franchise", "abc123")).toMatch(/^B-/);
+    // A franchise is not a buyer with a flag on it any more, and its id says
+    // so — B- and FR- cannot be confused in a support call.
+    expect(newAccountId("franchise", "abc123")).toMatch(/^FR-/);
     expect(newAccountId("transport", "abc123")).toMatch(/^AG-/);
     expect(newAccountId("manpower", "abc123")).toMatch(/^AG-/);
     expect(newAccountId("farmer", "abc123")).toMatch(/^F-/);
@@ -142,7 +144,10 @@ describe("account ids", () => {
 
   it("writes each role to the collection its console reads", () => {
     expect(COLLECTION_FOR_SIGNUP.buyer).toBe("buyers");
-    expect(COLLECTION_FOR_SIGNUP.franchise).toBe("buyers");
+    // Its own collection: a franchise onboards farmers and dispatches
+    // vehicles, and a buyer does neither. Sharing one meant every read of
+    // "our buyers" silently included franchises.
+    expect(COLLECTION_FOR_SIGNUP.franchise).toBe("franchises");
     expect(COLLECTION_FOR_SIGNUP.transport).toBe("agencies");
     expect(COLLECTION_FOR_SIGNUP.manpower).toBe("agencies");
     expect(COLLECTION_FOR_SIGNUP.farmer).toBe("farmers");

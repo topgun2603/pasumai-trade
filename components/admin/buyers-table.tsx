@@ -59,10 +59,7 @@ export function BuyersTable({
       cell: (a) => (
         <span className="flex flex-col leading-tight">
           <span className="text-sm">{a.town}</span>
-          <span className="text-faint text-xs">
-            Sources from {a.districts.length}{" "}
-            {a.districts.length === 1 ? "district" : "districts"}
-          </span>
+          <span className="text-faint text-xs">{a.district}</span>
         </span>
       ),
     },
@@ -148,9 +145,6 @@ export function BuyersTable({
             <dd className="tabular">{a.ordersPlaced}</dd>
           </dl>
 
-          <p className="text-faint text-xs">
-            Sources from {a.districts.join(", ")}
-          </p>
         </>
       )}
     />

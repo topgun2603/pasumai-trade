@@ -18,7 +18,7 @@ export default async function AdminBuyersPage() {
     <>
       <AdminPageHeader
         title="Buyers"
-        description="Contracted franchises and independent bulk buyers. Both have the same capabilities — the type is a commercial label, not a permission. No credit is extended; every order is paid when placed."
+        description="Independent bulk buyers. Franchises are listed separately — they do everything a buyer does and onboard farmers and dispatch vehicles besides. No credit is extended; every order is paid when placed."
         aside={
           <Button asChild>
             <Link href="/admin/buyers/new">

@@ -329,7 +329,6 @@ async function main() {
       mobile: b.mobile,
       town: b.town,
       district: b.district,
-      districts: b.districts,
       status: b.status,
       registeredAt: b.registeredAt,
       ordersPlaced: b.ordersPlaced,

@@ -36,7 +36,17 @@ export function canSelfSignup(role: string): role is SignupRole {
 
 /** Which collection a new account of this role is written to. */
 export const COLLECTION_FOR_SIGNUP: Record<SignupRole, string> = {
-  franchise: "buyers",
+  /*
+    Its own collection, not `buyers`.
+
+    The two shared one for as long as they were thought to be the same thing.
+    They are not: a franchise onboards farmers and dispatches vehicles, and a
+    buyer does neither. Keeping both in `buyers` meant every read of "our
+    buyers" silently included franchises, every count was wrong in the same
+    direction, and the two could never be given different fields without a
+    `kind` check at each site.
+  */
+  franchise: "franchises",
   buyer: "buyers",
   transport: "agencies",
   manpower: "agencies",
@@ -45,7 +55,7 @@ export const COLLECTION_FOR_SIGNUP: Record<SignupRole, string> = {
 
 /** Id prefix, matching the convention the seeded records already use. */
 const PREFIX: Record<SignupRole, string> = {
-  franchise: "B",
+  franchise: "FR",
   buyer: "B",
   transport: "AG",
   manpower: "AG",

@@ -14,6 +14,7 @@ import {
   MoonIcon,
   ShieldCheckIcon,
   SlidersHorizontalIcon,
+  StoreIcon,
   SunIcon,
   TractorIcon,
   TruckIcon,
@@ -72,6 +73,10 @@ const SECTIONS: Array<{ title?: string; links: NavLink[] }> = [
       { href: "/admin/enquiries", label: "Enquiries", icon: InboxIcon },
       { href: "/admin/kyc", label: "KYC review", icon: BadgeCheckIcon },
       { href: "/admin/buyers", label: "Buyers", icon: UserRoundIcon },
+      // Its own entry since the two were separated. Without it three real
+      // franchises would be signed in and working with nowhere here to find
+      // them.
+      { href: "/admin/franchises", label: "Franchises", icon: StoreIcon },
       { href: "/admin/farmers", label: "Farmers", icon: TractorIcon },
     ],
   },

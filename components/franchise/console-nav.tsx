@@ -32,18 +32,29 @@ import type { Role } from "@/lib/auth/claims";
 import { cn } from "@/lib/utils";
 
 /**
- * Buying comes first because it is the daily job. Listings, dispatch and
- * farmers are the supply side, used less often and by fewer people.
+ * Buying comes first because it is the daily job, and every buying role does
+ * it — a franchise buys produce exactly as an independent buyer does.
  */
-const LINKS = [
+const BUYING_LINKS = [
   { href: "/listings", label: "Produce", icon: StoreIcon },
   { href: "/bargains", label: "Bargains", icon: HandshakeIcon },
   { href: "/notifications", label: "Notifications", icon: BellIcon },
   { href: "/orders", label: "Orders", icon: PackageIcon },
-  { href: "/dispatch", label: "Dispatch", icon: TruckIcon },
-  { href: "/farmers", label: "Farmers", icon: UsersIcon },
   { href: "/verification", label: "Verification", icon: BadgeCheckIcon },
   { href: "/subscription", label: "Subscription", icon: CreditCardIcon },
+];
+
+/**
+ * The supply side, and a franchise's alone.
+ *
+ * These used to sit in the same list as the buying links, on a rail every
+ * buying role saw. A buyer could open Dispatch and watch loads being assigned,
+ * or Farmers and read growers' records — neither of which is theirs. The rail
+ * is only half the fix; `(franchise)/layout.tsx` is the part that enforces it.
+ */
+const FRANCHISE_LINKS = [
+  { href: "/franchise/dispatch", label: "Dispatch", icon: TruckIcon },
+  { href: "/franchise/farmers", label: "Farmers", icon: UsersIcon },
 ];
 
 /**
@@ -79,12 +90,10 @@ function ThemeToggle() {
 }
 
 export function ConsoleNav({
-  franchise,
   session,
   pending = {},
   notifications,
 }: {
-  franchise: { name: string; code: string };
   session: { email?: string; role: Role };
   /** Counts shown as badges on the rail, keyed by href. */
   pending?: Record<string, number>;
@@ -92,6 +101,15 @@ export function ConsoleNav({
   notifications: { rows: Notification[]; unread: number; capped: boolean };
 }) {
   const pathname = usePathname();
+
+  /*
+    Operations see the franchise links too, because they field the call when a
+    franchise cannot work a screen and need to be looking at the same rail.
+  */
+  const links =
+    session.role === "franchise" || session.role === "admin"
+      ? [...BUYING_LINKS, ...FRANCHISE_LINKS]
+      : BUYING_LINKS;
 
   return (
     // Pinned to the viewport rather than stretched to the page, so the theme
@@ -119,7 +137,7 @@ export function ConsoleNav({
       <Separator />
 
       <ul className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2">
-        {LINKS.map(({ href, label, icon: Icon }) => {
+        {links.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
           const waiting = pending[href] ?? 0;
           return (
@@ -151,11 +169,9 @@ export function ConsoleNav({
 
       <div className="border-sidebar-border shrink-0 border-t p-3 flex flex-col gap-3">
         <ThemeToggle />
-        <Separator />
-        <div className="flex flex-col leading-tight">
-          <span className="truncate text-sm font-medium">{franchise.name}</span>
-          <span className="text-faint font-mono text-xs">{franchise.code}</span>
-        </div>
+        {/* The account block was the mock franchise's name and code, on every
+            buyer's rail as well as every franchise's. `SessionFooter` already
+            says who is signed in, and it says it from the session. */}
         <Separator />
         <SessionFooter email={session.email} role={session.role} />
       </div>
