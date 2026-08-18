@@ -207,6 +207,8 @@ export const en = {
     openingSoon: "Opening soon",
     mapUnavailable: "The map could not be loaded. The villages are listed below.",
     mapLabel: "Map of the villages we collect from",
+    showList: "Show the village list",
+    hideList: "Hide the village list",
     illustrative:
       "Example coverage. These are the villages the platform ships with, not the live list — the real one appears as soon as it can be read.",
   },
@@ -249,6 +251,9 @@ export const en = {
     successTitle: "Enquiry received",
     successBody:
       "Operations will call you on the number you gave to arrange document checks.",
+    failedTitle: "We could not send that",
+    failedBody:
+      "Please try again, or telephone us on the number in the footer.",
   },
 
   signin: {

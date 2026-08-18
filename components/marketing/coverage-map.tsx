@@ -172,6 +172,7 @@ export function CoverageMap({
   opening,
   language,
   labels,
+  onLoaded,
 }: {
   places: MappedPlace[];
   /**
@@ -184,6 +185,15 @@ export function CoverageMap({
   opening: OpeningState[];
   /** The reader's locale, so Google labels the map in their own script. */
   language: string;
+  /**
+   * Told when the map is genuinely drawn, so the section can put the village
+   * cards away — they say the same thing twice once there are pins.
+   *
+   * Reported from here rather than guessed at from the presence of a key,
+   * because a key that is blocked, unbilled or wrongly restricted still leaves
+   * an empty grey box, and the cards are the only thing that would be left.
+   */
+  onLoaded?: () => void;
   labels: {
     farmers: string;
     openingSoon: string;
@@ -283,6 +293,8 @@ export function CoverageMap({
           markers.push(marker);
         }
 
+        onLoaded?.();
+
         // Tightened onto the pins, rather than trusting the guessed zoom. The
         // centre and zoom above are already right enough to stand alone, so
         // this is allowed to be unavailable.
@@ -306,7 +318,7 @@ export function CoverageMap({
       for (const marker of markers) marker.setMap(null);
       markers = [];
     };
-  }, [near, places, language, labels]);
+  }, [near, places, language, labels, onLoaded]);
 
   const chips =
     opening.length > 0 ? (

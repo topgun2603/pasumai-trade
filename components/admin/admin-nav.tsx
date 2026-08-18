@@ -7,6 +7,7 @@ import {
   ChartColumnIcon,
   ClipboardListIcon,
   GaugeIcon,
+  InboxIcon,
   HardHatIcon,
   LeafIcon,
   MoonIcon,
@@ -62,6 +63,9 @@ const SECTIONS: Array<{ title?: string; links: NavLink[] }> = [
   {
     title: "Accounts",
     links: [
+      // Above KYC review on purpose: an enquiry is where an account begins, and
+      // nobody reaches the KYC queue without first being called back.
+      { href: "/admin/enquiries", label: "Enquiries", icon: InboxIcon },
       { href: "/admin/kyc", label: "KYC review", icon: BadgeCheckIcon },
       { href: "/admin/buyers", label: "Buyers", icon: UserRoundIcon },
       { href: "/admin/farmers", label: "Farmers", icon: TractorIcon },

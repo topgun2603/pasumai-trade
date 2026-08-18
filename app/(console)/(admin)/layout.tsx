@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { requireConsole } from "@/lib/auth/require";
 import { needsReview } from "@/lib/domain/admin";
+import { countWaiting } from "@/lib/firebase/enquiries";
 import {
   buyerAccounts,
   driverAccounts,
@@ -24,6 +25,13 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const now = new Date();
 
   const pending = {
+    /*
+      The one real count in here. An enquiry is a person who was told they
+      would be called and has not been, so this number is somebody waiting by a
+      phone rather than a row in a table — which is why it is read from the
+      database while the rest are still derived from samples.
+    */
+    "/admin/enquiries": await countWaiting(),
     "/admin/buyers": buyerAccounts(now).filter((a) => needsReview(a.status)).length,
     "/admin/farmers": farmerAccounts(now).filter((a) => needsReview(a.status)).length,
     "/admin/transport/drivers": driverAccounts(now).filter((a) => needsReview(a.status)).length,

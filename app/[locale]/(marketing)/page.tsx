@@ -1,10 +1,8 @@
 import {
   BanknoteIcon,
   ClipboardCheckIcon,
-  FlaskConicalIcon,
   FileCheck2Icon,
   HandshakeIcon,
-  MapPinIcon,
   RouteIcon,
   ScaleIcon,
   ShieldCheckIcon,
@@ -20,7 +18,7 @@ import { BargainDemo } from "@/components/marketing/bargain-demo";
 import { Hero } from "@/components/marketing/hero";
 import { Journey } from "@/components/marketing/journey";
 import { LanguageBand } from "@/components/marketing/language-band";
-import { CoverageMap } from "@/components/marketing/coverage-map";
+import { CoverageSection } from "@/components/marketing/coverage-section";
 import { LivePrices } from "@/components/marketing/live-prices";
 import { MediaFrame } from "@/components/marketing/media-frame";
 import {
@@ -385,57 +383,35 @@ export default async function LandingPage({
               {t.coverage.title}
             </h2>
             <p className="text-muted-foreground">{t.coverage.body}</p>
-            {coverage.live ? null : (
-              <p className="border-border bg-secondary text-muted-foreground mt-1 flex items-start gap-2 rounded-lg border px-3.5 py-2.5 text-xs">
-                <FlaskConicalIcon className="mt-0.5 size-3.5 shrink-0" />
-                <span>{t.coverage.illustrative}</span>
-              </p>
-            )}
           </Reveal>
 
           {/*
-            The map illustrates the list; it does not replace it. Everything
-            below renders from the server with no JavaScript, so a reader whose
-            map never loads still learns exactly where produce is collected.
+            Map and list in one client component, because only the map knows
+            whether it drew — and that, not the presence of a key, is what
+            decides whether the cards are redundant.
           */}
-          <CoverageMap
-            places={coverage.pins}
+          <CoverageSection
+            cards={coverage.places.map((place) => ({
+              id: place.id,
+              name: place.name,
+              districtName: place.districtName,
+              pincode: place.pincode,
+              farmerCount: place.farmerCount,
+            }))}
+            pins={coverage.pins}
             opening={coverage.opening}
+            live={coverage.live}
             language={locale}
             labels={{
               farmers: t.coverage.farmers,
               openingSoon: t.coverage.openingSoon,
               unavailable: t.coverage.mapUnavailable,
               regionLabel: t.coverage.mapLabel,
+              illustrative: t.coverage.illustrative,
+              showList: t.coverage.showList,
+              hideList: t.coverage.hideList,
             }}
           />
-
-          <Stagger className="mt-8">
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {coverage.places.map((place) => (
-                <StaggerListItem
-                  key={place.id}
-                  className={
-                    coverage.live
-                      ? "bg-card flex flex-col gap-2 rounded-xl border p-5"
-                      : // Drawn as an example, not merely labelled as one. A
-                        // card that looks the same either way is a card the
-                        // reader treats the same way.
-                        "flex flex-col gap-2 rounded-xl border border-dashed p-5"
-                  }
-                >
-                  <span className="text-muted-foreground flex items-center gap-1.5 text-sm">
-                    <MapPinIcon className="size-3.5 shrink-0" />
-                    {place.districtName}
-                  </span>
-                  <h3 className="leading-snug font-medium">{place.name}</h3>
-                  <p className="text-faint tabular text-sm">
-                    {place.farmerCount} {t.coverage.farmers} · {place.pincode}
-                  </p>
-                </StaggerListItem>
-              ))}
-            </ul>
-          </Stagger>
         </div>
       </section>
 
@@ -482,7 +458,7 @@ export default async function LandingPage({
 
           <Reveal delay={0.1}>
             <div className="bg-card rounded-xl border p-6">
-              <EnquiryForm t={t} />
+              <EnquiryForm t={t} locale={locale} />
             </div>
           </Reveal>
         </div>

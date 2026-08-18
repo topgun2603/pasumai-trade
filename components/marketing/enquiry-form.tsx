@@ -44,7 +44,7 @@ const EMPTY: Values = {
  * English-only. Translating those is a follow-up: they are shared with the
  * admin console, which staff operate in English.
  */
-export function EnquiryForm({ t }: { t: Dictionary }) {
+export function EnquiryForm({ t, locale }: { t: Dictionary; locale: string }) {
   const [values, setValues] = useState<Values>(EMPTY);
   const [errors, setErrors] = useState<Partial<Record<keyof Values, string>>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -54,7 +54,7 @@ export function EnquiryForm({ t }: { t: Dictionary }) {
     setErrors((e) => (e[key] ? { ...e, [key]: undefined } : e));
   }
 
-  function submit(event: React.FormEvent) {
+  async function submit(event: React.FormEvent) {
     event.preventDefault();
 
     const found: Partial<Record<keyof Values, string>> = {
@@ -66,11 +66,46 @@ export function EnquiryForm({ t }: { t: Dictionary }) {
     if (Object.values(found).some(Boolean)) return;
 
     setSubmitting(true);
-    setTimeout(() => {
+
+    /*
+      This used to be `setTimeout(500)` and a success toast — a form that
+      thanked people for getting in touch and threw what they wrote away. Every
+      enquiry ever made on this page was lost, and each of those people was told
+      somebody would call.
+
+      So the toast now waits for the write, and a failure says so. Being told to
+      telephone instead is worth far more than a green tick that means nothing.
+    */
+    let response: Response;
+    try {
+      response = await fetch("/api/enquiries", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ...values, locale }),
+      });
+    } catch {
       setSubmitting(false);
-      setValues(EMPTY);
-      toast.success(t.apply.successTitle, { description: t.apply.successBody });
-    }, 500);
+      toast.error(t.apply.failedTitle, { description: t.apply.failedBody });
+      return;
+    }
+
+    const data = (await response.json().catch(() => ({}))) as {
+      errors?: Partial<Record<keyof Values, string>>;
+    };
+    setSubmitting(false);
+
+    if (response.status === 422 && data.errors) {
+      // The server checks again, because the form is a page anybody can skip.
+      setErrors(data.errors);
+      return;
+    }
+    if (!response.ok) {
+      toast.error(t.apply.failedTitle, { description: t.apply.failedBody });
+      return;
+    }
+
+    setValues(EMPTY);
+    toast.success(t.apply.successTitle, { description: t.apply.successBody });
   }
 
   function fieldError(id: string, message?: string) {
