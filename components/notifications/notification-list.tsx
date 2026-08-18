@@ -19,6 +19,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   describe,
   inReadingOrder,
@@ -126,13 +127,13 @@ export function NotificationList({
 
   if (notifications.length === 0) {
     return (
-      <div className="text-muted-foreground flex flex-col items-center gap-2 px-4 py-10 text-center">
-        <BellIcon className="size-6" />
-        <p className="max-w-xs text-sm">
-          Nothing yet. New produce, offers on your lots and settled bargains
-          appear here.
-        </p>
-      </div>
+      <EmptyState
+        icon={BellIcon}
+        tone="waiting"
+        title="No notifications yet"
+        description="New produce in your districts, offers on your lots, settled bargains and arranged transport all appear here. Nothing is ever only sent by push — it lands here too, so a missed alert is not a missed message."
+        className="border-0"
+      />
     );
   }
 

@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { BargainHistory } from "@/components/farm/bargain-history";
 import type { NearbyType, PickupState } from "@/components/farm/call-vehicle";
 import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import { requireFarmer } from "@/lib/auth/farm";
 import { agreedQuantity } from "@/lib/domain/dispatch-request";
 import { isPoint } from "@/lib/domain/distance";
@@ -122,13 +123,12 @@ export default async function FarmSalesPage() {
 
       <div className="flex flex-col gap-4 p-5">
         {history.length === 0 ? (
-          <div className="border-border text-muted-foreground flex flex-col items-center gap-3 rounded-lg border border-dashed px-4 py-14 text-center">
-            <HistoryIcon className="size-7" />
-            <p className="max-w-sm text-sm">
-              Nothing has finished yet. When a bargain is accepted or closed it moves here, with
-              the price it settled at.
-            </p>
-          </div>
+          <EmptyState
+            icon={HistoryIcon}
+            tone="waiting"
+            title="No sales yet"
+            description="When a bargain is accepted or closed it moves here with the price it settled at, so you can see what your crop has been worth. Live bargaining is under Bargains."
+          />
         ) : (
           <BargainHistory
             threads={history}

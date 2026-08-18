@@ -22,6 +22,9 @@ import {
   Rows3Icon,
   SearchIcon,
   SlidersHorizontalIcon,
+  InboxIcon,
+  FilterXIcon,
+  type LucideIcon,
 } from "lucide-react";
 import { Fragment, useMemo, useState, type ReactNode } from "react";
 
@@ -34,6 +37,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { EmptyState, type EmptyTone } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -105,6 +109,7 @@ export function DataTable<T extends { id: string }>({
   expand,
   rowActions,
   toolbar,
+  empty,
   initialPageSize = 25,
 }: {
   rows: readonly T[];
@@ -122,6 +127,15 @@ export function DataTable<T extends { id: string }>({
   rowActions?: (row: T) => ReactNode;
   /** Extra controls dropped into the toolbar, e.g. a district filter. */
   toolbar?: ReactNode;
+  /**
+   * What to say when the list has never had anything in it.
+   *
+   * Distinct from the filtered-to-nothing message, which this component writes
+   * itself. Conflating the two is what it used to do — "no buyers match these
+   * filters" on a platform with no buyers reads as a broken filter, and
+   * somebody clears it, and nothing happens.
+   */
+  empty?: { icon?: LucideIcon; title: string; description?: string; tone?: EmptyTone };
   initialPageSize?: number;
 }) {
   const [tab, setTab] = useState(tabs?.[0]?.value ?? "all");
@@ -166,6 +180,40 @@ export function DataTable<T extends { id: string }>({
       return searchText(row).toLowerCase().includes(needle);
     });
   }, [rows, tabs, tab, query, searchText]);
+
+  /*
+    Two different emptinesses. Nothing has ever been here, or everything here is
+    hidden — the second has a fix the reader can act on, so it offers it.
+  */
+  const nothingAtAll = rows.length === 0;
+
+  const emptyState = nothingAtAll ? (
+    <EmptyState
+      icon={empty?.icon ?? InboxIcon}
+      title={empty?.title ?? `No ${entityLabel} yet`}
+      description={empty?.description}
+      tone={empty?.tone ?? "waiting"}
+    />
+  ) : (
+    <EmptyState
+      icon={FilterXIcon}
+      tone="filtered"
+      title={`No ${entityLabel} match this search`}
+      description={`There are ${rows.length} ${entityLabel} in total. Clear the search and tabs to see them.`}
+      action={
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setQuery("");
+            setTab(tabs?.[0]?.value ?? "all");
+          }}
+        >
+          Clear filters
+        </Button>
+      }
+    />
+  );
 
   const tableColumns = useMemo<ColumnDef<T>[]>(() => {
     const helper = createColumnHelper<T>();
@@ -316,9 +364,7 @@ export function DataTable<T extends { id: string }>({
       {card && view === "cards" ? (
         <div className="min-w-0 flex-1 overflow-y-auto border-t p-6">
           {pageRows.length === 0 ? (
-            <p className="text-muted-foreground py-16 text-center text-sm">
-              No {entityLabel} match these filters.
-            </p>
+            emptyState
           ) : (
             <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {pageRows.map((row) => (
@@ -388,11 +434,9 @@ export function DataTable<T extends { id: string }>({
                 <TableRow>
                   <TableCell
                     colSpan={table.getVisibleLeafColumns().length + trailingColumns}
-                    className="h-32 text-center"
+                    className="p-6"
                   >
-                    <span className="text-muted-foreground text-sm">
-                      No {entityLabel} match these filters.
-                    </span>
+                    {emptyState}
                   </TableCell>
                 </TableRow>
               ) : (

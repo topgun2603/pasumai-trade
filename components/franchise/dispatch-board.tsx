@@ -12,6 +12,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Select,
   SelectContent,
@@ -165,9 +166,12 @@ export function DispatchBoard({
         <h2 className="text-lg font-medium">Awaiting dispatch</h2>
 
         {awaiting.length === 0 ? (
-          <p className="text-muted-foreground bg-card rounded-lg border p-6 text-center text-sm">
-            Nothing waiting. Every paid order has a vehicle.
-          </p>
+          <EmptyState
+            icon={TruckIcon}
+            tone="done"
+            title="Every paid order has a vehicle"
+            description="Nothing is sitting waiting for transport. A paid order appears here the moment it is placed, with the vehicles and drivers that can carry it."
+          />
         ) : (
           <ul className="flex flex-col gap-4">
             {awaiting.map((order) => {

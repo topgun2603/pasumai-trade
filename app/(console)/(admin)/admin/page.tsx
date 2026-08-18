@@ -1,8 +1,11 @@
 import {
   AlertTriangleIcon,
+  BadgeCheckIcon,
   ClockIcon,
   FileWarningIcon,
+  ShieldCheckIcon,
   TruckIcon,
+  UsersIcon,
 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -13,6 +16,7 @@ import { AdminPageHeader } from "@/components/admin/page-header";
 import { StatTile } from "@/components/franchise/stat-tile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   DOCUMENT_LABELS,
   daysUntilExpiry,
@@ -198,9 +202,13 @@ export default async function AdminOverviewPage() {
           </div>
 
           {pickups.length === 0 ? (
-            <p className="text-muted-foreground p-6 text-center text-sm">
-              Every load has a vehicle coming for it.
-            </p>
+            <EmptyState
+              icon={TruckIcon}
+              tone="done"
+              title="Every load has a vehicle"
+              description="No produce is cut and waiting. A farmer's request appears here the moment nobody has accepted it."
+              className="m-4 border-0"
+            />
           ) : (
             <ul className="divide-y">
               {pickups.map((pickup) => (
@@ -241,7 +249,13 @@ export default async function AdminOverviewPage() {
           </div>
 
           {awaitingReview.length === 0 ? (
-            <p className="text-muted-foreground p-6 text-center text-sm">Nothing waiting.</p>
+            <EmptyState
+              icon={BadgeCheckIcon}
+              tone="done"
+              title="Nothing waiting on us"
+              description="Every enquiry has been called and every uploaded document decided."
+              className="m-4 border-0"
+            />
           ) : (
             <ul className="divide-y">
               {awaitingReview.map((item) => (
@@ -270,9 +284,13 @@ export default async function AdminOverviewPage() {
           </div>
 
           {lapses.length === 0 ? (
-            <p className="text-muted-foreground p-6 text-center text-sm">
-              Everything is in date.
-            </p>
+            <EmptyState
+              icon={ShieldCheckIcon}
+              tone="done"
+              title="Everything is in date"
+              description="No licence, insurance, fitness certificate or permit lapses within thirty days. They appear here well before they expire, because a renewal in India takes weeks."
+              className="m-4 border-0"
+            />
           ) : (
             <ul className="divide-y">
               {lapses.map((lapse) => (
@@ -317,9 +335,13 @@ export default async function AdminOverviewPage() {
           </div>
 
           {stopped.length + unverified.length === 0 ? (
-            <p className="text-muted-foreground p-6 text-center text-sm">
-              Everybody on the platform is cleared.
-            </p>
+            <EmptyState
+              icon={UsersIcon}
+              tone="done"
+              title="Everybody is cleared to work"
+              description="No account is suspended, refused or still waiting on verification. Anyone stopped by operations shows up here so a dispatch is never planned around them."
+              className="m-4 border-0"
+            />
           ) : (
             <ul className="divide-y">
               {[...stopped, ...unverified].map((subject) => (

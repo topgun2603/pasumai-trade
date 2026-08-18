@@ -1,6 +1,13 @@
 "use client";
 
-import { CheckIcon, ClockIcon, MessageSquareIcon, UploadIcon, XIcon } from "lucide-react";
+import {
+  BadgeCheckIcon,
+  CheckIcon,
+  ClockIcon,
+  MessageSquareIcon,
+  UploadIcon,
+  XIcon,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -9,6 +16,7 @@ import { ACCOUNT_GROUPS } from "@/components/admin/kyc-groups";
 import { DocumentStrip, type ViewableDocument } from "@/components/kyc/documents";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -135,10 +143,12 @@ export function KycQueue({ rows }: { rows: QueueRow[] }) {
 
   if (rows.length === 0) {
     return (
-      <div className="border-border text-muted-foreground flex flex-col items-center gap-3 rounded-lg border border-dashed px-4 py-14 text-center">
-        <CheckIcon className="size-7" />
-        <p className="text-sm">Nothing waiting. Every manual submission has been decided.</p>
-      </div>
+      <EmptyState
+        icon={BadgeCheckIcon}
+        tone="done"
+        title="Nothing waiting on us"
+        description="Every document somebody uploaded has been approved, refused or sent back. New submissions arrive here the moment they are made — oldest first, so nobody is left behind a queue."
+      />
     );
   }
 

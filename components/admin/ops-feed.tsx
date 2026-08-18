@@ -6,6 +6,7 @@ import Link from "next/link";
 import { DataTable, type Column, type FilterTab } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { OpsKind } from "@/lib/domain/ops-feed";
 
 /**
@@ -99,13 +100,12 @@ export function OpsFeed({ rows }: { rows: FeedRow[] }) {
 
   if (rows.length === 0) {
     return (
-      <div className="border-border text-muted-foreground flex flex-col items-center gap-3 rounded-lg border border-dashed px-4 py-14 text-center">
-        <BellIcon className="size-7" />
-        <p className="max-w-sm text-sm">
-          Nothing is waiting on operations. Enquiries and manual checks appear here as they
-          arrive, oldest first.
-        </p>
-      </div>
+      <EmptyState
+        icon={BellIcon}
+        tone="done"
+        title="Nothing is waiting on operations"
+        description="Every enquiry has been called and every document checked. Anything new appears here as it arrives — oldest first, with the ones past their reply time marked overdue."
+      />
     );
   }
 

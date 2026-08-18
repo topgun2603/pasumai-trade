@@ -1,11 +1,18 @@
 "use client";
 
-import { BadgeCheckIcon, MessageSquareIcon, UploadIcon, XIcon } from "lucide-react";
+import {
+  BadgeCheckIcon,
+  FileClockIcon,
+  MessageSquareIcon,
+  UploadIcon,
+  XIcon,
+} from "lucide-react";
 
 import { ACCOUNT_GROUPS } from "@/components/admin/kyc-groups";
 import { DataTable, type Column, type FilterTab } from "@/components/data-table";
 import { DocumentStrip, type ViewableDocument } from "@/components/kyc/documents";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { CHECK_LABELS, type CheckKind, type CheckState } from "@/lib/domain/kyc";
 import type { Role } from "@/lib/auth/claims";
 
@@ -177,10 +184,12 @@ export function KycHistory({ accounts }: { accounts: DecidedAccount[] }) {
       })}
 
       {accounts.length === 0 ? (
-        <div className="border-border text-muted-foreground rounded-lg border border-dashed px-4 py-10 text-center text-sm">
-          Nothing has been decided yet. Approvals and refusals are kept here with the documents
-          they were made on.
-        </div>
+        <EmptyState
+          icon={FileClockIcon}
+          tone="waiting"
+          title="No decisions yet"
+          description="Once operations approve, refuse or send back a document it is kept here — with the photograph it was decided on, who decided, and what was said. Nothing is deleted when a check is settled."
+        />
       ) : null}
     </div>
   );
