@@ -30,5 +30,17 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  // `functions` is a separate npm package, not part of this program.
+  //
+  // The app's include globs swept `functions/src` in, and it type-checked here
+  // only because a developer machine happens to have `functions/node_modules`
+  // installed. CI runs `npm ci` at the root, which never installs a nested
+  // package, so `firebase-functions` could not be resolved and the check failed
+  // on a clean checkout while passing locally.
+  //
+  // It should never have been in this program regardless: functions build to
+  // CommonJS against `moduleResolution: node`, and this config is ESM against
+  // `bundler`. They are checked by `functions/tsconfig.json`, which the CI
+  // workflow now runs on its own.
+  "exclude": ["node_modules", "functions"]
 }

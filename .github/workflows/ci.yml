@@ -59,6 +59,17 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
+      # `functions` is its own npm package with its own dependencies, its own
+      # tsconfig and a CommonJS target, so the root check above deliberately
+      # excludes it. Without these two steps it would be type-checked nowhere:
+      # the root check used to sweep it in and pass only on machines that
+      # happened to have these dependencies installed.
+      - name: Install functions
+        run: npm ci --prefix functions
+
+      - name: Type check functions
+        run: npm run typecheck --prefix functions
+
       - name: Test
         run: npm test
 
