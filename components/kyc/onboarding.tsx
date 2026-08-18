@@ -99,6 +99,25 @@ function StateBadge({ check }: { check?: Check }) {
           Refused
         </Badge>
       );
+    /*
+      These two used to fall through to "In progress", which reads as though the
+      platform is working on it — the opposite of the truth. Both mean the
+      applicant has been asked for something and nothing moves until they act.
+    */
+    case "moreInfo":
+      return (
+        <Badge variant="outline" className="border-warning/40 bg-warning-soft text-warning">
+          <TriangleAlertIcon className="size-3" />
+          Waiting on you
+        </Badge>
+      );
+    case "reupload":
+      return (
+        <Badge variant="outline" className="border-warning/40 bg-warning-soft text-warning">
+          <PaperclipIcon className="size-3" />
+          Send it again
+        </Badge>
+      );
     default:
       return <Badge variant="outline">In progress</Badge>;
   }
@@ -113,6 +132,10 @@ export function KycOnboarding({ view, roleLabel }: { view: OnboardingView; roleL
   const pickers = useRef<Record<string, HTMLInputElement | null>>({});
 
   const byKind = (kind: CheckKind) => view.checks.find((c) => c.kind === kind);
+
+  /** A file attached now, or one already on the check from an earlier pass. */
+  const hasEvidence = (kind: CheckKind) =>
+    (chosen[kind]?.length ?? 0) > 0 || (view.documents[kind]?.length ?? 0) > 0;
 
   /** Adds files to the pile for one check, refusing what the server would. */
   function pick(kind: CheckKind, list: FileList | null) {
@@ -344,8 +367,22 @@ export function KycOnboarding({ view, roleLabel }: { view: OnboardingView; roleL
                 <p className="text-muted-foreground font-mono text-sm">{check.reference}</p>
               ) : null}
 
-              {check?.state === "failed" && check.reason ? (
-                <p className="text-destructive text-sm">{check.reason}</p>
+              {/*
+                Shown for every state that carries one, not only refusals. A
+                question asked and a document sent back both put words on the
+                check, and both used to be invisible here — the applicant saw
+                "waiting on you" with nothing to act on.
+              */}
+              {check?.reason ? (
+                <p
+                  className={
+                    check.state === "failed"
+                      ? "text-destructive text-sm"
+                      : "border-warning/50 text-foreground border-l-2 pl-2.5 text-sm"
+                  }
+                >
+                  {check.reason}
+                </p>
               ) : null}
 
               {/* Everything sent so far, newest first. A person asked to send a
@@ -375,7 +412,17 @@ export function KycOnboarding({ view, roleLabel }: { view: OnboardingView; roleL
                     <Button
                       type="button"
                       variant="outline"
-                      disabled={pending !== null || !(values[kind] ?? "").trim()}
+                      /*
+                        A number with no document cannot be checked, so the
+                        button does not pretend otherwise. Files already on the
+                        check count: answering a question about a photograph
+                        operations have seen should not mean taking it again.
+                      */
+                      disabled={
+                        pending !== null ||
+                        !(values[kind] ?? "").trim() ||
+                        !hasEvidence(kind)
+                      }
                       onClick={() => submit(kind)}
                     >
                       {pending === kind ? (
@@ -426,10 +473,16 @@ export function KycOnboarding({ view, roleLabel }: { view: OnboardingView; roleL
                       <PaperclipIcon className="size-3.5" />
                       Attach photo
                     </Button>
-                    <span className="text-faint text-xs">
+                    <span
+                      className={
+                        hasEvidence(kind) ? "text-faint text-xs" : "text-warning text-xs"
+                      }
+                    >
                       {(chosen[kind]?.length ?? 0) > 0
                         ? `${chosen[kind].length} of ${MAX_DOCUMENTS} attached`
-                        : `Up to ${MAX_DOCUMENTS}. Photo or PDF.`}
+                        : hasEvidence(kind)
+                          ? "Already sent. Attach another only if it has changed."
+                          : "A photo or PDF is required — the number alone cannot be checked."}
                     </span>
                   </div>
 

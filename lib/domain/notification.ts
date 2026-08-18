@@ -64,6 +64,18 @@ export interface NotificationSubject {
   readonly negotiationId?: string;
   readonly orderId?: string;
   readonly agencyName?: string;
+  /**
+   * What operations actually said, in their own words.
+   *
+   * Free text, so it is shown beside the templated sentence rather than
+   * inside it — a question typed in English does not belong in the middle of a
+   * Tamil sentence, and the sentence is what gets translated.
+   *
+   * Without this the applicant was told "we need something more about
+   * Identity" and never what. The question was stored on the check and shown
+   * nowhere.
+   */
+  readonly note?: string;
 }
 
 export interface Notification {

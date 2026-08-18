@@ -63,3 +63,24 @@ export function listingKey(listingId: string, accountId: string): string {
 export function orderKey(orderId: string, accountId: string): string {
   return notificationKey([orderId, "ordered"], accountId);
 }
+
+/**
+ * A decision operations made about one KYC check.
+ *
+ * Keyed on how many notes the check's trail now holds, for exactly the reason
+ * `bargainMessageKey` is keyed on the message count: the trail is append-only,
+ * so its length after this decision is a permanent name for it.
+ *
+ * The obvious key — account, check, resulting state — is what this replaces,
+ * and it was silently wrong. Asking a second question about the same check
+ * produced the same id, the `create` collided, and the applicant was never
+ * told. The operator saw "asked" and nothing happened: no notification, no
+ * bell, no push. Twice is not an edge case here; it is what a conversation is.
+ */
+export function kycDecisionKey(
+  accountId: string,
+  kind: string,
+  noteCount: number,
+): string {
+  return notificationKey([accountId, "kyc", kind, `n${noteCount}`], accountId);
+}

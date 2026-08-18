@@ -237,6 +237,13 @@ export function NotificationList({
                   >
                     {describe(notification, locale)}
                   </span>
+                  {/* What operations actually asked, quoted rather than folded
+                      into the translated sentence above it. */}
+                  {notification.subject.note ? (
+                    <span className="border-primary/40 text-foreground mt-1 border-l-2 pl-2 text-sm">
+                      {notification.subject.note}
+                    </span>
+                  ) : null}
                   <span className="text-faint text-xs">
                     {relativeTime(notification.createdAt, new Date().getTime())}
                   </span>

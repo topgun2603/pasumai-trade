@@ -203,6 +203,34 @@ export async function POST(request: Request) {
   // a refused check erases the photograph it was refused for.
   const check = withDocuments({ ...base, documents: already?.documents }, documents);
 
+  /*
+    A number without a document is not evidence.
+
+    Every check here is manual — no register is being queried — so the only
+    thing an operator can actually review is the photograph. A submission with
+    just a typed number gives them a string to approve and nothing to check it
+    against, which is how a queue turns into a rubber stamp.
+
+    This applies to the optional checks too, and that is the point: GST and
+    FSSAI are optional to *provide*. Nobody has to enter a GSTIN. But entering
+    one is a claim, and a claim needs the certificate behind it — an unverified
+    GSTIN on an invoice is worse than none.
+
+    Documents already on the check count. Answering a question about a document
+    operations have already seen should not mean photographing it again.
+  */
+  if ((check.documents?.length ?? 0) === 0) {
+    return Response.json(
+      {
+        error:
+          "Attach a photograph or PDF of the document. The number on its own cannot be checked.",
+        field: kind,
+        needsDocument: true,
+      },
+      { status: 422 },
+    );
+  }
+
   const checks: Check[] = [...existing.filter((c) => c.kind !== kind), check];
   const state = kycState(checks, role);
 

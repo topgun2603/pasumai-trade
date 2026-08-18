@@ -12,7 +12,7 @@ import {
 } from "@/lib/domain/kyc";
 import { COLLECTION_FOR_SIGNUP, canSelfSignup } from "@/lib/domain/signup";
 import { CHECK_LABELS } from "@/lib/domain/kyc";
-import { notificationKey } from "@/lib/domain/notification-key";
+import { kycDecisionKey } from "@/lib/domain/notification-key";
 import type { NotificationKind } from "@/lib/domain/notification";
 import { adminDb } from "@/lib/firebase/admin";
 import { writeNotifications } from "@/lib/firebase/notifications-write";
@@ -160,11 +160,15 @@ export async function POST(request: Request) {
 
   const drafts = [
     {
-      id: notificationKey([accountId, "kyc", kind, updated.state], accountId),
+      // Keyed on the length of the trail, so a second question about the same
+      // check is a second notification rather than a silent collision.
+      id: kycDecisionKey(accountId, kind, updated.notes?.length ?? 0),
       accountId,
       audience: (role === "farmer" ? "farmer" : "buyer") as "farmer" | "buyer",
       kind: kindNotified,
-      subject: { counterparty: CHECK_LABELS[kind] },
+      // The operator's own words travel with it. "We need something more about
+      // Identity" is not a question anybody can answer.
+      subject: { counterparty: CHECK_LABELS[kind], note: reason || undefined },
       href: VERIFICATION_HREF[role] ?? "/verification",
     },
   ];

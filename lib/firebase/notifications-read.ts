@@ -70,6 +70,10 @@ function shape(id: string, data: Record<string, unknown>): Notification | null {
         typeof subject.negotiationId === "string" ? subject.negotiationId : undefined,
       orderId: typeof subject.orderId === "string" ? subject.orderId : undefined,
       agencyName: typeof subject.agencyName === "string" ? subject.agencyName : undefined,
+      // Free text from an operator. Shaped like the rest rather than passed
+      // through, so a field added to the document cannot arrive on a screen
+      // without somebody deciding it should.
+      note: typeof subject.note === "string" ? subject.note : undefined,
     },
     href: typeof data.href === "string" ? data.href : "/",
     createdAt: toDate(data.createdAt),
