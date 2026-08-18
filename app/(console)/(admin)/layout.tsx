@@ -4,6 +4,7 @@ import { AdminNav } from "@/components/admin/admin-nav";
 import { requireConsole } from "@/lib/auth/require";
 import { needsReview } from "@/lib/domain/admin";
 import { countWaiting } from "@/lib/firebase/enquiries";
+import { readKycAccounts } from "@/lib/firebase/kyc-read";
 import {
   buyerAccounts,
   driverAccounts,
@@ -24,6 +25,21 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const session = await requireConsole(["admin"]);
   const now = new Date();
 
+  /*
+    Both counts the rail carries that mean somebody is waiting on us. Read
+    together so the two badges cannot disagree about how much work there is.
+  */
+  const [enquiriesWaiting, kycAccounts] = await Promise.all([
+    countWaiting(),
+    readKycAccounts(),
+  ]);
+
+  const kycWaiting = kycAccounts.reduce(
+    (total, account) =>
+      total + account.checks.filter((check) => check.state === "review").length,
+    0,
+  );
+
   const pending = {
     /*
       The one real count in here. An enquiry is a person who was told they
@@ -31,7 +47,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       phone rather than a row in a table — which is why it is read from the
       database while the rest are still derived from samples.
     */
-    "/admin/enquiries": await countWaiting(),
+    "/admin/notifications": enquiriesWaiting + kycWaiting,
+    "/admin/enquiries": enquiriesWaiting,
+    "/admin/kyc": kycWaiting,
     "/admin/buyers": buyerAccounts(now).filter((a) => needsReview(a.status)).length,
     "/admin/farmers": farmerAccounts(now).filter((a) => needsReview(a.status)).length,
     "/admin/transport/drivers": driverAccounts(now).filter((a) => needsReview(a.status)).length,

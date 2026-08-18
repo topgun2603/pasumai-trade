@@ -128,6 +128,7 @@ export default async function AdminKycPage() {
 
       return [
         {
+          id: entry.accountId,
           accountId: entry.accountId,
           role: entry.role,
           name: entry.name,

@@ -1,40 +1,27 @@
 "use client";
 
-import {
-  CheckIcon,
-  InboxIcon,
-  PhoneIcon,
-  SproutIcon,
-  StoreIcon,
-  XIcon,
-} from "lucide-react";
+import { CheckIcon, PhoneIcon, SproutIcon, StoreIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { DataTable, type Column, type FilterTab } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { STATUS_LABELS, type EnquiryStatus, type Interest } from "@/lib/domain/enquiry";
 
 /**
  * People who asked to be called.
  *
- * The form behind this has been on the landing page since the beginning and
- * went nowhere — it waited half a second and said "we will call you". This is
- * the other end of it, finally built.
+ * Rendered through the one data grid, so search, sorting, paging and the card
+ * toggle behave the same here as on every other list in the console. The table
+ * this replaced was hand-rolled and had none of them — which was fine at four
+ * enquiries and useless at four hundred.
  *
  * A row is a person, not a ticket. The mobile number is the first thing on it
- * and a `tel:` link, because the only action that matters here is ringing them,
- * and an operator should not have to copy a number out of a table to do it.
+ * and a `tel:` link, because the only action that matters is ringing them, and
+ * an operator should not have to copy a number out of a table to do it.
  */
 
 export interface EnquiryRow {
@@ -48,6 +35,8 @@ export interface EnquiryRow {
   readonly status: EnquiryStatus;
   /** Pre-formatted on the server so both renders agree. */
   readonly askedLabel: string;
+  /** Milliseconds since it arrived, so the column sorts by age not by wording. */
+  readonly askedAt: number;
   readonly notes: Array<{ at: string; operator?: string; status: string; message?: string }>;
 }
 
@@ -110,159 +99,201 @@ export function EnquiryQueue({ rows }: { rows: EnquiryRow[] }) {
     router.refresh();
   }
 
-  if (rows.length === 0) {
-    return (
-      <div className="border-border text-muted-foreground flex flex-col items-center gap-3 rounded-lg border border-dashed px-4 py-14 text-center">
-        <InboxIcon className="size-7" />
-        <p className="max-w-sm text-sm">
-          Nobody has asked yet. Enquiries from the landing page arrive here, and the rail counts
-          the ones nobody has called.
-        </p>
-      </div>
-    );
-  }
+  const columns: Column<EnquiryRow>[] = [
+    {
+      key: "name",
+      header: "Who",
+      sortValue: (row) => row.name.toLowerCase(),
+      cell: (row) => (
+        <span className="flex flex-col leading-tight">
+          <span className="font-medium">{row.name}</span>
+          {/* The point of the row. A number an operator has to copy out of a
+              table is a call that happens later. */}
+          <a
+            href={`tel:+91${row.mobile}`}
+            className="text-primary flex items-center gap-1 text-sm hover:underline"
+          >
+            <PhoneIcon className="size-3" />
+            {row.mobile}
+          </a>
+          {row.organisation ? (
+            <span className="text-muted-foreground text-xs">{row.organisation}</span>
+          ) : null}
+        </span>
+      ),
+    },
+    {
+      key: "interest",
+      header: "Wants to",
+      sortValue: (row) => row.interest,
+      cell: (row) => (
+        <span className="flex items-center gap-1.5 text-sm whitespace-nowrap">
+          {row.interest === "farmer" ? (
+            <SproutIcon className="size-3.5" />
+          ) : (
+            <StoreIcon className="size-3.5" />
+          )}
+          {row.interest === "farmer" ? "Sell produce" : "Buy produce"}
+        </span>
+      ),
+    },
+    {
+      key: "district",
+      header: "Where",
+      sortValue: (row) => row.district.toLowerCase(),
+      cell: (row) => <span className="text-muted-foreground text-sm">{row.district}</span>,
+    },
+    {
+      key: "status",
+      header: "Status",
+      sortValue: (row) => row.status,
+      cell: (row) => (
+        <Badge variant="outline" className={STATUS_STYLE[row.status]}>
+          {STATUS_LABELS[row.status]}
+        </Badge>
+      ),
+    },
+    {
+      key: "asked",
+      header: "Asked",
+      // Sorted on the timestamp, not the label: "3 days ago" and "just now"
+      // sort alphabetically into nonsense.
+      sortValue: (row) => row.askedAt,
+      cell: (row) => (
+        <span className="text-faint text-xs whitespace-nowrap">{row.askedLabel}</span>
+      ),
+    },
+  ];
+
+  const tabs: FilterTab<EnquiryRow>[] = [
+    { value: "waiting", label: "To call", match: (row) => row.status === "new" },
+    { value: "contacted", label: "Contacted", match: (row) => row.status === "contacted" },
+    { value: "converted", label: "Opened", match: (row) => row.status === "converted" },
+    { value: "closed", label: "Closed", match: (row) => row.status === "closed" },
+    { value: "all", label: "All" },
+  ];
 
   return (
-    <div className="border-border overflow-x-auto rounded-lg border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Who</TableHead>
-            <TableHead>Wants to</TableHead>
-            <TableHead>Where</TableHead>
-            <TableHead>Asked</TableHead>
-            <TableHead className="text-right">Next</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((row) => {
-            const busy = pending === row.id;
+    <DataTable
+      rows={rows}
+      columns={columns}
+      tabs={tabs}
+      entityLabel="enquiries"
+      searchPlaceholder="Name, number, district or what they wrote"
+      // Everything an operator might half-remember, including the message,
+      // which is never a column but is often the only thing they recall.
+      searchText={(row) =>
+        [row.name, row.mobile, row.district, row.organisation, row.message]
+          .filter(Boolean)
+          .join(" ")
+      }
+      expand={(row) => (
+        <div className="flex flex-col gap-2">
+          {row.message ? (
+            <p className="text-muted-foreground max-w-2xl text-sm">{row.message}</p>
+          ) : (
+            <p className="text-faint text-sm">They left no message.</p>
+          )}
 
-            return (
-              <TableRow key={row.id}>
-                <TableCell className="align-top">
-                  <span className="flex flex-col leading-tight">
-                    <span className="font-medium">{row.name}</span>
-                    {/* The point of the row. A number an operator has to copy
-                        out of a table is a call that happens later. */}
-                    <a
-                      href={`tel:+91${row.mobile}`}
-                      className="text-primary flex items-center gap-1 text-sm hover:underline"
-                    >
-                      <PhoneIcon className="size-3" />
-                      {row.mobile}
-                    </a>
-                    {row.organisation ? (
-                      <span className="text-muted-foreground text-xs">{row.organisation}</span>
-                    ) : null}
+          {asking?.id === row.id ? (
+            <Input
+              autoFocus
+              placeholder={PROMPTS[asking.move]}
+              value={notes[row.id] ?? ""}
+              onChange={(e) => setNotes((n) => ({ ...n, [row.id]: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") move(row, asking.move);
+                if (e.key === "Escape") setAsking(null);
+              }}
+            />
+          ) : null}
+
+          {row.notes.length > 0 ? (
+            <ol className="border-border flex flex-col gap-1 border-l pl-3">
+              {row.notes.map((note, i) => (
+                <li key={i} className="text-xs">
+                  <span className="text-muted-foreground">
+                    {STATUS_LABELS[note.status as EnquiryStatus] ?? note.status}
                   </span>
-
-                  {row.message ? (
-                    <p className="text-muted-foreground mt-2 max-w-md text-xs">{row.message}</p>
+                  {note.message ? (
+                    <span className="text-foreground"> — {note.message}</span>
                   ) : null}
-
-                  {asking?.id === row.id ? (
-                    <Input
-                      autoFocus
-                      className="mt-2"
-                      placeholder={PROMPTS[asking.move]}
-                      value={notes[row.id] ?? ""}
-                      onChange={(e) => setNotes((n) => ({ ...n, [row.id]: e.target.value }))}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") move(row, asking.move);
-                        if (e.key === "Escape") setAsking(null);
-                      }}
-                    />
-                  ) : null}
-
-                  {row.notes.length > 0 ? (
-                    <ol className="border-border mt-2 flex flex-col gap-1 border-l pl-3">
-                      {row.notes.map((note, i) => (
-                        <li key={i} className="text-xs">
-                          <span className="text-muted-foreground">
-                            {STATUS_LABELS[note.status as EnquiryStatus] ?? note.status}
-                          </span>
-                          {note.message ? (
-                            <span className="text-foreground"> — {note.message}</span>
-                          ) : null}
-                          <span className="text-faint">
-                            {" "}
-                            · {note.at}
-                            {note.operator ? ` · ${note.operator}` : ""}
-                          </span>
-                        </li>
-                      ))}
-                    </ol>
-                  ) : null}
-                </TableCell>
-
-                <TableCell className="align-top">
-                  <span className="flex items-center gap-1.5 text-sm whitespace-nowrap">
-                    {row.interest === "farmer" ? (
-                      <SproutIcon className="size-3.5" />
-                    ) : (
-                      <StoreIcon className="size-3.5" />
-                    )}
-                    {row.interest === "farmer" ? "Sell produce" : "Buy produce"}
+                  <span className="text-faint">
+                    {" "}
+                    · {note.at}
+                    {note.operator ? ` · ${note.operator}` : ""}
                   </span>
-                </TableCell>
-
-                <TableCell className="text-muted-foreground align-top text-sm">
-                  {row.district}
-                </TableCell>
-
-                <TableCell className="align-top">
-                  <span className="flex flex-col items-start gap-1">
-                    <Badge variant="outline" className={STATUS_STYLE[row.status]}>
-                      {STATUS_LABELS[row.status]}
-                    </Badge>
-                    <span className="text-faint text-xs whitespace-nowrap">{row.askedLabel}</span>
-                  </span>
-                </TableCell>
-
-                <TableCell className="align-top">
-                  <span className="flex flex-wrap justify-end gap-1.5">
-                    {row.status === "new" ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={busy}
-                        onClick={() => move(row, "contacted")}
-                      >
-                        <PhoneIcon className="size-3.5" />
-                        Called
-                      </Button>
-                    ) : null}
-                    {row.status !== "converted" ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={busy}
-                        onClick={() => move(row, "converted")}
-                      >
-                        <CheckIcon className="size-3.5" />
-                        Opened
-                      </Button>
-                    ) : null}
-                    {row.status !== "closed" && row.status !== "converted" ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-destructive"
-                        disabled={busy}
-                        onClick={() => move(row, "closed")}
-                      >
-                        <XIcon className="size-3.5" />
-                        Close
-                      </Button>
-                    ) : null}
-                  </span>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </div>
+                </li>
+              ))}
+            </ol>
+          ) : null}
+        </div>
+      )}
+      rowActions={(row) => {
+        const busy = pending === row.id;
+        return (
+          <span className="flex flex-wrap justify-end gap-1.5">
+            {row.status === "new" ? (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() => move(row, "contacted")}
+              >
+                <PhoneIcon className="size-3.5" />
+                Called
+              </Button>
+            ) : null}
+            {row.status !== "converted" ? (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() => move(row, "converted")}
+              >
+                <CheckIcon className="size-3.5" />
+                Opened
+              </Button>
+            ) : null}
+            {row.status !== "closed" && row.status !== "converted" ? (
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive"
+                disabled={busy}
+                onClick={() => move(row, "closed")}
+              >
+                <XIcon className="size-3.5" />
+                Close
+              </Button>
+            ) : null}
+          </span>
+        );
+      }}
+      card={(row) => (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="font-medium">{row.name}</span>
+            <Badge variant="outline" className={STATUS_STYLE[row.status]}>
+              {STATUS_LABELS[row.status]}
+            </Badge>
+          </div>
+          <a
+            href={`tel:+91${row.mobile}`}
+            className="text-primary flex items-center gap-1 text-sm hover:underline"
+          >
+            <PhoneIcon className="size-3" />
+            {row.mobile}
+          </a>
+          <p className="text-muted-foreground text-xs">
+            {row.interest === "farmer" ? "Sell produce" : "Buy produce"} · {row.district} ·{" "}
+            {row.askedLabel}
+          </p>
+          {row.message ? (
+            <p className="text-muted-foreground text-xs">{row.message}</p>
+          ) : null}
+        </div>
+      )}
+    />
   );
 }

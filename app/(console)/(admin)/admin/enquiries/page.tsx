@@ -32,8 +32,10 @@ export default async function AdminEnquiriesPage() {
     district: enquiry.district,
     message: enquiry.message,
     status: enquiry.status,
-    // Formatted on the server so the server and client renders agree.
+    // Formatted on the server so the server and client renders agree, and the
+    // raw stamp beside it so the column sorts by age rather than by wording.
     askedLabel: relative(now - enquiry.createdAt.getTime()),
+    askedAt: enquiry.createdAt.getTime(),
     notes: (enquiry.notes ?? []).map((note) => ({
       at: relative(now - note.at.getTime()),
       operator: note.operator,

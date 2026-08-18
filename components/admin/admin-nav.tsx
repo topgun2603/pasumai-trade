@@ -5,6 +5,7 @@ import {
   ArrowLeftRightIcon,
   BuildingIcon,
   ChartColumnIcon,
+  BellIcon,
   ClipboardListIcon,
   GaugeIcon,
   InboxIcon,
@@ -57,6 +58,9 @@ const SECTIONS: Array<{ title?: string; links: NavLink[] }> = [
   {
     links: [
       { href: "/admin", label: "Overview", icon: GaugeIcon, exact: true },
+      // Second, because it is the answer to "what should I do now" and the rest
+      // of the rail is the answer to "where do I go to do it".
+      { href: "/admin/notifications", label: "Notifications", icon: BellIcon },
       { href: "/admin/analytics", label: "Analytics", icon: ChartColumnIcon },
     ],
   },

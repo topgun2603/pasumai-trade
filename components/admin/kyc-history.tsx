@@ -1,28 +1,11 @@
 "use client";
 
-import {
-  BadgeCheckIcon,
-  ChevronDownIcon,
-  LayoutGridIcon,
-  MessageSquareIcon,
-  SearchIcon,
-  TableIcon,
-  UploadIcon,
-  XIcon,
-} from "lucide-react";
-import { useState } from "react";
+import { BadgeCheckIcon, MessageSquareIcon, UploadIcon, XIcon } from "lucide-react";
 
+import { ACCOUNT_GROUPS } from "@/components/admin/kyc-groups";
+import { DataTable, type Column, type FilterTab } from "@/components/data-table";
 import { DocumentStrip, type ViewableDocument } from "@/components/kyc/documents";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { CHECK_LABELS, type CheckKind, type CheckState } from "@/lib/domain/kyc";
 import type { Role } from "@/lib/auth/claims";
 
@@ -58,6 +41,8 @@ export interface DecidedCheck {
 }
 
 export interface DecidedAccount {
+  /** The account id again, under the name the data grid keys rows by. */
+  readonly id: string;
   readonly accountId: string;
   readonly role: Role;
   readonly name: string;
@@ -99,243 +84,104 @@ const DECISION: Record<
   },
 };
 
-/** The three kinds of account, in the order operations meet them. */
-const GROUPS: Array<{ key: string; title: string; roles: Role[] }> = [
-  { key: "farmers", title: "Farmers", roles: ["farmer"] },
-  { key: "buyers", title: "Buyers and franchises", roles: ["buyer", "franchise"] },
-  { key: "agencies", title: "Transport and manpower", roles: ["transport", "manpower"] },
-];
-
-type Filter = "all" | "verified" | "failed" | "pendingThem";
-
-const FILTERS: Array<{ value: Filter; label: string }> = [
-  { value: "all", label: "All" },
-  { value: "verified", label: "Approved" },
-  { value: "failed", label: "Refused" },
-  { value: "pendingThem", label: "Waiting on them" },
-];
-
 export function KycHistory({ accounts }: { accounts: DecidedAccount[] }) {
-  const [filter, setFilter] = useState<Filter>("all");
-  const [layout, setLayout] = useState<"table" | "grid">("table");
-  const [query, setQuery] = useState("");
-  const [open, setOpen] = useState<string | null>(null);
+  const columns: Column<DecidedAccount>[] = [
+    {
+      key: "name",
+      header: "Account",
+      sortValue: (row) => row.name.toLowerCase(),
+      cell: (row) => (
+        <span className="flex flex-col leading-tight">
+          <span className="font-medium">{row.name}</span>
+          <span className="text-muted-foreground text-xs">
+            <span className="font-mono">{row.accountId}</span>
+            {row.district ? ` · ${row.district}` : ""}
+          </span>
+        </span>
+      ),
+    },
+    {
+      key: "checks",
+      header: "Checks",
+      // Sorted by how much was approved, which is the question somebody
+      // scanning this column is actually asking.
+      sortValue: (row) => row.approved,
+      cell: (row) => <Tally account={row} />,
+    },
+    {
+      key: "documents",
+      header: "Documents",
+      sortValue: (row) => row.documents.length,
+      cell: (row) => (
+        <DocumentStrip documents={row.documents} label={row.name} emptyNote="None" grid />
+      ),
+    },
+    {
+      key: "decided",
+      header: "Last decision",
+      // The timestamp, not the label: "3 days ago" and "just now" sort
+      // alphabetically into nonsense.
+      sortValue: (row) => row.lastDecidedAt,
+      cell: (row) => (
+        <span className="text-muted-foreground text-xs whitespace-nowrap">
+          {row.lastDecidedLabel}
+        </span>
+      ),
+    },
+  ];
 
-  const needle = query.trim().toLowerCase();
+  const tabs: FilterTab<DecidedAccount>[] = [
+    { value: "all", label: "All" },
+    { value: "verified", label: "Approved", match: (row) => row.approved > 0 },
+    { value: "failed", label: "Refused", match: (row) => row.refused > 0 },
+    { value: "pendingThem", label: "Waiting on them", match: (row) => row.waitingOnThem > 0 },
+  ];
 
-  const shown = accounts.filter((account) => {
-    const matchesFilter =
-      filter === "all"
-        ? true
-        : filter === "verified"
-          ? account.approved > 0
-          : filter === "failed"
-            ? account.refused > 0
-            : account.waitingOnThem > 0;
+  /*
+    A table per kind of account rather than one with a "kind" column.
 
-    if (!matchesFilter) return false;
-    if (!needle) return true;
-
-    // Name, id and district, because an operator looking something up has one
-    // of the three and rarely the same one twice.
-    return (
-      account.name.toLowerCase().includes(needle) ||
-      account.accountId.toLowerCase().includes(needle) ||
-      account.district.toLowerCase().includes(needle)
-    );
-  });
-
-  if (accounts.length === 0) {
-    return (
-      <div className="border-border text-muted-foreground rounded-lg border border-dashed px-4 py-10 text-center text-sm">
-        Nothing has been decided yet. Approvals and refusals are kept here with the documents
-        they were made on.
-      </div>
-    );
-  }
-
+    Operations do not review a farmer and a transport agency alike — a farmer
+    clears two checks and an agency five — and a single sortable column asks
+    the reader to re-sort every time they change what they are doing. Each
+    section gets its own sorting, filtering and paging, which is the point:
+    working through farmers should not move the page you are on for agencies.
+  */
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex flex-wrap gap-1">
-          {FILTERS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => setFilter(option.value)}
-              aria-pressed={filter === option.value}
-              className={
-                filter === option.value
-                  ? "bg-primary text-primary-foreground rounded-md px-2.5 py-1 text-xs"
-                  : "text-muted-foreground hover:bg-secondary rounded-md px-2.5 py-1 text-xs"
-              }
-            >
-              {option.label}
-            </button>
-          ))}
+    <div className="flex flex-col gap-6">
+      {ACCOUNT_GROUPS.map((group) => {
+        const rows = accounts.filter((account) => group.roles.includes(account.role));
+        if (rows.length === 0) return null;
+
+        return (
+          <section key={group.key} className="flex flex-col gap-2">
+            <h3 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+              {group.title}
+              <span className="text-faint font-normal"> · {rows.length}</span>
+            </h3>
+
+            <DataTable
+              rows={rows}
+              columns={columns}
+              tabs={tabs}
+              entityLabel="accounts"
+              searchPlaceholder="Name, account id or district"
+              // Name, id and district, because an operator looking something up
+              // has one of the three and rarely the same one twice.
+              searchText={(row) => `${row.name} ${row.accountId} ${row.district}`}
+              expand={(row) => <CheckList checks={row.checks} />}
+              card={(row) => <AccountCard account={row} />}
+              initialPageSize={10}
+            />
+          </section>
+        );
+      })}
+
+      {accounts.length === 0 ? (
+        <div className="border-border text-muted-foreground rounded-lg border border-dashed px-4 py-10 text-center text-sm">
+          Nothing has been decided yet. Approvals and refusals are kept here with the documents
+          they were made on.
         </div>
-
-        <div className="relative ml-auto w-full sm:w-56">
-          <SearchIcon className="text-muted-foreground absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Name, account id or district"
-            className="pl-8"
-            aria-label="Search decided accounts"
-          />
-        </div>
-
-        {/*
-          Two ways to read the same records. The table is for working down a
-          list — forty accounts, one line each. The grid is for looking at the
-          documents, where a photograph the size of a thumbnail in a table cell
-          is not much use.
-        */}
-        <div className="border-border flex shrink-0 rounded-md border p-0.5">
-          <button
-            type="button"
-            onClick={() => setLayout("table")}
-            aria-pressed={layout === "table"}
-            aria-label="Table"
-            className={
-              layout === "table"
-                ? "bg-secondary rounded px-2 py-1"
-                : "text-muted-foreground rounded px-2 py-1"
-            }
-          >
-            <TableIcon className="size-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setLayout("grid")}
-            aria-pressed={layout === "grid"}
-            aria-label="Grid"
-            className={
-              layout === "grid"
-                ? "bg-secondary rounded px-2 py-1"
-                : "text-muted-foreground rounded px-2 py-1"
-            }
-          >
-            <LayoutGridIcon className="size-3.5" />
-          </button>
-        </div>
-      </div>
-
-      {shown.length === 0 ? (
-        <p className="text-muted-foreground px-1 py-6 text-center text-sm">Nothing matches that.</p>
-      ) : (
-        GROUPS.map((group) => {
-          const rows = shown.filter((account) => group.roles.includes(account.role));
-          if (rows.length === 0) return null;
-
-          return (
-            <section key={group.key} className="flex flex-col gap-2">
-              <h3 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                {group.title}
-                <span className="text-faint font-normal"> · {rows.length}</span>
-              </h3>
-
-              {layout === "table" ? (
-                <AccountTable rows={rows} open={open} onOpen={setOpen} />
-              ) : (
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {rows.map((account) => (
-                    <AccountCard key={account.accountId} account={account} />
-                  ))}
-                </div>
-              )}
-            </section>
-          );
-        })
-      )}
-    </div>
-  );
-}
-
-/** One line per account, opening to the checks behind it. */
-function AccountTable({
-  rows,
-  open,
-  onOpen,
-}: {
-  rows: DecidedAccount[];
-  open: string | null;
-  onOpen: (id: string | null) => void;
-}) {
-  return (
-    <div className="border-border overflow-x-auto rounded-lg border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-8" />
-            <TableHead>Account</TableHead>
-            <TableHead>Checks</TableHead>
-            <TableHead>Documents</TableHead>
-            <TableHead className="text-right">Last decision</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((account) => {
-            const expanded = open === account.accountId;
-
-            return [
-              <TableRow key={account.accountId}>
-                <TableCell className="align-top">
-                  <button
-                    type="button"
-                    aria-expanded={expanded}
-                    aria-label={`${expanded ? "Hide" : "Show"} the checks for ${account.name}`}
-                    onClick={() => onOpen(expanded ? null : account.accountId)}
-                    className="hover:bg-secondary rounded p-1"
-                  >
-                    <ChevronDownIcon
-                      className={`size-4 transition-transform ${expanded ? "" : "-rotate-90"}`}
-                    />
-                  </button>
-                </TableCell>
-
-                <TableCell className="align-top">
-                  <span className="flex flex-col leading-tight">
-                    <span className="font-medium">{account.name}</span>
-                    <span className="text-muted-foreground text-xs">
-                      <span className="font-mono">{account.accountId}</span>
-                      {account.district ? ` · ${account.district}` : ""}
-                    </span>
-                  </span>
-                </TableCell>
-
-                <TableCell className="align-top">
-                  <Tally account={account} />
-                </TableCell>
-
-                <TableCell className="align-top">
-                  {/* Every document this account ever sent, in one place, each
-                      labelled with the check it belongs to. */}
-                  <DocumentStrip
-                    documents={account.documents}
-                    label={account.name}
-                    emptyNote="None"
-                    grid
-                  />
-                </TableCell>
-
-                <TableCell className="text-muted-foreground align-top text-right text-xs whitespace-nowrap">
-                  {account.lastDecidedLabel}
-                </TableCell>
-              </TableRow>,
-
-              expanded ? (
-                <TableRow key={`${account.accountId}-detail`} className="hover:bg-transparent">
-                  <TableCell colSpan={5} className="bg-secondary/40">
-                    <CheckList checks={account.checks} />
-                  </TableCell>
-                </TableRow>
-              ) : null,
-            ];
-          })}
-        </TableBody>
-      </Table>
+      ) : null}
     </div>
   );
 }
