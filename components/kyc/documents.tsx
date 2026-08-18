@@ -43,6 +43,22 @@ export interface ViewableDocument {
   readonly contentType: string;
   /** Pre-formatted on the server, so the two renders agree. */
   readonly uploadedLabel: string;
+  /**
+   * When it was uploaded, for ordering.
+   *
+   * The label is coarse by design — "3 days ago" is the useful precision in a
+   * queue — which makes it useless for sorting. Pooling an account's documents
+   * from several checks into one tile needs a real ordering, so it carries one.
+   */
+  readonly uploadedAt: number;
+  /**
+   * Which check this is evidence for, e.g. "PAN".
+   *
+   * Needed once an account's documents are shown in one tile rather than one
+   * per check: without it an operator approving the PAN is looking at four
+   * photographs with no way to tell which is the PAN.
+   */
+  readonly caption?: string;
 }
 
 function isPdf(document: ViewableDocument) {
@@ -53,12 +69,21 @@ export function DocumentStrip({
   documents,
   label,
   emptyNote,
+  grid = false,
 }: {
   documents: readonly ViewableDocument[];
-  /** What these are of, e.g. "PAN". Read out per slide. */
+  /** Whose these are, e.g. the account name. Read out per tile. */
   label: string;
   /** Shown when there is nothing, so a missing upload is visibly missing. */
   emptyNote?: string;
+  /**
+   * Wrap onto several lines instead of scrolling sideways.
+   *
+   * An account with six documents in one tile is the normal case now, and six
+   * across a card is a horizontal scrollbar hiding half of them. A grid shows
+   * the lot without asking anybody to discover that it scrolls.
+   */
+  grid?: boolean;
 }) {
   const [open, setOpen] = useState<number | null>(null);
 
@@ -79,7 +104,12 @@ export function DocumentStrip({
         the same size whether there is one of them or six.
       */}
       <div
-        className="flex snap-x gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className={cn(
+          "gap-2 pb-1",
+          grid
+            ? "flex flex-wrap"
+            : "flex snap-x overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        )}
         role="group"
         aria-label={`${label} — ${documents.length} file${documents.length === 1 ? "" : "s"}`}
       >
@@ -88,7 +118,7 @@ export function DocumentStrip({
             key={document.url}
             type="button"
             onClick={() => setOpen(i)}
-            aria-label={`Open ${label} ${i + 1} of ${documents.length}`}
+            aria-label={`Open ${document.caption ? `${document.caption} — ` : ""}${label} ${i + 1} of ${documents.length}`}
             className="border-border bg-card hover:border-primary focus-visible:ring-ring relative size-24 shrink-0 snap-start overflow-hidden rounded-md border transition-colors focus-visible:ring-2 focus-visible:outline-none"
           >
             {isPdf(document) ? (
@@ -103,14 +133,22 @@ export function DocumentStrip({
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={document.url}
-                alt={`${label} ${i + 1} of ${documents.length}`}
+                alt={`${document.caption ?? label} ${i + 1} of ${documents.length}`}
                 loading="lazy"
                 decoding="async"
                 draggable={false}
                 className="size-full object-cover"
               />
             )}
-            {documents.length > 1 ? (
+
+            {/* Which check it belongs to, on the tile. The whole account's
+                evidence sits in one place now, and four unlabelled photographs
+                are four photographs nobody can act on. */}
+            {document.caption ? (
+              <span className="bg-background/85 text-foreground pointer-events-none absolute inset-x-0 bottom-0 truncate px-1 py-0.5 text-[10px]">
+                {document.caption}
+              </span>
+            ) : documents.length > 1 ? (
               <span className="bg-background/85 pointer-events-none absolute right-1 bottom-1 rounded px-1 text-[10px] tabular-nums">
                 {i + 1}/{documents.length}
               </span>
@@ -177,11 +215,11 @@ function DocumentViewer({
     <Dialog open={open} onOpenChange={(next) => (next ? null : onIndex(null))}>
       <DialogContent className="flex max-h-[92svh] flex-col gap-3 sm:max-w-3xl">
         <DialogTitle className="text-base">
-          {label}
+          {current.caption ? `${current.caption} — ${label}` : label}
           {documents.length > 1 ? (
             <span className="text-muted-foreground font-normal">
               {" "}
-              — {index + 1} of {documents.length}
+              · {index + 1} of {documents.length}
             </span>
           ) : null}
         </DialogTitle>

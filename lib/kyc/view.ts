@@ -46,6 +46,7 @@ export async function onboardingView(checks: Check[], role: Role): Promise<Onboa
           url: document.url,
           contentType: document.contentType,
           uploadedLabel: relative(now - document.uploadedAt.getTime()),
+          uploadedAt: document.uploadedAt.getTime(),
         }));
       }),
   );
