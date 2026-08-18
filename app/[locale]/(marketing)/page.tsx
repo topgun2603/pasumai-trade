@@ -1,6 +1,7 @@
 import {
   BanknoteIcon,
   ClipboardCheckIcon,
+  FlaskConicalIcon,
   FileCheck2Icon,
   HandshakeIcon,
   MapPinIcon,
@@ -36,6 +37,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { findDistrict } from "@/lib/domain/location";
 import { reachToShow } from "@/lib/domain/reach";
+import { readCoverage } from "@/lib/firebase/places-read";
 import { readReach } from "@/lib/firebase/reach-read";
 import { getDictionary, isLocale } from "@/lib/i18n";
 import { resolveMedia } from "@/lib/marketing/media";
@@ -103,6 +105,22 @@ export default async function LandingPage({
     own has caught up. See `SHOWCASE_FLOOR` — that is where to change or switch
     off the floor, and it is the only place the page is not stating a count.
   */
+  /*
+    The villages the platform actually collects from. The seeded geography is
+    the fallback, and when it is what gets shown the section says so — a list a
+    farmer may read as "they come to mine" has to be the real one or be
+    visibly marked, the same as a price.
+  */
+  const coverage = await readCoverage(
+    places.map((place) => ({
+      id: place.id,
+      name: place.name,
+      districtName: findDistrict(GEOGRAPHY, place.districtId)?.name ?? "",
+      pincode: place.pincode,
+      farmerCount: place.farmerCount,
+    })),
+  );
+
   const { reach } = await readReach({
     villages: places.length,
     farmers: places.reduce((total, p) => total + p.farmerCount, 0),
@@ -364,18 +382,31 @@ export default async function LandingPage({
               {t.coverage.title}
             </h2>
             <p className="text-muted-foreground">{t.coverage.body}</p>
+            {coverage.live ? null : (
+              <p className="border-border bg-secondary text-muted-foreground mt-1 flex items-start gap-2 rounded-lg border px-3.5 py-2.5 text-xs">
+                <FlaskConicalIcon className="mt-0.5 size-3.5 shrink-0" />
+                <span>{t.coverage.illustrative}</span>
+              </p>
+            )}
           </Reveal>
 
           <Stagger className="mt-8">
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {places.map((place) => (
+              {coverage.places.map((place) => (
                 <StaggerListItem
                   key={place.id}
-                  className="bg-card flex flex-col gap-2 rounded-xl border p-5"
+                  className={
+                    coverage.live
+                      ? "bg-card flex flex-col gap-2 rounded-xl border p-5"
+                      : // Drawn as an example, not merely labelled as one. A
+                        // card that looks the same either way is a card the
+                        // reader treats the same way.
+                        "flex flex-col gap-2 rounded-xl border border-dashed p-5"
+                  }
                 >
                   <span className="text-muted-foreground flex items-center gap-1.5 text-sm">
                     <MapPinIcon className="size-3.5 shrink-0" />
-                    {findDistrict(GEOGRAPHY, place.districtId)?.name}
+                    {place.districtName}
                   </span>
                   <h3 className="leading-snug font-medium">{place.name}</h3>
                   <p className="text-faint tabular text-sm">

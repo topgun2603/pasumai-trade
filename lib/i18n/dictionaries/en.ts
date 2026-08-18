@@ -204,6 +204,8 @@ export const en = {
     title: "Where we collect",
     body: "Produce is collected at the farm and graded in front of the farmer. These are the villages we reach.",
     farmers: "farmers",
+    illustrative:
+      "Example coverage. These are the villages the platform ships with, not the live list — the real one appears as soon as it can be read.",
   },
 
   faq: {
