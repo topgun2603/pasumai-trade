@@ -22,7 +22,7 @@ export function PageHeaderSkeleton({ tiles = 0 }: { tiles?: number }) {
       </header>
 
       {tiles > 0 ? (
-        <div className="bg-border grid grid-cols-2 gap-px border-b lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 border-b p-4 lg:grid-cols-4">
           {Array.from({ length: tiles }).map((_, index) => (
             <div key={index} className="bg-card flex items-start gap-3 px-5 py-4">
               <Skeleton className="mt-0.5 size-8 shrink-0 rounded-md" />

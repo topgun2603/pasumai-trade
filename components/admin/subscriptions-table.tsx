@@ -4,6 +4,7 @@ import { BanknoteIcon, CheckIcon, ClockIcon, InfinityIcon, XIcon } from "lucide-
 
 import { DataTable, type Column, type FilterTab } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/empty-state";
 import { CHANNEL_LABELS, type Channel, type ReminderStage } from "@/lib/domain/subscription-reminder";
 
@@ -43,6 +44,26 @@ const STATUS_STYLE: Record<string, string> = {
   cancelled: "text-muted-foreground",
   requested: "border-warning/40 bg-warning-soft text-warning",
 };
+
+/**
+ * A colour per plan, cycled.
+ *
+ * Not semantic — no plan is more urgent than another — so these are the chart
+ * tokens rather than success/warning/danger, which mean something specific
+ * everywhere else on this platform and would be lying here. The point is only
+ * that four sections down a long page stay tellable apart while scrolling, and
+ * that the page stops being a column of identical grey boxes.
+ *
+ * Assigned by position so it is stable for a given set of plans, and the tint
+ * is faint enough that the cards inside keep their own contrast.
+ */
+const PLAN_TINTS = [
+  { panel: "bg-chart-1/5 border-chart-1/20", dot: "bg-chart-1", text: "text-chart-1" },
+  { panel: "bg-chart-2/5 border-chart-2/20", dot: "bg-chart-2", text: "text-chart-2" },
+  { panel: "bg-chart-3/5 border-chart-3/20", dot: "bg-chart-3", text: "text-chart-3" },
+  { panel: "bg-chart-4/5 border-chart-4/20", dot: "bg-chart-4", text: "text-chart-4" },
+  { panel: "bg-chart-5/5 border-chart-5/20", dot: "bg-chart-5", text: "text-chart-5" },
+];
 
 export function SubscriptionsTable({ rows }: { rows: SubscriptionRow[] }) {
   const columns: Column<SubscriptionRow>[] = [
@@ -173,18 +194,25 @@ export function SubscriptionsTable({ rows }: { rows: SubscriptionRow[] }) {
 
   return (
     <div className="flex flex-col gap-6">
-      {plans.map(({ term, rows: inPlan }) => {
+      {plans.map(({ term, rows: inPlan }, index) => {
         const lapsing = inPlan.filter(
           (row) => !row.lifetime && row.daysLeft !== null && row.daysLeft <= 14,
         ).length;
+        const tint = PLAN_TINTS[index % PLAN_TINTS.length];
 
         return (
-          <section key={term} className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-baseline gap-2">
-              <h3 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+          <section
+            key={term}
+            className={cn("flex flex-col gap-3 rounded-xl border p-4", tint.panel)}
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <span aria-hidden className={cn("size-2 rounded-full", tint.dot)} />
+              <h3 className={cn("text-xs font-semibold tracking-wide uppercase", tint.text)}>
                 {term}
-                <span className="text-faint font-normal"> · {inPlan.length}</span>
               </h3>
+              <span className="text-muted-foreground text-xs">
+                {inPlan.length} subscription{inPlan.length === 1 ? "" : "s"}
+              </span>
               {/* The number worth acting on, beside the heading rather than
                   buried in a column somebody has to sort. */}
               {lapsing > 0 ? (

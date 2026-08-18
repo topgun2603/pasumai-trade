@@ -71,12 +71,12 @@ export default async function AnalyticsPage() {
         </p>
       )}
 
-      <div className="bg-border grid grid-cols-2 gap-px border-b lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 border-b p-4 lg:grid-cols-4">
         <StatTile
           label="Listings posted"
           value={traded.length}
           icon={SproutIcon}
-          tone="default"
+          tone="success"
           hint={
             seeded > 0
               ? `${districts.length} districts · ${seeded} seeded row${seeded === 1 ? "" : "s"} excluded`
@@ -98,7 +98,7 @@ export default async function AnalyticsPage() {
           label="Bargains open"
           value={result.open}
           icon={ClockIcon}
-          tone="default"
+          tone="warning"
           hint={
             // Null rather than zero when nothing has settled. Zero hours is a
             // real answer meaning "instantly".
@@ -109,7 +109,7 @@ export default async function AnalyticsPage() {
           label="Accounts"
           value={accounts.length}
           icon={UsersIcon}
-          tone="default"
+          tone="info"
           hint={`${accounts.filter((a) => a.status === "verified").length} verified`}
         />
       </div>

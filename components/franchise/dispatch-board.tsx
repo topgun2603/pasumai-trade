@@ -102,7 +102,7 @@ export function DispatchBoard({
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <div className="bg-border grid grid-cols-2 gap-px overflow-hidden rounded-lg border lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
           { label: "Awaiting dispatch", value: awaiting.length, tone: "warning" as const },
           { label: "On the road", value: allocated.length, tone: "default" as const },

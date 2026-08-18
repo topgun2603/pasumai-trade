@@ -35,7 +35,7 @@ export default async function OrdersPage() {
         description="One order is one district, because one district is one vehicle run — produce is collected at the farm, so a run calls at each village on it. Prices shown are those agreed when the order was placed; final amounts resolve from the grade recorded at pickup."
       />
 
-      <div className="bg-border grid grid-cols-2 gap-px border-b lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 border-b p-4 lg:grid-cols-4">
         <StatTile
           label="Open orders"
           value={open.length}

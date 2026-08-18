@@ -140,7 +140,7 @@ export default async function AdminOverviewPage() {
         </p>
       )}
 
-      <div className="bg-border grid grid-cols-2 gap-px border-b lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 border-b p-4 lg:grid-cols-4">
         <StatTile
           label="Waiting on us"
           value={awaitingReview.length}
@@ -166,7 +166,7 @@ export default async function AdminOverviewPage() {
           label="Produce with no vehicle"
           value={pickups.length}
           icon={TruckIcon}
-          tone={pickups.length > 0 ? "danger" : "default"}
+          tone="danger"
           hint="Cut and waiting at the farm"
         />
       </div>

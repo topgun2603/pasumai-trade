@@ -73,7 +73,7 @@ export default async function AdminSubscriptionsPage() {
         description="Every plan bought on the platform, soonest to lapse first. Reminders go out automatically — how far ahead, and on which channels, is set in Controls."
       />
 
-      <div className="bg-border grid grid-cols-2 gap-px border-b lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 border-b p-4 lg:grid-cols-4">
         <StatTile
           label="Paying"
           value={paying.length}
@@ -85,21 +85,21 @@ export default async function AdminSubscriptionsPage() {
           label="Ending within 14 days"
           value={ending.length}
           icon={ClockIcon}
-          tone={ending.length > 0 ? "warning" : "default"}
+          tone="warning"
           hint="Reminders are on their way"
         />
         <StatTile
           label="Lapsed"
           value={lapsed.length}
           icon={TriangleAlertIcon}
-          tone={lapsed.length > 0 ? "danger" : "default"}
+          tone="danger"
           hint="Cannot trade until they renew"
         />
         <StatTile
           label="Lifetime"
           value={lifetime.length}
           icon={InfinityIcon}
-          tone="default"
+          tone="info"
           hint="Never expire"
         />
       </div>

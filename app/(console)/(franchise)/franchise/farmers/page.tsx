@@ -51,7 +51,7 @@ export default async function FarmersPage() {
         description="Growers in the districts you source from. Records are read-only — farmer accounts belong to whoever onboarded them, and bank details are only ever changed in person."
       />
 
-      <div className="bg-border grid grid-cols-2 gap-px border-b lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 border-b p-4 lg:grid-cols-4">
         <StatTile
           label="Suppliers in range"
           value={accounts.length}
