@@ -1,6 +1,6 @@
 "use client";
 
-import { RefreshCwIcon, TriangleAlertIcon } from "lucide-react";
+import { FlaskConicalIcon, RefreshCwIcon, TriangleAlertIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import type { PriceLine } from "@/app/api/market/prices/route";
@@ -18,7 +18,7 @@ const FRESHNESS_STYLE: Record<PriceLine["freshness"], string> = {
 
 type State =
   | { status: "loading" }
-  | { status: "ready"; lines: PriceLine[]; asOf: string }
+  | { status: "ready"; lines: PriceLine[]; asOf: string; liveCount: number }
   | { status: "error" };
 
 /**
@@ -46,10 +46,16 @@ export function LivePrices({ t }: { t: Dictionary }) {
         if (!response.ok) throw new Error(String(response.status));
         const data = (await response.json()) as {
           asOf: string;
+          liveCount: number;
           lines: PriceLine[];
         };
         if (!cancelled) {
-          setState({ status: "ready", lines: data.lines, asOf: data.asOf });
+          setState({
+            status: "ready",
+            lines: data.lines,
+            asOf: data.asOf,
+            liveCount: data.liveCount,
+          });
         }
       } catch {
         // An aborted fetch is a component unmount, not a failure.
@@ -111,13 +117,38 @@ export function LivePrices({ t }: { t: Dictionary }) {
         </div>
       ) : null}
 
+      {state.status === "ready" && state.liveCount < state.lines.length ? (
+        /*
+          Said once at the top and again on every card it applies to. A reader
+          who scrolls straight to a figure never passes this line, and a reader
+          who does should not have to hold "some of these" in their head while
+          they scan nine cards.
+        */
+        <p className="border-border bg-secondary text-muted-foreground flex items-start gap-2 rounded-lg border px-3.5 py-2.5 text-xs">
+          <FlaskConicalIcon className="mt-0.5 size-3.5 shrink-0" />
+          <span>
+            {state.liveCount === 0
+              ? t.prices.allIllustrative
+              : fill(t.prices.someIllustrative, {
+                  count: String(state.lines.length - state.liveCount),
+                })}
+          </span>
+        </p>
+      ) : null}
+
       {state.status === "ready" ? (
         <>
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {state.lines.map((line) => (
               <li
                 key={line.id}
-                className="bg-card flex items-center gap-3.5 rounded-xl border p-4"
+                className={cn(
+                  "bg-card flex items-center gap-3.5 rounded-xl border p-4",
+                  // A sample is drawn differently, not merely labelled. Two
+                  // cards that look identical are two cards a reader treats
+                  // identically, whatever the small print on one of them says.
+                  line.illustrative && "border-dashed bg-transparent",
+                )}
               >
                 <span
                   aria-hidden
@@ -132,9 +163,11 @@ export function LivePrices({ t }: { t: Dictionary }) {
                     {line.nameTa}
                   </span>
                   <span className="text-muted-foreground mt-1 text-xs">
-                    {line.settledCount > 1
-                      ? fill(t.prices.sources, { count: String(line.settledCount) })
-                      : t.prices.noSettled}
+                    {line.illustrative
+                      ? t.prices.example
+                      : line.settledCount > 1
+                        ? fill(t.prices.sources, { count: String(line.settledCount) })
+                        : t.prices.noSettled}
                   </span>
                 </span>
 
@@ -151,10 +184,14 @@ export function LivePrices({ t }: { t: Dictionary }) {
                   >
                     {freshnessLabel[line.freshness]}
                   </Badge>
-                  <span className="text-faint tabular text-[11px]">
-                    {line.sources}{" "}
-                    {line.sources === 1 ? t.prices.location : t.prices.locations}
-                  </span>
+                  {/* A count of villages is a claim about the platform, so it
+                      is not made on a card that is only an illustration. */}
+                  {line.illustrative ? null : (
+                    <span className="text-faint tabular text-[11px]">
+                      {line.sources}{" "}
+                      {line.sources === 1 ? t.prices.location : t.prices.locations}
+                    </span>
+                  )}
                 </span>
               </li>
             ))}

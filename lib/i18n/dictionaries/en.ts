@@ -68,6 +68,11 @@ export const en = {
     loading: "Loading today's prices",
     sources: "{count} sales today",
     noSettled: "First price today",
+    example: "Example price",
+    allIllustrative:
+      "Nothing has sold on the platform today yet, so these are example prices showing how this section reads. Real prices take their place the moment a bargain closes.",
+    someIllustrative:
+      "{count} of these are examples — those crops have not traded today. The others are real prices farmers and buyers agreed on.",
     location: "location",
     locations: "locations",
     fresh: "Fresh",
