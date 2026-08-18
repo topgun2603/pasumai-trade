@@ -3,8 +3,11 @@ import type { ReactNode } from "react";
 import { ConsoleNav } from "@/components/franchise/console-nav";
 import { BUYING_ROLES } from "@/lib/auth/claims";
 import { ConsoleTopBar } from "@/components/console/top-bar";
+import { ConsoleTour } from "@/components/console/tour";
 import { requireConsole } from "@/lib/auth/require";
+import { tourFor } from "@/lib/domain/tour";
 import { isCapped, readNotifications } from "@/lib/firebase/notifications-read";
+import { readSeenTours } from "@/lib/firebase/tour-read";
 
 /**
  * The buying console shell.
@@ -34,7 +37,20 @@ export default async function BuyingLayout({
   // The rail is on every screen, so the unread count belongs here rather than
   // on the notifications page — a count only visible once you have arrived is
   // a count nobody sees.
-  const feed = await readNotifications(session.claims.accountId ?? "");
+  const accountId = session.claims.accountId ?? "";
+  const [feed, seenTours] = await Promise.all([
+    readNotifications(accountId),
+    readSeenTours(accountId),
+  ]);
+
+  /*
+    Keyed on the role, not the console. A franchise and a buyer share these
+    screens but not the tour — the franchise one carries two extra steps for
+    dispatch and grower records, which a buyer must never be shown because a
+    buyer cannot reach either.
+  */
+  const definition = tourFor(session.claims.role);
+  const tour = definition && !seenTours.has(definition.id) ? definition : null;
 
   return (
     <div className="flex min-h-svh w-full">
@@ -48,9 +64,15 @@ export default async function BuyingLayout({
         }}
       />
       <div className="flex min-w-0 flex-1 flex-col">
-        <ConsoleTopBar session={{ email: session.email, role: session.claims.role }} />
+        <ConsoleTopBar
+          session={{ email: session.email, role: session.claims.role }}
+        />
         {children}
       </div>
+      {/* First run only. `readSeenTours` is one extra document read on a
+          console page; it rides the same parallel batch as the notification
+          feed, so it costs a read rather than a round trip. */}
+      {tour ? <ConsoleTour tour={tour} /> : null}
     </div>
   );
 }

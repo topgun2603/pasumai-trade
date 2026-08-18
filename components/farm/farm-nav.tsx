@@ -62,16 +62,24 @@ function ThemeToggle() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
-        <DropdownMenuItem onClick={() => setTheme("light")}>Light</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>Dark</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>System</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("light")}>
+          Light
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("dark")}>
+          Dark
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("system")}>
+          System
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
 function isActive(pathname: string, href: string, exact?: boolean) {
-  return exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+  return exact
+    ? pathname === href
+    : pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export function FarmNav({
@@ -99,7 +107,9 @@ export function FarmNav({
             <LeafIcon className="size-4" />
           </span>
           <span className="flex min-w-0 flex-1 flex-col leading-tight">
-            <span className="truncate text-sm font-semibold">Pasumai Trade</span>
+            <span className="truncate text-sm font-semibold">
+              Pasumai Trade
+            </span>
             <span className="text-faint text-xs">Farmer</span>
           </span>
           {/* Read in Tamil, like the rest of this surface. */}
@@ -123,6 +133,7 @@ export function FarmNav({
               <li key={href}>
                 <Link
                   href={href}
+                  data-tour={href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "focus-visible:ring-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
@@ -148,7 +159,9 @@ export function FarmNav({
           <li>
             <Link
               href="/farm/sales"
-              aria-current={isActive(pathname, "/farm/sales") ? "page" : undefined}
+              aria-current={
+                isActive(pathname, "/farm/sales") ? "page" : undefined
+              }
               className={cn(
                 "focus-visible:ring-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
                 isActive(pathname, "/farm/sales")
@@ -163,7 +176,9 @@ export function FarmNav({
           <li>
             <Link
               href="/farm/analytics"
-              aria-current={isActive(pathname, "/farm/analytics") ? "page" : undefined}
+              aria-current={
+                isActive(pathname, "/farm/analytics") ? "page" : undefined
+              }
               className={cn(
                 "focus-visible:ring-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
                 isActive(pathname, "/farm/analytics")
@@ -178,7 +193,10 @@ export function FarmNav({
           <li>
             <Link
               href="/farm/verification"
-              aria-current={isActive(pathname, "/farm/verification") ? "page" : undefined}
+              data-tour="/farm/verification"
+              aria-current={
+                isActive(pathname, "/farm/verification") ? "page" : undefined
+              }
               className={cn(
                 "focus-visible:ring-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
                 isActive(pathname, "/farm/verification")
@@ -193,7 +211,9 @@ export function FarmNav({
           <li>
             <Link
               href="/farm/subscription"
-              aria-current={isActive(pathname, "/farm/subscription") ? "page" : undefined}
+              aria-current={
+                isActive(pathname, "/farm/subscription") ? "page" : undefined
+              }
               className={cn(
                 "focus-visible:ring-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
                 isActive(pathname, "/farm/subscription")
@@ -235,6 +255,7 @@ export function FarmNav({
             <Link
               key={href}
               href={href}
+              data-tour={href}
               aria-current={active ? "page" : undefined}
               className={cn(
                 "relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] transition-colors",
