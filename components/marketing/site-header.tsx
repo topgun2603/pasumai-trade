@@ -63,30 +63,45 @@ export function SiteHeader({
   return (
     <header className="bg-background/90 sticky top-0 z-40 border-b backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-4 px-5">
+        {/*
+          `shrink-0`, because a long nav in Tamil or Malayalam otherwise
+          compresses the brand until the two lines collide. And `leading-tight`
+          rather than `leading-none`: Indic glyphs are taller than Latin at the
+          same font size — the i18n config says so — so a line box of exactly
+          1em clips the Tamil and spills it past the bar.
+        */}
         <Link
           href={`/${locale}`}
-          className="focus-visible:ring-ring flex items-center gap-2.5 rounded-md focus-visible:ring-2 focus-visible:outline-none"
+          className="focus-visible:ring-ring flex shrink-0 items-center gap-2.5 rounded-md focus-visible:ring-2 focus-visible:outline-none"
         >
-          <span className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-md">
+          <span className="bg-primary text-primary-foreground flex size-8 shrink-0 items-center justify-center rounded-md">
             <LeafIcon className="size-4" />
           </span>
-          <span className="flex flex-col leading-none">
-            <span className="text-[15px] font-semibold tracking-tight">
+          <span className="flex flex-col leading-tight">
+            <span className="text-[15px] font-semibold tracking-tight whitespace-nowrap">
               Pasumai Trade
             </span>
-            <span lang="ta" className="text-faint text-[11px]">
+            <span lang="ta" className="text-faint text-[11px] whitespace-nowrap">
               பசுமை வர்த்தகம்
             </span>
           </span>
         </Link>
 
-        <nav className="ml-6 hidden items-center gap-1 lg:flex">
+        {/*
+          `xl` rather than `lg`. Six labels fit beside the brand and the buttons
+          at 1024px in English; in Tamil "எப்படி இயங்குகிறது" alone is wider than
+          "How it works" and the row wrapped to two lines inside a fixed-height
+          bar, which is what threw the whole header out. The menu button below
+          this width is the same answer for every language rather than one that
+          happens to hold for English.
+        */}
+        <nav className="ml-4 hidden items-center gap-0.5 xl:flex">
           {links.map((link) =>
             link.page ? (
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-muted-foreground hover:text-foreground hover:bg-secondary focus-visible:ring-ring rounded-md px-3 py-1.5 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                className="text-muted-foreground hover:text-foreground hover:bg-secondary focus-visible:ring-ring rounded-md px-2.5 py-1.5 text-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none"
               >
                 {link.label}
               </Link>
@@ -94,7 +109,7 @@ export function SiteHeader({
               <a
                 key={link.href}
                 href={link.href}
-                className="text-muted-foreground hover:text-foreground hover:bg-secondary focus-visible:ring-ring rounded-md px-3 py-1.5 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                className="text-muted-foreground hover:text-foreground hover:bg-secondary focus-visible:ring-ring rounded-md px-2.5 py-1.5 text-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none"
               >
                 {link.label}
               </a>
@@ -102,16 +117,19 @@ export function SiteHeader({
           )}
         </nav>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           <LanguageSwitcher current={locale} label={t.common.changeLanguage} />
           <ThemeToggle label={t.nav.theme} />
-          <Button asChild className="hidden md:inline-flex">
+          {/* "Register free" is two words in English and five in Tamil, so the
+              button is allowed to size to its text rather than wrap inside a
+              fixed-height bar. */}
+          <Button asChild className="hidden whitespace-nowrap md:inline-flex">
             <Link href={`/${locale}/signup?as=farmer`}>{t.nav.registerFree}</Link>
           </Button>
           <Button
             variant="outline"
             size="icon"
-            className="lg:hidden"
+            className="xl:hidden"
             aria-label={t.nav.menu}
             aria-expanded={open}
             onClick={() => setOpen((o) => !o)}
@@ -121,7 +139,7 @@ export function SiteHeader({
         </div>
       </div>
 
-      <div className={cn("border-t lg:hidden", open ? "block" : "hidden")}>
+      <div className={cn("border-t xl:hidden", open ? "block" : "hidden")}>
         <nav className="mx-auto flex w-full max-w-6xl flex-col gap-1 px-5 py-3">
           {links.map((link) =>
             link.page ? (
