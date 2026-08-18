@@ -232,7 +232,7 @@ export const en = {
 
   apply: {
     title: "Register free",
-    body: "Accounts are opened by our operations team after documents are checked. Buyers need GST, PAN and an FSSAI licence; farmers are onboarded by a franchise, who collects bank details in person.",
+    body: "Register yourself and sign in straight away. You can look around while operations checks your documents — buyers need GST, PAN and an FSSAI licence. Nothing is bought or sold until that check is done. Farmers are onboarded by a franchise, who collects bank details in person.",
     haveAccount: "Already have an account?",
     signInHere: "Sign in here",
     iWantTo: "I want to",

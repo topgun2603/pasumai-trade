@@ -198,44 +198,14 @@ export function hasErrors<T>(errors: FieldErrors<T>): boolean {
    Form shapes
    ------------------------------------------------------------------------- */
 
-export interface BuyerForm {
-  businessName: string;
-  kind: "franchise" | "independent";
-  contactName: string;
-  mobile: string;
-  email: string;
-  addressLine: string;
-  town: string;
-  district: string;
-  pincode: string;
-  gstin: string;
-  pan: string;
-  fssai: string;
-  fssaiExpiry: string;
-  bankAccountName: string;
-  bankAccountNumber: string;
-  ifsc: string;
-}
-
-export function validateBuyer(values: BuyerForm): FieldErrors<BuyerForm> {
-  return {
-    businessName: required(values.businessName, "Business name"),
-    contactName: required(values.contactName, "Contact name"),
-    mobile: checkMobile(values.mobile),
-    addressLine: required(values.addressLine, "Address"),
-    town: required(values.town, "Town or city"),
-    district: required(values.district, "District"),
-    pincode: checkPincode(values.pincode),
-    gstin: checkGstin(values.gstin),
-    pan: checkPan(values.pan),
-    // Required only for food businesses, which a produce buyer always is.
-    fssai: checkFssai(values.fssai),
-    fssaiExpiry: checkFutureDate(values.fssaiExpiry, "FSSAI expiry"),
-    bankAccountName: required(values.bankAccountName, "Account holder name"),
-    bankAccountNumber: checkBankAccount(values.bankAccountNumber),
-    ifsc: checkIfsc(values.ifsc),
-  };
-}
+/*
+  `BuyerForm` and `validateBuyer` stood here until buyers began registering
+  themselves. They belonged to an admin form that wrote nothing — see the note
+  on `app/(console)/(admin)/admin/buyers/page.tsx`. Self-signup validates
+  through `validateSignup` in `lib/domain/signup.ts`, and the documents a buyer
+  has to produce are checked by the KYC flow rather than at registration, which
+  is why registration no longer asks for a GSTIN it cannot verify yet.
+*/
 
 export interface FarmerForm {
   name: string;
