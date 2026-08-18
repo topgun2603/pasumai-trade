@@ -341,8 +341,15 @@ export default async function LandingPage({
               <span className="bg-accent text-accent-foreground flex size-16 items-center justify-center rounded-2xl">
                 <RouteIcon className="size-7" />
               </span>
+              {/*
+                Straight to the transport door, not to the general enquiry form
+                at the foot of the page. A vehicle owner reading this already
+                knows what they are: sending them to a form that then asks
+                whether they want to buy or to sell is asking a question they
+                have just answered by clicking.
+              */}
               <Button asChild size="lg">
-                <a href="#apply">{t.drivers.cta}</a>
+                <Link href={`/${locale}/signin?as=transport`}>{t.drivers.cta}</Link>
               </Button>
             </div>
           </div>
