@@ -6,28 +6,17 @@ import {
   CreditCardIcon,
   HandshakeIcon,
   LeafIcon,
-  MoonIcon,
   PackageIcon,
   StoreIcon,
-  SunIcon,
   TruckIcon,
   UsersIcon,
 } from "lucide-react";
-import { useTheme } from "next-themes";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Separator } from "@/components/ui/separator";
 import type { Notification } from "@/lib/domain/notification";
-import { SessionFooter } from "@/components/auth/session-footer";
 import type { Role } from "@/lib/auth/claims";
 import { cn } from "@/lib/utils";
 
@@ -57,37 +46,6 @@ const FRANCHISE_LINKS = [
   { href: "/franchise/farmers", label: "Farmers", icon: UsersIcon },
 ];
 
-/**
- * The resolved theme is unknown during the server render, so the icon is
- * swapped by CSS off the `.dark` class rather than by React state. That avoids
- * both a hydration mismatch and the mount-gate flash.
- */
-function ThemeToggle() {
-  const { setTheme } = useTheme();
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="w-full justify-start">
-          <SunIcon className="size-4 scale-100 rotate-0 transition-transform dark:scale-0 dark:-rotate-90" />
-          <MoonIcon className="absolute size-4 scale-0 rotate-90 transition-transform dark:scale-100 dark:rotate-0" />
-          <span className="ml-6">Theme</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
-        <DropdownMenuItem onClick={() => setTheme("light")}>
-          Light
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
-          Dark
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
-          System
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
 
 export function ConsoleNav({
   session,
@@ -167,14 +125,6 @@ export function ConsoleNav({
         })}
       </ul>
 
-      <div className="border-sidebar-border shrink-0 border-t p-3 flex flex-col gap-3">
-        <ThemeToggle />
-        {/* The account block was the mock franchise's name and code, on every
-            buyer's rail as well as every franchise's. `SessionFooter` already
-            says who is signed in, and it says it from the session. */}
-        <Separator />
-        <SessionFooter email={session.email} role={session.role} />
-      </div>
     </nav>
   );
 }

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { AdminNav } from "@/components/admin/admin-nav";
+import { ConsoleTopBar } from "@/components/console/top-bar";
 import { requireConsole } from "@/lib/auth/require";
 import { needsReview } from "@/lib/domain/admin";
 import { countWaiting } from "@/lib/firebase/enquiries";
@@ -55,8 +56,11 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   return (
     <div className="flex min-h-svh w-full">
-      <AdminNav pending={pending} session={{ email: session.email, role: session.claims.role }} />
-      <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+      <AdminNav pending={pending} />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <ConsoleTopBar session={{ email: session.email, role: session.claims.role }} />
+        {children}
+      </div>
     </div>
   );
 }

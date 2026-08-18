@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { ConsoleNav } from "@/components/franchise/console-nav";
 import { BUYING_ROLES } from "@/lib/auth/claims";
+import { ConsoleTopBar } from "@/components/console/top-bar";
 import { requireConsole } from "@/lib/auth/require";
 import { isCapped, readNotifications } from "@/lib/firebase/notifications-read";
 
@@ -46,7 +47,10 @@ export default async function BuyingLayout({
           capped: isCapped(feed),
         }}
       />
-      <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <ConsoleTopBar session={{ email: session.email, role: session.claims.role }} />
+        {children}
+      </div>
     </div>
   );
 }

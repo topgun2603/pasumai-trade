@@ -4,6 +4,7 @@ import { BanknoteIcon, CheckIcon, ClockIcon, InfinityIcon, XIcon } from "lucide-
 
 import { DataTable, type Column, type FilterTab } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { CHANNEL_LABELS, type Channel, type ReminderStage } from "@/lib/domain/subscription-reminder";
 
 /**
@@ -59,16 +60,11 @@ export function SubscriptionsTable({ rows }: { rows: SubscriptionRow[] }) {
       ),
     },
     {
-      key: "term",
-      header: "Plan",
-      sortValue: (row) => row.termLabel,
+      key: "amount",
+      header: "Paid",
+      sortValue: (row) => row.amountLabel ?? "",
       cell: (row) => (
-        <span className="flex flex-col leading-tight">
-          <span className="text-sm">{row.termLabel}</span>
-          {row.amountLabel ? (
-            <span className="text-faint text-xs">{row.amountLabel}</span>
-          ) : null}
-        </span>
+        <span className="text-muted-foreground tabular text-sm">{row.amountLabel ?? "—"}</span>
       ),
     },
     {
@@ -147,61 +143,111 @@ export function SubscriptionsTable({ rows }: { rows: SubscriptionRow[] }) {
     { value: "lifetime", label: "Lifetime", match: (row) => row.lifetime },
   ];
 
+  /*
+    A table per plan rather than one list with a plan column.
+
+    The question operations actually ask is per plan — how many are on the
+    six-month term, how many lifetime, which of the monthly ones lapse this
+    week. A single sortable column makes that a re-sort every time, and the
+    counts have to be worked out by eye. Each section carries its own search
+    and paging, so reading the monthly plans does not move the page you are on
+    for the annual ones.
+
+    Ordered by how many are on each, so the plan carrying the platform is at
+    the top rather than wherever the alphabet puts it.
+  */
+  const plans = [...new Set(rows.map((row) => row.termLabel))]
+    .map((term) => ({ term, rows: rows.filter((row) => row.termLabel === term) }))
+    .sort((a, b) => b.rows.length - a.rows.length || a.term.localeCompare(b.term));
+
+  if (rows.length === 0) {
+    return (
+      <EmptyState
+        icon={BanknoteIcon}
+        tone="waiting"
+        title="Nobody is subscribed yet"
+        description="Every plan bought on the platform appears here with what it cost and when it runs out, so a renewal can be chased before somebody is locked out."
+      />
+    );
+  }
+
   return (
-    <DataTable
-      rows={rows}
-      columns={columns}
-      tabs={tabs}
-      entityLabel="subscriptions"
-      searchPlaceholder="Name, account id or plan"
-      searchText={(row) => `${row.name} ${row.accountId} ${row.kind} ${row.termLabel} ${row.status}`}
-      empty={{
-        icon: BanknoteIcon,
-        title: "Nobody is subscribed yet",
-        description:
-          "Every plan bought on the platform appears here with what it cost and when it runs out, so a renewal can be chased before somebody is locked out.",
-      }}
-      expand={(row) => (
-        <div className="flex flex-col gap-1.5 text-sm">
-          <span className="text-muted-foreground">
-            {row.lifetime
-              ? "A lifetime plan. It never expires and is never reminded."
-              : `Reminders can reach this account by: ${
-                  row.reachable.length > 0
-                    ? row.reachable.map((c) => CHANNEL_LABELS[c]).join(", ")
-                    : "in-app only — no mobile number or email on file"
-                }.`}
-          </span>
-          {row.status === "expired" || (row.daysLeft !== null && row.daysLeft < 0) ? (
-            <span className="text-destructive flex items-center gap-1.5">
-              <XIcon className="size-3.5" />
-              This account cannot trade until it renews.
-            </span>
-          ) : (
-            <span className="text-muted-foreground flex items-center gap-1.5">
-              <ClockIcon className="size-3.5" />
-              Started {row.renewsLabel === "—" ? "at some point" : "and running"}.
-            </span>
-          )}
-        </div>
-      )}
-      card={(row) => (
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="font-medium">{row.name}</span>
-            <Badge variant="outline" className={STATUS_STYLE[row.status] ?? ""}>
-              {row.status}
-            </Badge>
-          </div>
-          <p className="text-muted-foreground text-xs">
-            {row.kind} · {row.termLabel}
-            {row.amountLabel ? ` · ${row.amountLabel}` : ""}
-          </p>
-          <p className="text-faint text-xs">
-            {row.lifetime ? "Never runs out" : `Runs out ${row.renewsLabel}`}
-          </p>
-        </div>
-      )}
-    />
+    <div className="flex flex-col gap-6">
+      {plans.map(({ term, rows: inPlan }) => {
+        const lapsing = inPlan.filter(
+          (row) => !row.lifetime && row.daysLeft !== null && row.daysLeft <= 14,
+        ).length;
+
+        return (
+          <section key={term} className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-baseline gap-2">
+              <h3 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                {term}
+                <span className="text-faint font-normal"> · {inPlan.length}</span>
+              </h3>
+              {/* The number worth acting on, beside the heading rather than
+                  buried in a column somebody has to sort. */}
+              {lapsing > 0 ? (
+                <Badge variant="outline" className="border-warning/40 bg-warning-soft text-warning">
+                  <ClockIcon className="size-3" />
+                  {lapsing} ending or lapsed
+                </Badge>
+              ) : null}
+            </div>
+
+            <DataTable
+              rows={inPlan}
+              columns={columns}
+              tabs={tabs}
+              entityLabel="subscriptions"
+              searchPlaceholder="Name or account id"
+              searchText={(row) => `${row.name} ${row.accountId} ${row.kind} ${row.status}`}
+              initialPageSize={10}
+              empty={{
+                icon: BanknoteIcon,
+                title: "Nobody on this plan",
+                description: "Accounts appear here as soon as they buy it.",
+              }}
+              expand={(row) => (
+                <div className="flex flex-col gap-1.5 text-sm">
+                  <span className="text-muted-foreground">
+                    {row.lifetime
+                      ? "A lifetime plan. It never expires and is never reminded."
+                      : `Reminders can reach this account by: ${
+                          row.reachable.length > 0
+                            ? row.reachable.map((c) => CHANNEL_LABELS[c]).join(", ")
+                            : "in-app only — no mobile number or email on file"
+                        }.`}
+                  </span>
+                  {!row.lifetime && row.daysLeft !== null && row.daysLeft < 0 ? (
+                    <span className="text-destructive flex items-center gap-1.5">
+                      <XIcon className="size-3.5" />
+                      This account cannot trade until it renews.
+                    </span>
+                  ) : null}
+                </div>
+              )}
+              card={(row) => (
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="font-medium">{row.name}</span>
+                    <Badge variant="outline" className={STATUS_STYLE[row.status] ?? ""}>
+                      {row.status}
+                    </Badge>
+                  </div>
+                  <p className="text-muted-foreground text-xs">
+                    {row.kind}
+                    {row.amountLabel ? ` · ${row.amountLabel}` : ""}
+                  </p>
+                  <p className="text-faint text-xs">
+                    {row.lifetime ? "Never runs out" : `Runs out ${row.renewsLabel}`}
+                  </p>
+                </div>
+              )}
+            />
+          </section>
+        );
+      })}
+    </div>
   );
 }
