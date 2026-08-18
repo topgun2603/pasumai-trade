@@ -2,14 +2,21 @@
 
 import {
   BellIcon,
+  BellRingIcon,
+  HandshakeIcon,
+  LeafIcon,
   MessageSquareIcon,
   MessagesSquareIcon,
+  PackageIcon,
   PencilIcon,
   PlusIcon,
+  RouteIcon,
   SettingsIcon,
+  ShieldCheckIcon,
   SproutIcon,
   StoreIcon,
   TrashIcon,
+  type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -40,7 +47,7 @@ import {
 } from "@/lib/domain/bargain-vocabulary";
 import type { State } from "@/lib/domain/location";
 import { formatMoney, money } from "@/lib/domain/money";
-import { POLICY_FIELDS, type PlatformPolicy } from "@/lib/domain/policy";
+import { POLICY_FIELDS, type PlatformPolicy, type PolicyField } from "@/lib/domain/policy";
 import type { DocumentRule, Pack, Phrase } from "@/lib/mock/reference";
 import { LOCALES, LOCALE_META } from "@/lib/i18n/config";
 import { cn } from "@/lib/utils";
@@ -85,6 +92,41 @@ function PanelHeading({
    ------------------------------------------------------------------------- */
 
 /**
+ * A face per policy group.
+ *
+ * Six bordered boxes of identical grey text is a wall an operator has to read
+ * top to bottom to find the one they came for. The icon and the tint are what
+ * make "the subscription reminders" findable at a glance; they carry no meaning
+ * beyond telling the groups apart, which is why they are flat chart tokens and
+ * not the success/warning tones this console reserves for urgency.
+ */
+const POLICY_LOOK: Record<PolicyField["group"], { icon: LucideIcon; disc: string }> = {
+  Bargaining: { icon: HandshakeIcon, disc: "bg-chart-2/12 text-chart-2" },
+  Freshness: { icon: LeafIcon, disc: "bg-chart-1/12 text-chart-1" },
+  Compliance: { icon: ShieldCheckIcon, disc: "bg-chart-4/12 text-chart-4" },
+  Supply: { icon: PackageIcon, disc: "bg-chart-5/12 text-chart-5" },
+  Subscriptions: { icon: BellRingIcon, disc: "bg-chart-3/12 text-chart-3" },
+  Distance: { icon: RouteIcon, disc: "bg-chart-2/12 text-chart-2" },
+};
+
+/**
+ * The number apart from its unit, so the number can be the thing you see.
+ *
+ * The unit is also made to agree with it. A suffix is stored in the plural
+ * because that is how it reads beside an input in the edit dialog, but a panel
+ * showing "1 days before" looks like a page nobody finished.
+ */
+function showPolicy(field: PolicyField, raw: number): { value: string; unit: string } {
+  if (field.money) return { value: formatMoney(money(raw)), unit: "" };
+  // A percentage hugs its number; "130 %" is not how anybody writes it.
+  if (field.suffix === "%") return { value: `${raw}%`, unit: "" };
+  return {
+    value: String(raw),
+    unit: raw === 1 ? field.suffix.replace(/^(\w+)s(?=\s|$)/, "$1") : field.suffix,
+  };
+}
+
+/**
  * The numbers, shown as they are read.
  *
  * Displayed as a grid rather than hidden behind the edit dialog because the
@@ -114,24 +156,52 @@ export function PolicyPanel({
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {groups.map((group) => (
-          <div key={group} className="bg-card flex flex-col gap-3 rounded-lg border p-4">
-            <h3 className="font-medium">{group}</h3>
-            <dl className="flex flex-col gap-2.5">
-              {POLICY_FIELDS.filter((f) => f.group === group).map((field) => (
-                <div key={field.key} className="flex flex-col gap-0.5">
-                  <dt className="text-muted-foreground text-sm">{field.label}</dt>
-                  <dd className="tabular font-medium">
-                    {field.money
-                      ? formatMoney(money(policy[field.key]))
-                      : `${policy[field.key]} ${field.suffix}`}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        ))}
+      {/*
+        `items-start`, so a card holding one number is the height of one number.
+        These groups are three and four rows apart in length — stretched to a
+        common height, the short ones were mostly empty ruled box, which reads
+        as a setting that failed to load rather than a group with one setting.
+      */}
+      <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {groups.map((group) => {
+          const look = POLICY_LOOK[group];
+
+          return (
+            <div key={group} className="bg-card flex flex-col rounded-lg border">
+              <div className="flex items-center gap-2.5 border-b px-4 py-3">
+                <span
+                  className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${look.disc}`}
+                >
+                  <look.icon className="size-4" />
+                </span>
+                <h3 className="font-medium">{group}</h3>
+              </div>
+
+              <dl className="divide-y">
+                {POLICY_FIELDS.filter((f) => f.group === group).map((field) => {
+                  const shown = showPolicy(field, policy[field.key]);
+
+                  return (
+                    /* The help text on hover: these labels are terse by
+                       necessity, and the sentence explaining what a number
+                       actually governs is already written for the edit dialog. */
+                    <div key={field.key} className="flex flex-col gap-1 px-4 py-3" title={field.help}>
+                      <dt className="text-muted-foreground text-xs">{field.label}</dt>
+                      <dd className="tabular text-2xl leading-none font-semibold">
+                        {shown.value}
+                        {shown.unit ? (
+                          <span className="text-muted-foreground ml-1.5 text-sm font-normal">
+                            {shown.unit}
+                          </span>
+                        ) : null}
+                      </dd>
+                    </div>
+                  );
+                })}
+              </dl>
+            </div>
+          );
+        })}
       </div>
 
       {open ? (
