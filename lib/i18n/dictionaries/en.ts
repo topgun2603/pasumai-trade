@@ -69,6 +69,9 @@ export const en = {
     sources: "{count} sales today",
     noSettled: "First price today",
     example: "Example price",
+    signInToBid: "Sign in as buyer or franchise",
+    notAvailable: "Not on the market yet",
+    bidOn: "Sign in to bid for {crop}",
     allIllustrative:
       "Nothing has sold on the platform today yet, so these are example prices showing how this section reads. Real prices take their place the moment a bargain closes.",
     someIllustrative:

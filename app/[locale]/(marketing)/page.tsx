@@ -130,7 +130,7 @@ export default async function LandingPage({
       <section id="prices" className="border-b scroll-mt-20">
         <div className="mx-auto w-full max-w-6xl px-5 py-16">
           <Reveal>
-            <LivePrices t={t} />
+            <LivePrices t={t} locale={locale} />
           </Reveal>
         </div>
       </section>

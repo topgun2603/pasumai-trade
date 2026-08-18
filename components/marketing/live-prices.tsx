@@ -1,6 +1,7 @@
 "use client";
 
 import { FlaskConicalIcon, RefreshCwIcon, TriangleAlertIcon } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import type { PriceLine } from "@/app/api/market/prices/route";
@@ -8,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fill, type Dictionary } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/config";
 import { cn } from "@/lib/utils";
 
 const FRESHNESS_STYLE: Record<PriceLine["freshness"], string> = {
@@ -30,7 +32,7 @@ type State =
  * keeps the page static and the prices live, at the cost of a moment where
  * there is nothing to show. That moment is what the skeleton is for.
  */
-export function LivePrices({ t }: { t: Dictionary }) {
+export function LivePrices({ t, locale }: { t: Dictionary; locale: Locale }) {
   const [state, setState] = useState<State>({ status: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -143,13 +145,36 @@ export function LivePrices({ t }: { t: Dictionary }) {
               <li
                 key={line.id}
                 className={cn(
-                  "bg-card flex items-center gap-3.5 rounded-xl border p-4",
+                  "group bg-card relative flex items-center gap-3.5 rounded-xl border p-4 transition-colors",
                   // A sample is drawn differently, not merely labelled. Two
                   // cards that look identical are two cards a reader treats
                   // identically, whatever the small print on one of them says.
-                  line.illustrative && "border-dashed bg-transparent",
+                  line.illustrative
+                    ? "cursor-not-allowed border-dashed bg-transparent"
+                    : "hover:border-primary focus-within:border-primary",
                 )}
               >
+                {/*
+                  A real price is something you can act on, so the card is a
+                  way in. A stretched link rather than wrapping the card:
+                  everything inside stays plain markup, and one link is one tab
+                  stop instead of four.
+
+                  It lands on the sign-in page rather than choosing a role
+                  here. Buyer and franchise both bid, that page is built to
+                  switch between them, and a card offering two destinations is
+                  a card that needs a decision before it can be clicked.
+                */}
+                {line.illustrative ? null : (
+                  <Link
+                    href={`/${locale}/signin?as=buyer`}
+                    className="focus-visible:ring-ring absolute inset-0 rounded-xl focus-visible:ring-2 focus-visible:outline-none"
+                  >
+                    <span className="sr-only">
+                      {fill(t.prices.bidOn, { crop: line.nameEn })}
+                    </span>
+                  </Link>
+                )}
                 <span
                   aria-hidden
                   className="bg-secondary flex size-11 shrink-0 items-center justify-center rounded-lg text-xl"
@@ -162,12 +187,40 @@ export function LivePrices({ t }: { t: Dictionary }) {
                   <span lang="ta" className="text-faint truncate text-xs">
                     {line.nameTa}
                   </span>
-                  <span className="text-muted-foreground mt-1 text-xs">
-                    {line.illustrative
-                      ? t.prices.example
-                      : line.settledCount > 1
-                        ? fill(t.prices.sources, { count: String(line.settledCount) })
-                        : t.prices.noSettled}
+                  {/*
+                    The sub-line says what the figure is, and swaps on hover to
+                    say what you can do about it. Stacked in one grid cell so
+                    the swap costs no height — a card that grows under the
+                    pointer shoves the two beside it, and in a nine-card grid
+                    that is the whole section moving.
+
+                    Both lines stay in the DOM. On a phone there is no hover at
+                    all, so the informative line is simply the one that shows,
+                    and the card is still tappable through the stretched link.
+                  */}
+                  <span className="mt-1 grid text-xs">
+                    <span
+                      className={cn(
+                        "text-muted-foreground col-start-1 row-start-1 truncate transition-opacity",
+                        "group-hover:opacity-0 group-focus-within:opacity-0",
+                      )}
+                    >
+                      {line.illustrative
+                        ? t.prices.example
+                        : line.settledCount > 1
+                          ? fill(t.prices.sources, { count: String(line.settledCount) })
+                          : t.prices.noSettled}
+                    </span>
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "col-start-1 row-start-1 truncate opacity-0 transition-opacity",
+                        "group-hover:opacity-100 group-focus-within:opacity-100",
+                        line.illustrative ? "text-faint" : "text-primary",
+                      )}
+                    >
+                      {line.illustrative ? t.prices.notAvailable : t.prices.signInToBid}
+                    </span>
                   </span>
                 </span>
 
