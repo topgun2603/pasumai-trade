@@ -3,6 +3,7 @@
 import { LeafIcon, MenuIcon, MoonIcon, SunIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { LanguageSwitcher } from "@/components/marketing/language-switcher";
@@ -49,15 +50,31 @@ export function SiteHeader({
 }) {
   const [open, setOpen] = useState(false);
 
+  /*
+    Pricing is a page; the rest are sections of the landing page. That mix is
+    what broke the nav: the section links were bare `#how-it-works`, so from
+    `/pricing` they set a hash on a page that has no such section and nothing
+    happened. Every link has to say which page it means.
+
+    On the landing page they stay bare anchors, which the browser scrolls to
+    without a navigation. Anywhere else they become `/{locale}#section` and go
+    home first. Using the full form on the landing page too would work, but a
+    plain `<a>` to the current URL reloads the whole page to scroll a few
+    hundred pixels.
+  */
+  const pathname = usePathname();
+  const home = `/${locale}`;
+  const onLanding = pathname === home || pathname === `${home}/`;
+
+  const section = (id: string) => (onLanding ? `#${id}` : `${home}#${id}`);
+
   const links = [
-    // A real page now, not an anchor — so it renders as a Link rather than an
-    // in-page jump. The rest of the nav is still same-page scrolling.
     { href: `/${locale}/pricing`, label: t.nav.pricing, page: true },
-    { href: "#languages", label: t.nav.languages },
-    { href: "#how-it-works", label: t.nav.howItWorks },
-    { href: "#farmers", label: t.nav.forFarmers },
-    { href: "#buyers", label: t.nav.forBuyers },
-    { href: "#coverage", label: t.nav.coverage },
+    { href: section("languages"), label: t.nav.languages, page: !onLanding },
+    { href: section("how-it-works"), label: t.nav.howItWorks, page: !onLanding },
+    { href: section("farmers"), label: t.nav.forFarmers, page: !onLanding },
+    { href: section("buyers"), label: t.nav.forBuyers, page: !onLanding },
+    { href: section("coverage"), label: t.nav.coverage, page: !onLanding },
   ];
 
   return (

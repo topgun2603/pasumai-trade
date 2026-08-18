@@ -41,10 +41,17 @@ export function SiteFooter({ locale, t }: { locale: Locale; t: Dictionary }) {
     {
       title: t.footer.platform,
       links: [
-        { href: "#how-it-works", label: t.nav.howItWorks },
-        { href: "#farmers", label: t.nav.forFarmers },
-        { href: "#buyers", label: t.nav.forBuyers },
-        { href: "#coverage", label: t.nav.coverage },
+        /*
+          Named with the page, not as a bare hash. The footer appears on the
+          pricing page too, where `#farmers` points at a section that is not
+          there — the link would simply do nothing. This is a server component
+          with no idea which page it is on, so it always says home; Next treats
+          that as a scroll when it already is home.
+        */
+        { href: `/${locale}#how-it-works`, label: t.nav.howItWorks },
+        { href: `/${locale}#farmers`, label: t.nav.forFarmers },
+        { href: `/${locale}#buyers`, label: t.nav.forBuyers },
+        { href: `/${locale}#coverage`, label: t.nav.coverage },
         { href: `/${locale}/pricing`, label: t.nav.pricing },
       ],
     },
