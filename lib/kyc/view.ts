@@ -37,11 +37,23 @@ export async function onboardingView(checks: Check[], role: Role): Promise<Onboa
   const now = Date.now();
 
   const documents: Record<string, ViewableDocument[]> = {};
+  /*
+    Documents the check records but storage cannot produce.
+
+    `signDocuments` drops a path with no object behind it, which is right for
+    the tile — a broken image reads as a failure to load. But dropping it
+    silently leaves a check that says nothing was ever uploaded, which is a
+    different and worse lie. Counted here so the screen can say the file is
+    gone and ask for it again.
+  */
+  const missing: Record<string, number> = {};
+
   await Promise.all(
     checks
       .filter((check) => (check.documents?.length ?? 0) > 0)
       .map(async (check) => {
         const signed = await signDocuments(check.documents);
+        missing[check.kind] = (check.documents?.length ?? 0) - signed.length;
         documents[check.kind] = signed.map((document) => ({
           url: document.url,
           contentType: document.contentType,
@@ -55,6 +67,7 @@ export async function onboardingView(checks: Check[], role: Role): Promise<Onboa
     state: kycState(checks, role),
     checks,
     documents,
+    missingDocuments: missing,
     required,
     optional,
     progress: kycProgress(checks, role),

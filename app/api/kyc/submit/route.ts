@@ -153,16 +153,33 @@ export async function POST(request: Request) {
     return Response.json({ error: "Unknown check." }, { status: 422 });
   }
 
-  const value = typeof body.value === "string" ? body.value : "";
-  const outcome = validate(kind, value);
+  const now = new Date();
+  const existing = await readChecks(role, accountId);
+  const already = existing.find((c) => c.kind === kind);
+
+  /*
+    Sending a document again is not entering the number again.
+
+    An Aadhaar is stored masked — `XXXX XXXX 3106` — and a bank account as a
+    tail. Somebody asked for a clearer photograph cannot reproduce either from
+    what is on their screen, and demanding it turned "send it again" into
+    "start over": the submit button stayed disabled with the file attached and
+    nothing said why.
+
+    So an empty value falls back to the reference already on the check. A value
+    that *is* given is still validated, because changing the number is a
+    different act and must be checked like a first submission.
+  */
+  const value = typeof body.value === "string" ? body.value.trim() : "";
+  const reusing = value === "" && Boolean(already?.reference);
+
+  const outcome = reusing
+    ? { reference: already!.reference! }
+    : validate(kind, value);
+
   if ("error" in outcome) {
     return Response.json({ error: outcome.error, field: kind }, { status: 422 });
   }
-
-  const now = new Date();
-  const existing = await readChecks(role, accountId);
-
-  const already = existing.find((c) => c.kind === kind);
   if (already?.state === "verified") {
     // Re-submitting something already cleared would send a verified check back
     // into the queue and take away access the person already has.

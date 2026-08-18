@@ -51,6 +51,15 @@ export interface OnboardingView {
    * and guess at what to change.
    */
   readonly documents: Record<string, ViewableDocument[]>;
+  /**
+   * Per check, how many recorded documents storage could not produce.
+   *
+   * Almost always zero. When it is not, the file behind an upload is gone —
+   * deleted, or a half-finished upload — and the applicant needs telling,
+   * because their screen would otherwise show a check with no evidence and no
+   * explanation for where it went.
+   */
+  readonly missingDocuments: Record<string, number>;
 }
 
 /** A file chosen but not yet sent. */
@@ -392,6 +401,15 @@ export function KycOnboarding({ view, roleLabel }: { view: OnboardingView; roleL
                 label={CHECK_LABELS[kind]}
               />
 
+              {(view.missingDocuments[kind] ?? 0) > 0 ? (
+                <p className="text-warning flex items-start gap-1.5 text-xs">
+                  <TriangleAlertIcon className="mt-0.5 size-3 shrink-0" />
+                  {view.missingDocuments[kind] === 1
+                    ? "A document you sent is no longer stored. Please attach it again."
+                    : `${view.missingDocuments[kind]} documents you sent are no longer stored. Please attach them again.`}
+                </p>
+              ) : null}
+
               {!done ? (
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor={`kyc-${kind}`} className="sr-only">
@@ -420,7 +438,10 @@ export function KycOnboarding({ view, roleLabel }: { view: OnboardingView; roleL
                       */
                       disabled={
                         pending !== null ||
-                        !(values[kind] ?? "").trim() ||
+                        // A number is needed, but one already on the check
+                        // counts: a masked Aadhaar cannot be retyped from what
+                        // is on screen, and a re-upload should not demand it.
+                        (!(values[kind] ?? "").trim() && !check?.reference) ||
                         !hasEvidence(kind)
                       }
                       onClick={() => submit(kind)}
