@@ -61,7 +61,7 @@ interface GoogleBounds {
 }
 
 interface GoogleMap {
-  fitBounds: (bounds: GoogleBounds, padding?: number) => void;
+  fitBounds?: (bounds: GoogleBounds, padding?: number) => void;
 }
 
 interface GoogleMarker {
@@ -75,53 +75,95 @@ interface GoogleInfoWindow {
   close: () => void;
 }
 
+/**
+ * `Map` and `Marker` are attached by the module the bootstrap fetches; the
+ * other two are optional here on purpose. Google lazy-loads parts of the API,
+ * and I could not prove from the minified bundle that these two arrive with the
+ * first one. The pins are the point — a popup and an auto-fit are conveniences,
+ * and neither is worth a blank rectangle if it turns out to be absent.
+ */
 interface GoogleMaps {
   Map: new (
     container: HTMLElement,
     options: Record<string, unknown>,
   ) => GoogleMap;
   Marker: new (options: Record<string, unknown>) => GoogleMarker;
-  InfoWindow: new (options?: Record<string, unknown>) => GoogleInfoWindow;
-  LatLngBounds: new () => GoogleBounds;
+  InfoWindow?: new (options?: Record<string, unknown>) => GoogleInfoWindow;
+  LatLngBounds?: new () => GoogleBounds;
 }
 
 declare global {
   interface Window {
-    google?: { maps?: GoogleMaps };
+    /*
+      Typed as `unknown`, not as `GoogleMaps`. At script-load time this object
+      genuinely exists with none of the constructors on it, so a type saying
+      otherwise would be a lie the compiler helps enforce — and it is exactly
+      the lie that produced "the map could not be loaded". `ready()` below is
+      the only way in.
+    */
+    google?: { maps?: unknown };
+    __pasumaiMapsReady?: () => void;
   }
 }
 
 const SCRIPT_ID = "google-maps-js";
 
-/** Loads the API once, however many components ask for it. */
+/** The API, or null while only the bootstrap has arrived. */
+function ready(): GoogleMaps | null {
+  const maps = window.google?.maps as GoogleMaps | undefined;
+  return typeof maps?.Map === "function" ? maps : null;
+}
+
+/**
+ * Loads the API once, however many components ask for it.
+ *
+ * **The script's `load` event is not the signal.** Google serves a small
+ * bootstrap that attaches only `Load`, `modules` and `__gjsload__`; `Map`,
+ * `Marker` and `InfoWindow` arrive later, in modules the bootstrap fetches for
+ * itself. Resolving on `load` and calling `new maps.Map()` therefore throws on
+ * `undefined` — which is precisely what put "the map could not be loaded" on
+ * the page.
+ *
+ * The documented signal is the `callback` parameter, which `loading=async`
+ * requires rather than merely suggests. Google calls the named global once the
+ * API is genuinely usable, and that is what resolves this promise.
+ */
 function loadMaps(language: string): Promise<GoogleMaps> {
   return new Promise((resolve, reject) => {
-    if (window.google?.maps) return resolve(window.google.maps);
+    // Already usable. `Map` is the thing worth testing for, not `maps`, which
+    // the bootstrap defines long before it means anything.
+    const already = ready();
+    if (already) return resolve(already);
 
-    const existing = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null;
-    const script = existing ?? document.createElement("script");
+    // Chained rather than replaced: a second caller arriving mid-load must not
+    // silently unhook the first one's resolve.
+    const previous = window.__pasumaiMapsReady;
+    window.__pasumaiMapsReady = () => {
+      previous?.();
+      const maps = ready();
+      if (maps) resolve(maps);
+      else reject(new Error("callback fired without google.maps.Map"));
+    };
 
-    if (!existing) {
-      const url = new URL("https://maps.googleapis.com/maps/api/js");
-      url.searchParams.set("key", KEY ?? "");
-      // Not optional. See the note at the top of this file: this is the
-      // parameter that decides which country's borders are drawn.
-      url.searchParams.set("region", "IN");
-      url.searchParams.set("language", language);
-      url.searchParams.set("loading", "async");
+    if (document.getElementById(SCRIPT_ID)) return;
 
-      script.id = SCRIPT_ID;
-      script.async = true;
-      script.src = url.toString();
-      document.head.appendChild(script);
-    }
+    const url = new URL("https://maps.googleapis.com/maps/api/js");
+    url.searchParams.set("key", KEY ?? "");
+    // Not optional. See the note at the top of this file: this is the
+    // parameter that decides which country's borders are drawn.
+    url.searchParams.set("region", "IN");
+    url.searchParams.set("language", language);
+    url.searchParams.set("loading", "async");
+    url.searchParams.set("callback", "__pasumaiMapsReady");
 
-    script.addEventListener("load", () =>
-      window.google?.maps
-        ? resolve(window.google.maps)
-        : reject(new Error("maps script loaded without google.maps")),
-    );
+    const script = document.createElement("script");
+    script.id = SCRIPT_ID;
+    script.async = true;
+    script.src = url.toString();
+    // A network failure never reaches the callback, so the error event is
+    // still needed — it is just not what success looks like.
     script.addEventListener("error", () => reject(new Error("maps script failed")));
+    document.head.appendChild(script);
   });
 }
 
@@ -207,7 +249,7 @@ export function CoverageMap({
           gestureHandling: "cooperative",
         });
 
-        const info = new maps.InfoWindow();
+        const info = maps.InfoWindow ? new maps.InfoWindow() : null;
 
         for (const pin of pins) {
           const farmers = pin.places.reduce((n, p) => n + p.farmerCount, 0);
@@ -227,18 +269,24 @@ export function CoverageMap({
             title: names,
           });
 
-          marker.addListener("click", () => {
-            info.setContent(
-              `<strong>${escapeHtml(names)}</strong><br>${farmers} ${escapeHtml(labels.farmers)}`,
-            );
-            info.open({ anchor: marker, map });
-          });
+          // Without an info window the marker still names itself on hover
+          // through `title`, which is set above.
+          if (info) {
+            marker.addListener("click", () => {
+              info.setContent(
+                `<strong>${escapeHtml(names)}</strong><br>${farmers} ${escapeHtml(labels.farmers)}`,
+              );
+              info.open({ anchor: marker, map });
+            });
+          }
 
           markers.push(marker);
         }
 
-        // Tightened onto the pins, rather than trusting the guessed zoom.
-        if (box) {
+        // Tightened onto the pins, rather than trusting the guessed zoom. The
+        // centre and zoom above are already right enough to stand alone, so
+        // this is allowed to be unavailable.
+        if (box && maps.LatLngBounds && map.fitBounds) {
           const bounds = new maps.LatLngBounds();
           bounds.extend({ lat: box.south, lng: box.west });
           bounds.extend({ lat: box.north, lng: box.east });
