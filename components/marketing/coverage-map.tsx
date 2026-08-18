@@ -12,93 +12,123 @@ import {
 /**
  * The coverage, on a map of India.
  *
- * ## Why Mappls, and why its own SDK
+ * ## The provider, and the boundary question
  *
  * Boundary depiction is a legal question in this country rather than a styling
  * one — Survey of India requires a particular treatment of J&K, Ladakh and
- * Arunachal that the open basemaps do not follow. Mappls is Indian-registered
- * and compliant by default, which is why it was chosen.
+ * Arunachal that not every basemap follows.
  *
- * This was first written against MapLibre with a `style.json` URL, on the
- * assumption that Mappls publishes one. **It does not.** Its vector maps ship
- * as a script SDK wrapping its own renderer, with no documented style endpoint
- * to hand to another library. So the SDK is loaded directly, and `maplibre-gl`
- * is gone: a dependency nothing imports is one that only costs.
+ * Google's answer is the `region` parameter: it "alters your application to
+ * serve different map tiles", and their localisation guide puts the duty
+ * squarely on us — *"it is also your responsibility to ensure that your
+ * application complies with local laws by ensuring that the correct region
+ * localization is applied"*. So `region=IN` is not optional decoration here.
+ * It is the line that makes this map lawful to show, and it is why the loader
+ * below refuses to build a URL without it.
+ *
+ * This was written against Mappls first, whose maps are compliant by default;
+ * that provider was reachable but the console was not, from the machine that
+ * mattered. Google needs a billing account where Mappls does not, and the
+ * boundary duty moves from the provider to us — both worth knowing if it is
+ * ever revisited.
  *
  * ## Why it loads late, and sometimes not at all
  *
  * The script is fetched only when the section is scrolled towards. This sits
  * two thirds of the way down the landing page — the one route on this platform
  * that has to open quickly on a village connection — so somebody who never
- * reaches it never pays for it.
+ * reaches it never pays for it. That is also what keeps this inside Google's
+ * free allowance: a map load is only billed when a map is actually built, and
+ * most visitors never scroll this far.
  *
  * The village cards underneath are not a fallback bolted on afterwards: they
  * are the content, and they render from the server with no JavaScript at all.
- * The map illustrates them. With no token, a blocked script, no WebGL, or a
- * provider that does not answer, the section is still complete and still says
- * where produce is collected.
+ * The map illustrates them. With no key, a blocked script, or a provider that
+ * does not answer, the section is still complete and still says where produce
+ * is collected.
  */
 
-const TOKEN = process.env.NEXT_PUBLIC_MAPPLS_TOKEN;
+const KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-/** Only what this component calls. The SDK ships no types. */
-interface MapplsMap {
-  fitBounds?: (bounds: number[][], options?: { padding?: number }) => void;
-  remove?: () => void;
+/** Only what this component calls. */
+interface LatLngLiteral {
+  lat: number;
+  lng: number;
 }
 
-interface MapplsSdk {
+interface GoogleBounds {
+  extend: (point: LatLngLiteral) => void;
+}
+
+interface GoogleMap {
+  fitBounds: (bounds: GoogleBounds, padding?: number) => void;
+}
+
+interface GoogleMarker {
+  setMap: (map: GoogleMap | null) => void;
+  addListener: (event: string, handler: () => void) => void;
+}
+
+interface GoogleInfoWindow {
+  setContent: (content: string) => void;
+  open: (options: { anchor: GoogleMarker; map: GoogleMap }) => void;
+  close: () => void;
+}
+
+interface GoogleMaps {
   Map: new (
-    container: HTMLElement | string,
-    options: {
-      center: { lat: number; lng: number };
-      zoom?: number;
-      zoomControl?: boolean;
-      location?: boolean;
-    },
-  ) => MapplsMap;
-  Marker: new (options: {
-    map: MapplsMap;
-    position: { lat: number; lng: number };
-    popupHtml?: string;
-  }) => unknown;
+    container: HTMLElement,
+    options: Record<string, unknown>,
+  ) => GoogleMap;
+  Marker: new (options: Record<string, unknown>) => GoogleMarker;
+  InfoWindow: new (options?: Record<string, unknown>) => GoogleInfoWindow;
+  LatLngBounds: new () => GoogleBounds;
 }
 
 declare global {
   interface Window {
-    mappls?: MapplsSdk;
+    google?: { maps?: GoogleMaps };
   }
 }
 
-const SDK_ID = "mappls-web-sdk";
+const SCRIPT_ID = "google-maps-js";
 
-/** Loads the SDK once, however many components ask for it. */
-function loadSdk(): Promise<MapplsSdk> {
+/** Loads the API once, however many components ask for it. */
+function loadMaps(language: string): Promise<GoogleMaps> {
   return new Promise((resolve, reject) => {
-    if (window.mappls) return resolve(window.mappls);
+    if (window.google?.maps) return resolve(window.google.maps);
 
-    const existing = document.getElementById(SDK_ID) as HTMLScriptElement | null;
+    const existing = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null;
     const script = existing ?? document.createElement("script");
 
     if (!existing) {
-      script.id = SDK_ID;
+      const url = new URL("https://maps.googleapis.com/maps/api/js");
+      url.searchParams.set("key", KEY ?? "");
+      // Not optional. See the note at the top of this file: this is the
+      // parameter that decides which country's borders are drawn.
+      url.searchParams.set("region", "IN");
+      url.searchParams.set("language", language);
+      url.searchParams.set("loading", "async");
+
+      script.id = SCRIPT_ID;
       script.async = true;
-      script.src = `https://sdk.mappls.com/map/sdk/web?v=3.0&access_token=${encodeURIComponent(
-        TOKEN ?? "",
-      )}`;
+      script.src = url.toString();
       document.head.appendChild(script);
     }
 
     script.addEventListener("load", () =>
-      window.mappls ? resolve(window.mappls) : reject(new Error("sdk loaded without mappls")),
+      window.google?.maps
+        ? resolve(window.google.maps)
+        : reject(new Error("maps script loaded without google.maps")),
     );
-    script.addEventListener("error", () => reject(new Error("sdk failed to load")));
+    script.addEventListener("error", () => reject(new Error("maps script failed")));
   });
 }
 
 export function CoverageMap({
   places,
   opening,
+  language,
   labels,
 }: {
   places: MappedPlace[];
@@ -106,12 +136,12 @@ export function CoverageMap({
    * States configured but not opened.
    *
    * Listed under the map rather than marked on it. A pin here means produce is
-   * collected there, and the same mark on a state nobody has signed up in would
-   * be the map telling a lie more convincingly than a sentence could. The SDK's
-   * custom-marker HTML is also not something I could verify without an account,
-   * and a chip in ordinary markup is both honester and surer.
+   * collected there, and putting the same mark on a state nobody has signed up
+   * in would be the map telling a lie more convincingly than a sentence could.
    */
   opening: OpeningState[];
+  /** The reader's locale, so Google labels the map in their own script. */
+  language: string;
   labels: {
     farmers: string;
     openingSoon: string;
@@ -130,7 +160,7 @@ export function CoverageMap({
   */
   useEffect(() => {
     const element = container.current;
-    if (!element || !TOKEN) return;
+    if (!element || !KEY) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -147,61 +177,72 @@ export function CoverageMap({
   }, []);
 
   useEffect(() => {
-    if (!near || !TOKEN) return;
+    if (!near || !KEY) return;
     const element = container.current;
     if (!element) return;
 
-    let map: MapplsMap | null = null;
     let cancelled = false;
+    let markers: GoogleMarker[] = [];
 
     async function draw() {
       try {
-        const mappls = await loadSdk();
+        const maps = await loadMaps(language);
         if (cancelled || !element) return;
 
         const pins = groupNearby(places);
-        const bounds = boundsOf(pins);
+        const box = boundsOf(pins);
 
-        // Centred on the pins. Without any, the middle of the country — which
-        // is what a map with nothing to show should be looking at.
-        const centre = bounds
-          ? {
-              lat: (bounds.north + bounds.south) / 2,
-              lng: (bounds.east + bounds.west) / 2,
-            }
-          : { lat: 22.5, lng: 80 };
-
-        const instance = new mappls.Map(element, {
-          center: centre,
-          zoom: bounds ? 6 : 4,
-          zoomControl: true,
-          location: false,
+        const map = new maps.Map(element, {
+          center: box
+            ? { lat: (box.north + box.south) / 2, lng: (box.east + box.west) / 2 }
+            : // The middle of the country, for a map with nothing to show.
+              { lat: 22.5, lng: 80 },
+          zoom: box ? 6 : 4,
+          // A marketing illustration, not a tool. Street View and map-type
+          // switching are controls for somebody navigating, and this reader is
+          // not.
+          streetViewControl: false,
+          mapTypeControl: false,
+          fullscreenControl: false,
+          gestureHandling: "cooperative",
         });
-        map = instance;
+
+        const info = new maps.InfoWindow();
 
         for (const pin of pins) {
           const farmers = pin.places.reduce((n, p) => n + p.farmerCount, 0);
           const names = pin.places.map((p) => p.name).join(", ");
-          new mappls.Marker({
-            map: instance,
+
+          /*
+            The classic marker rather than AdvancedMarkerElement. The advanced
+            one needs a Map ID configured in the Cloud console — a second piece
+            of setup, in a second place, for a marketing map that draws twelve
+            plain dots. It is marked legacy and is not going away without
+            notice; when this needs custom marker HTML, that is the moment to
+            take on the Map ID.
+          */
+          const marker = new maps.Marker({
+            map,
             position: { lat: pin.lat, lng: pin.lng },
-            popupHtml: `<strong>${escapeHtml(names)}</strong><br>${farmers} ${escapeHtml(
-              labels.farmers,
-            )}`,
+            title: names,
           });
+
+          marker.addListener("click", () => {
+            info.setContent(
+              `<strong>${escapeHtml(names)}</strong><br>${farmers} ${escapeHtml(labels.farmers)}`,
+            );
+            info.open({ anchor: marker, map });
+          });
+
+          markers.push(marker);
         }
 
-        // Tightened onto the pins once they are placed. Optional-chained
-        // because it is not part of the documented minimum, and a map already
-        // centred on the right place is fine without it.
-        if (bounds) {
-          instance.fitBounds?.(
-            [
-              [bounds.west, bounds.south],
-              [bounds.east, bounds.north],
-            ],
-            { padding: 48 },
-          );
+        // Tightened onto the pins, rather than trusting the guessed zoom.
+        if (box) {
+          const bounds = new maps.LatLngBounds();
+          bounds.extend({ lat: box.south, lng: box.west });
+          bounds.extend({ lat: box.north, lng: box.east });
+          map.fitBounds(bounds, 48);
         }
       } catch {
         if (!cancelled) setFailed(true);
@@ -212,9 +253,12 @@ export function CoverageMap({
 
     return () => {
       cancelled = true;
-      map?.remove?.();
+      // Google has no `map.remove()`. Detaching the markers is what releases
+      // them; the map itself goes when React drops the container.
+      for (const marker of markers) marker.setMap(null);
+      markers = [];
     };
-  }, [near, places, labels]);
+  }, [near, places, language, labels]);
 
   const chips =
     opening.length > 0 ? (
@@ -231,9 +275,9 @@ export function CoverageMap({
       </ul>
     ) : null;
 
-  // With no token there is no map and nothing to apologise for: the cards below
+  // With no key there is no map and nothing to apologise for: the cards below
   // are the section. A grey rectangle that never fills would be worse.
-  if (!TOKEN) return chips;
+  if (!KEY) return chips;
 
   return (
     <>
@@ -259,7 +303,7 @@ export function CoverageMap({
   );
 }
 
-/** Village names go into the SDK's popup as markup, so they are escaped here. */
+/** Village names go into the info window as markup, so they are escaped here. */
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")

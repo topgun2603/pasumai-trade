@@ -401,6 +401,7 @@ export default async function LandingPage({
           <CoverageMap
             places={coverage.pins}
             opening={coverage.opening}
+            language={locale}
             labels={{
               farmers: t.coverage.farmers,
               openingSoon: t.coverage.openingSoon,
