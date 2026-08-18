@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { DocumentStrip, type ViewableDocument } from "@/components/kyc/documents";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Loader } from "@/components/ui/loader";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -377,7 +378,14 @@ export function KycOnboarding({ view, roleLabel }: { view: OnboardingView; roleL
                       disabled={pending !== null || !(values[kind] ?? "").trim()}
                       onClick={() => submit(kind)}
                     >
-                      {pending === kind ? "Sending…" : "Submit"}
+                      {pending === kind ? (
+                        <>
+                          <Loader size="xs" />
+                          Sending…
+                        </>
+                      ) : (
+                        "Submit"
+                      )}
                     </Button>
                   </div>
 

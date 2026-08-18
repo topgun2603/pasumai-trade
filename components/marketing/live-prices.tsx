@@ -103,6 +103,11 @@ export function LivePrices({ t, locale }: { t: Dictionary; locale: Locale }) {
         ) : null}
       </div>
 
+      {/*
+        A skeleton, not the loader: nine cards are coming and their shape is
+        known, so the page can hold still for them. The loader is for the
+        calls somebody presses a button to make.
+      */}
       {state.status === "loading" ? (
         <PriceSkeleton label={t.prices.loading} />
       ) : null}

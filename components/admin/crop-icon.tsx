@@ -1,10 +1,11 @@
 "use client";
 
-import { ImagePlusIcon, Loader2Icon, XIcon } from "lucide-react";
+import { ImagePlusIcon, XIcon } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Loader } from "@/components/ui/loader";
 import { cn } from "@/lib/utils";
 
 /**
@@ -191,7 +192,7 @@ export function IconPicker({
               onClick={() => inputRef.current?.click()}
             >
               {busy ? (
-                <Loader2Icon className="size-3.5 animate-spin" />
+                <Loader size="xs" />
               ) : (
                 <ImagePlusIcon className="size-3.5" />
               )}

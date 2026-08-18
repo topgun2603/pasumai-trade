@@ -235,3 +235,45 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   The Pasumai loader.
+
+   Two motions rather than one spinner. The ring sweeps, which is what tells a
+   reader something is still happening; the leaves breathe out of phase with
+   it, which is what makes it this platform's loader rather than any loader.
+
+   Kept here rather than inline so both halves share one timing source — a
+   sweep and a breath that drift apart read as two things loading, not one.
+
+   `prefers-reduced-motion` stops the sweep and the scaling and leaves a slow
+   fade. Something must still change, or a person who turns motion off cannot
+   tell a working request from a frozen one.
+--------------------------------------------------------------------------- */
+@keyframes pasumai-sweep {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pasumai-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.88);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pasumai-fade {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}

@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { EntityTag } from "@/components/entity-tag";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Loader } from "@/components/ui/loader";
 import {
   Dialog,
   DialogContent,
@@ -254,7 +255,14 @@ export function CallVehicle({
             </Button>
             <Button type="button" disabled={busy || total === 0} onClick={send}>
               <TruckIcon className="size-4" />
-              {busy ? "Sending…" : "Send request"}
+              {busy ? (
+                <>
+                  <Loader size="xs" />
+                  Sending…
+                </>
+              ) : (
+                "Send request"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

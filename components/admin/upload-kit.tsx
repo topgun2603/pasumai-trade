@@ -3,8 +3,7 @@
 import {
   CameraIcon,
   FileTextIcon,
-  Loader2Icon,
-  TriangleAlertIcon,
+    TriangleAlertIcon,
   UploadIcon,
   XIcon,
 } from "lucide-react";
@@ -13,6 +12,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Loader } from "@/components/ui/loader";
 import { cn } from "@/lib/utils";
 
 export interface UploadedFile {
@@ -221,7 +221,7 @@ export function PhotoUpload({
               onClick={() => inputRef.current?.click()}
             >
               {slot.busy ? (
-                <Loader2Icon className="size-3.5 animate-spin" />
+                <Loader size="xs" />
               ) : (
                 <CameraIcon className="size-3.5" />
               )}
@@ -350,7 +350,7 @@ export function DocumentUpload({
             onClick={() => inputRef.current?.click()}
           >
             {slot.busy ? (
-              <Loader2Icon className="size-3.5 animate-spin" />
+              <Loader size="xs" />
             ) : (
               <UploadIcon className="size-3.5" />
             )}

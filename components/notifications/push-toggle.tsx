@@ -1,10 +1,11 @@
 "use client";
 
-import { BellOffIcon, BellRingIcon, LoaderIcon } from "lucide-react";
+import { BellOffIcon, BellRingIcon } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Loader } from "@/components/ui/loader";
 import { firebaseConfig } from "@/lib/firebase/config";
 
 /**
@@ -199,7 +200,7 @@ export function PushToggle({ className }: { className?: string }) {
       onClick={state === "on" ? disable : enable}
     >
       {state === "asking" ? (
-        <LoaderIcon className="size-3.5 animate-spin" />
+        <Loader size="xs" />
       ) : state === "on" ? (
         <BellOffIcon className="size-3.5" />
       ) : (

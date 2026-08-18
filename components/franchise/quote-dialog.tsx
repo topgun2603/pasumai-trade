@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Loader } from "@/components/ui/loader";
 import {
   Dialog,
   DialogContent,
@@ -259,7 +260,14 @@ export function QuoteDialog({
             Cancel
           </Button>
           <Button onClick={submit} disabled={!canSubmit}>
-            {submitting ? "Sending…" : "Send offer"}
+            {submitting ? (
+              <>
+                <Loader size="xs" />
+                Sending…
+              </>
+            ) : (
+              "Send offer"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

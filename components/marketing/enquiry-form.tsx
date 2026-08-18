@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Loader } from "@/components/ui/loader";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
@@ -215,7 +216,14 @@ export function EnquiryForm({ t, locale }: { t: Dictionary; locale: string }) {
 
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={submitting}>
-          {submitting ? t.apply.sending : t.apply.send}
+          {submitting ? (
+            <>
+              <Loader size="xs" />
+              {t.apply.sending}
+            </>
+          ) : (
+            t.apply.send
+          )}
         </Button>
         <p className="text-faint max-w-sm text-xs">{t.apply.note}</p>
       </div>
