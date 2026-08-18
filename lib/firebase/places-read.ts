@@ -1,5 +1,7 @@
 import "server-only";
 
+import { STATE_ANCHOR, isPlottable, type MappedPlace, type OpeningState } from "@/lib/domain/coverage-map";
+
 import { adminDb, hasAdminCredentials } from "./admin";
 
 /**
@@ -23,6 +25,9 @@ export interface CoveragePlace {
   readonly districtName: string;
   readonly pincode: string;
   readonly farmerCount: number;
+  /** Absent where nobody has pinned the village yet. It then has no pin. */
+  readonly lat?: number;
+  readonly lng?: number;
 }
 
 export interface Coverage {
@@ -35,19 +40,49 @@ export interface Coverage {
    * way a price does.
    */
   readonly live: boolean;
+  /** Only the villages that can be drawn — see `isPlottable`. */
+  readonly pins: MappedPlace[];
+  /**
+   * States the platform is configured for but has not opened.
+   *
+   * `active: false` on the state document is the signal, so a state goes live
+   * on the map the moment operations flip it in Controls — no second list to
+   * remember.
+   */
+  readonly opening: OpeningState[];
+}
+
+/** The pins, from whatever coverage we ended up with. */
+export function pinsFrom(places: readonly CoveragePlace[]): MappedPlace[] {
+  return places.flatMap((place) =>
+    isPlottable(place.lat, place.lng)
+      ? [
+          {
+            id: place.id,
+            name: place.name,
+            districtName: place.districtName,
+            farmerCount: place.farmerCount,
+            lat: place.lat as number,
+            lng: place.lng as number,
+          },
+        ]
+      : [],
+  );
 }
 
 export async function readCoverage(fallback: CoveragePlace[]): Promise<Coverage> {
-  if (!hasAdminCredentials()) return { places: fallback, live: false };
+  const seeded = { places: fallback, live: false, pins: pinsFrom(fallback), opening: [] };
+  if (!hasAdminCredentials()) return seeded;
 
   try {
     const db = adminDb();
-    const [placeDocs, districtDocs] = await Promise.all([
+    const [placeDocs, districtDocs, stateDocs] = await Promise.all([
       db.collection("places").get(),
       db.collection("districts").get(),
+      db.collection("states").get(),
     ]);
 
-    if (placeDocs.empty) return { places: fallback, live: false };
+    if (placeDocs.empty) return seeded;
 
     const districtNames = new Map<string, string>();
     for (const doc of districtDocs.docs) {
@@ -76,6 +111,8 @@ export async function readCoverage(fallback: CoveragePlace[]): Promise<Coverage>
               ) ?? "",
             pincode: typeof data.pincode === "string" ? data.pincode : "",
             farmerCount: typeof data.farmerCount === "number" ? data.farmerCount : 0,
+            lat: typeof data.lat === "number" ? data.lat : undefined,
+            lng: typeof data.lng === "number" ? data.lng : undefined,
           },
         ];
       })
@@ -87,8 +124,45 @@ export async function readCoverage(fallback: CoveragePlace[]): Promise<Coverage>
           a.name.localeCompare(b.name, "en-IN"),
       );
 
-    return places.length > 0 ? { places, live: true } : { places: fallback, live: false };
+    /*
+      States configured but not opened. A state document already carries
+      `active`, so this needs no second list — a state appears as "opening" the
+      moment operations add it and stops the moment they switch it on.
+
+      The label anchor prefers coordinates on the document and falls back to the
+      constant, so a state can be moved on the map without a deployment once
+      anybody adds the field.
+    */
+    const opening = stateDocs.docs.flatMap((doc): OpeningState[] => {
+      const data = doc.data();
+      if (data.active !== false) return [];
+
+      const name = typeof data.name === "string" ? data.name : "";
+      if (!name) return [];
+
+      const anchor =
+        isPlottable(data.lat, data.lng)
+          ? { lat: data.lat as number, lng: data.lng as number }
+          : STATE_ANCHOR[doc.id];
+      // A state nobody can place is left off rather than dropped at the
+      // equator, where it would read as coverage in the Indian Ocean.
+      if (!anchor) return [];
+
+      return [
+        {
+          id: doc.id,
+          name,
+          nativeName: typeof data.nativeName === "string" ? data.nativeName : undefined,
+          lat: anchor.lat,
+          lng: anchor.lng,
+        },
+      ];
+    });
+
+    return places.length > 0
+      ? { places, live: true, pins: pinsFrom(places), opening }
+      : seeded;
   } catch {
-    return { places: fallback, live: false };
+    return seeded;
   }
 }

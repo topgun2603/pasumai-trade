@@ -204,6 +204,9 @@ export const en = {
     title: "Where we collect",
     body: "Produce is collected at the farm and graded in front of the farmer. These are the villages we reach.",
     farmers: "farmers",
+    openingSoon: "Opening soon",
+    mapUnavailable: "The map could not be loaded. The villages are listed below.",
+    mapLabel: "Map of the villages we collect from",
     illustrative:
       "Example coverage. These are the villages the platform ships with, not the live list — the real one appears as soon as it can be read.",
   },

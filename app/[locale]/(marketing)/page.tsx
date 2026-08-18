@@ -20,6 +20,7 @@ import { BargainDemo } from "@/components/marketing/bargain-demo";
 import { Hero } from "@/components/marketing/hero";
 import { Journey } from "@/components/marketing/journey";
 import { LanguageBand } from "@/components/marketing/language-band";
+import { CoverageMap } from "@/components/marketing/coverage-map";
 import { LivePrices } from "@/components/marketing/live-prices";
 import { MediaFrame } from "@/components/marketing/media-frame";
 import {
@@ -118,6 +119,8 @@ export default async function LandingPage({
       districtName: findDistrict(GEOGRAPHY, place.districtId)?.name ?? "",
       pincode: place.pincode,
       farmerCount: place.farmerCount,
+      lat: place.lat ?? undefined,
+      lng: place.lng ?? undefined,
     })),
   );
 
@@ -389,6 +392,22 @@ export default async function LandingPage({
               </p>
             )}
           </Reveal>
+
+          {/*
+            The map illustrates the list; it does not replace it. Everything
+            below renders from the server with no JavaScript, so a reader whose
+            map never loads still learns exactly where produce is collected.
+          */}
+          <CoverageMap
+            places={coverage.pins}
+            opening={coverage.opening}
+            labels={{
+              farmers: t.coverage.farmers,
+              openingSoon: t.coverage.openingSoon,
+              unavailable: t.coverage.mapUnavailable,
+              regionLabel: t.coverage.mapLabel,
+            }}
+          />
 
           <Stagger className="mt-8">
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
