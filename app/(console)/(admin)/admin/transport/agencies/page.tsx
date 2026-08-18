@@ -7,7 +7,7 @@ import Link from "next/link";
 import { AgenciesTable } from "@/components/admin/agencies-table";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { Button } from "@/components/ui/button";
-import { driverAccounts, vehicles, workers } from "@/lib/mock/admin";
+import { readDrivers, readVehicles, readWorkers } from "@/lib/firebase/roster-read";
 import { readAgencies } from "@/lib/firebase/agency-read";
 
 export const metadata: Metadata = { title: "Agencies · Admin" };
@@ -16,14 +16,14 @@ export default async function AdminAgenciesPage() {
   await connection();
   const now = new Date();
 
-  const crew = workers(now);
-  const fleet = vehicles(now);
-  const drivers = driverAccounts(now);
+  const crew = await readWorkers();
+  const fleet = await readVehicles();
+  const drivers = await readDrivers();
 
   // From Firestore, where registering one writes it — this list read the
   // samples, so an agency operations had just created was missing from the
   // page they created it on.
-  const registered = await readAgencies(now);
+  const registered = await readAgencies();
 
   const rows = registered.map((agency) => ({
     ...agency,

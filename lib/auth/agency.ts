@@ -45,7 +45,7 @@ export async function requireAgency(): Promise<AgencySession> {
     operations created got a login, signed in, and was told it did not exist —
     a 404 on an account the platform had itself issued.
   */
-  const agency = await readAgency(session.claims.accountId ?? "", new Date());
+  const agency = await readAgency(session.claims.accountId ?? "");
 
   // A claim pointing at no agency. Treated as not found rather than as an
   // empty console, because the console would otherwise look like a working

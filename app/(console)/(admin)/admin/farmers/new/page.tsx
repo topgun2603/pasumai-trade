@@ -5,7 +5,7 @@ import { FarmerRegistrationForm } from "@/components/admin/farmer-form";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { canTransact } from "@/lib/domain/admin";
 import { activeProduce } from "@/lib/domain/models";
-import { buyerAccounts } from "@/lib/mock/admin";
+import { readBuyerAccounts } from "@/lib/firebase/roster-read";
 import { CATALOGUE } from "@/lib/mock/catalogue";
 import { DISTRICTS } from "@/lib/mock/listings";
 
@@ -16,7 +16,7 @@ export default async function NewFarmerPage() {
 
   // Only a verified account may onboard a farmer — a suspended franchise
   // should not be adding suppliers.
-  const accounts = buyerAccounts(new Date())
+  const accounts = (await readBuyerAccounts())
     .filter((a) => canTransact(a.status))
     .map((a) => a.name);
 

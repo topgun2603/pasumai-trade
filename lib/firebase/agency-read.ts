@@ -7,12 +7,11 @@ import type {
   DocumentKind,
   VerificationStatus,
 } from "@/lib/domain/admin";
-import { agencies as sampleAgencies } from "@/lib/mock/admin";
 
 import { adminDb, hasAdminCredentials } from "./admin";
 
 /**
- * An agency, from Firestore, falling back to the samples.
+ * An agency, from Firestore.
  *
  * The console used to read the hard-coded sample array and nothing else, which
  * worked for exactly as long as nobody registered an agency. The moment
@@ -89,7 +88,7 @@ export function shapeAgency(id: string, data: Record<string, unknown>): Agency {
 }
 
 /** One agency by id. Undefined when nothing anywhere knows it. */
-export async function readAgency(id: string, now: Date): Promise<Agency | undefined> {
+export async function readAgency(id: string): Promise<Agency | undefined> {
   if (!id) return undefined;
 
   if (hasAdminCredentials()) {
@@ -97,36 +96,35 @@ export async function readAgency(id: string, now: Date): Promise<Agency | undefi
       const doc = await adminDb().collection("agencies").doc(id).get();
       if (doc.exists) return shapeAgency(doc.id, doc.data()!);
     } catch (error) {
-      // Fall through to the samples rather than 404 an account that exists.
+      // Logged rather than swallowed: an agency that cannot be read is an
+      // account about to be told it does not exist, and the reason for that
+      // belongs in the log rather than being replaced by a fixture that
+      // happens to share an id.
       console.error("agency unreadable", { id, error });
     }
   }
 
-  return sampleAgencies(now).find((agency) => agency.id === id);
+  return undefined;
 }
 
 /**
- * Every agency, Firestore first.
+ * Every agency the platform has.
  *
- * Samples that Firestore also holds are dropped, so a seeded project does not
- * show each of them twice.
+ * No sample fallback any more. An empty list is the honest answer to "which
+ * agencies exist" on a project with none, and padding it with fixtures is how
+ * a farmer came to be offered lorries from firms that had never signed up.
  */
-export async function readAgencies(now: Date): Promise<Agency[]> {
-  const samples = sampleAgencies(now);
-  if (!hasAdminCredentials()) return samples;
+export async function readAgencies(): Promise<Agency[]> {
+  if (!hasAdminCredentials()) return [];
 
   try {
     const snapshot = await adminDb().collection("agencies").get();
-    if (snapshot.empty) return samples;
 
-    const stored = snapshot.docs.map((doc) => shapeAgency(doc.id, doc.data()));
-    const known = new Set(stored.map((agency) => agency.id));
-
-    return [...stored, ...samples.filter((agency) => !known.has(agency.id))].sort((a, b) =>
-      a.name.localeCompare(b.name, "en-IN"),
-    );
+    return snapshot.docs
+      .map((doc) => shapeAgency(doc.id, doc.data()))
+      .sort((a, b) => a.name.localeCompare(b.name, "en-IN"));
   } catch (error) {
     console.error("agencies unreadable", error);
-    return samples;
+    return [];
   }
 }

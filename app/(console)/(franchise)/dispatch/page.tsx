@@ -3,7 +3,7 @@ import { connection } from "next/server";
 
 import { DispatchBoard } from "@/components/franchise/dispatch-board";
 import { PageHeader } from "@/components/page-header";
-import { driverAccounts, vehicles } from "@/lib/mock/admin";
+import { readDrivers, readVehicles } from "@/lib/firebase/roster-read";
 import { buyerOrders } from "@/lib/mock/orders";
 
 export const metadata: Metadata = { title: "Dispatch" };
@@ -22,8 +22,8 @@ export default async function DispatchPage() {
 
       <DispatchBoard
         orders={buyerOrders(now)}
-        fleet={vehicles(now)}
-        drivers={driverAccounts(now)}
+        fleet={await readVehicles()}
+        drivers={await readDrivers()}
         now={now.getTime()}
       />
     </>

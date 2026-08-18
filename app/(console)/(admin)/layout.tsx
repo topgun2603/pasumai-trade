@@ -5,13 +5,7 @@ import { requireConsole } from "@/lib/auth/require";
 import { needsReview } from "@/lib/domain/admin";
 import { countWaiting } from "@/lib/firebase/enquiries";
 import { readKycAccounts } from "@/lib/firebase/kyc-read";
-import {
-  buyerAccounts,
-  driverAccounts,
-  farmerAccounts,
-  workers,
-  vehicles,
-} from "@/lib/mock/admin";
+import { readBuyerAccounts, readDrivers, readFarmerAccounts, readVehicles, readWorkers } from "@/lib/firebase/roster-read";
 import { openListings } from "@/lib/mock/listings";
 
 /**
@@ -50,11 +44,11 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     "/admin/notifications": enquiriesWaiting + kycWaiting,
     "/admin/enquiries": enquiriesWaiting,
     "/admin/kyc": kycWaiting,
-    "/admin/buyers": buyerAccounts(now).filter((a) => needsReview(a.status)).length,
-    "/admin/farmers": farmerAccounts(now).filter((a) => needsReview(a.status)).length,
-    "/admin/transport/drivers": driverAccounts(now).filter((a) => needsReview(a.status)).length,
-    "/admin/transport/vehicles": vehicles(now).filter((v) => needsReview(v.status)).length,
-    "/admin/transport/manpower": workers(now).filter((m) => needsReview(m.status))
+    "/admin/buyers": (await readBuyerAccounts()).filter((a) => needsReview(a.status)).length,
+    "/admin/farmers": (await readFarmerAccounts()).filter((a) => needsReview(a.status)).length,
+    "/admin/transport/drivers": (await readDrivers()).filter((a) => needsReview(a.status)).length,
+    "/admin/transport/vehicles": (await readVehicles()).filter((v) => needsReview(v.status)).length,
+    "/admin/transport/manpower": (await readWorkers()).filter((m) => needsReview(m.status))
       .length,
     "/admin/listings": openListings(now).filter((l) => l.pendingSync).length,
   };

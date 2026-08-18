@@ -7,7 +7,7 @@ import { ManpowerTable } from "@/components/admin/manpower-table";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { requireService } from "@/lib/auth/agency";
-import { workers } from "@/lib/mock/admin";
+import { readWorkers } from "@/lib/firebase/roster-read";
 
 export const metadata: Metadata = { title: "Workers · Agency" };
 
@@ -18,7 +18,7 @@ export default async function AgencyWorkersPage() {
   const now = new Date();
 
   // Scoped by the session's agency id, never by anything in the request.
-  const crew = workers(now).filter((w) => w.agencyId === agency.id);
+  const crew = (await readWorkers()).filter((w) => w.agencyId === agency.id);
 
   return (
     <>

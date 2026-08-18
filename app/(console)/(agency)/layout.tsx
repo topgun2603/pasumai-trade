@@ -4,7 +4,7 @@ import { AgencyNav } from "@/components/agency/agency-nav";
 import { requireAgency } from "@/lib/auth/agency";
 import { verifySession } from "@/lib/auth/session";
 import { needsReview } from "@/lib/domain/admin";
-import { driverAccounts, vehicles, workers } from "@/lib/mock/admin";
+import { readDrivers, readVehicles, readWorkers } from "@/lib/firebase/roster-read";
 
 /**
  * The agency console shell.
@@ -19,15 +19,14 @@ import { driverAccounts, vehicles, workers } from "@/lib/mock/admin";
 export default async function AgencyLayout({ children }: { children: ReactNode }) {
   const { agency, email, service } = await requireAgency();
   const session = await verifySession();
-  const now = new Date();
 
   const mine = <T extends { agencyId: string }>(rows: T[]) =>
     rows.filter((r) => r.agencyId === agency.id);
 
   const pending = {
-    "/agency/workers": mine(workers(now)).filter((w) => needsReview(w.status)).length,
-    "/agency/fleet": mine(vehicles(now)).filter((v) => needsReview(v.status)).length,
-    "/agency/drivers": mine(driverAccounts(now)).filter((d) => needsReview(d.status))
+    "/agency/workers": mine(await readWorkers()).filter((w) => needsReview(w.status)).length,
+    "/agency/fleet": mine(await readVehicles()).filter((v) => needsReview(v.status)).length,
+    "/agency/drivers": mine(await readDrivers()).filter((d) => needsReview(d.status))
       .length,
   };
 

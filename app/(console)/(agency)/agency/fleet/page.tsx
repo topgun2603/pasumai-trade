@@ -7,7 +7,7 @@ import { VehiclesTable } from "@/components/admin/vehicles-table";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { requireService } from "@/lib/auth/agency";
-import { vehicles } from "@/lib/mock/admin";
+import { readVehicles } from "@/lib/firebase/roster-read";
 
 export const metadata: Metadata = { title: "Fleet · Agency" };
 
@@ -17,7 +17,7 @@ export default async function AgencyFleetPage() {
   const { agency } = await requireService("transport");
   const now = new Date();
 
-  const fleet = vehicles(now).filter((v) => v.agencyId === agency.id);
+  const fleet = (await readVehicles()).filter((v) => v.agencyId === agency.id);
 
   return (
     <>

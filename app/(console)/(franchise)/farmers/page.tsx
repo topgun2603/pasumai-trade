@@ -10,7 +10,7 @@ import {
 } from "@/components/franchise/suppliers-table";
 import { canTransact } from "@/lib/domain/admin";
 import { produceName } from "@/lib/domain/models";
-import { farmerAccounts } from "@/lib/mock/admin";
+import { readFarmerAccounts } from "@/lib/firebase/roster-read";
 import { CURRENT_BUYER } from "@/lib/mock/market";
 import { DISTRICTS, openListings } from "@/lib/mock/listings";
 
@@ -25,7 +25,7 @@ export default async function FarmersPage() {
   // A buyer sees farmers in the districts they are allowed to source from —
   // not the whole platform. Sourcing scope is an account setting, and this is
   // one of the places it has to be honoured.
-  const accounts = farmerAccounts(now).filter((f) =>
+  const accounts = (await readFarmerAccounts()).filter((f) =>
     CURRENT_BUYER.districts.includes(f.district),
   );
 

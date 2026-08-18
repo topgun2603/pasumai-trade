@@ -14,7 +14,7 @@ import { DEFAULT_POLICY } from "@/lib/domain/policy";
 import { readNegotiations } from "@/lib/firebase/negotiations-read";
 import { readAgencies } from "@/lib/firebase/agency-read";
 import { candidates, readPickups } from "@/lib/firebase/pickup-read";
-import { vehicles } from "@/lib/mock/admin";
+import { readVehicles } from "@/lib/firebase/roster-read";
 import { GEOGRAPHY } from "@/lib/mock/locations";
 import { negotiations } from "@/lib/mock/negotiations";
 
@@ -37,7 +37,6 @@ export default async function FarmSalesPage() {
 
   const { farmer } = await requireFarmer();
   const clock = new Date().getTime();
-  const now = new Date(clock);
 
   const [{ threads }, pickups] = await Promise.all([
     readNegotiations(negotiations(clock)),
@@ -65,10 +64,10 @@ export default async function FarmSalesPage() {
     : null;
 
   const fleet = candidates({
-    vehicles: vehicles(now),
+    vehicles: await readVehicles(),
     // Registered agencies, not only the seeded ones — otherwise a farmer never
     // sees a vehicle from a firm that joined the platform this week.
-    agencies: await readAgencies(now),
+    agencies: await readAgencies(),
     places: GEOGRAPHY.places,
     now: clock,
   });

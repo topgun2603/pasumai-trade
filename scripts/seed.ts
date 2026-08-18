@@ -29,7 +29,7 @@ import {
   farmerAccounts,
   vehicles,
   workers,
-} from "@/lib/mock/admin";
+} from "./seed-data/roster";
 import { CATALOGUE } from "@/lib/mock/catalogue";
 import { openListings } from "@/lib/mock/listings";
 import { GEOGRAPHY } from "@/lib/mock/locations";

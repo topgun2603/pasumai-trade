@@ -1,3 +1,15 @@
+/**
+ * Seed input, not application data.
+ *
+ * This was `lib/mock/admin`, and twenty-one screens read it as though it were a
+ * record of the platform. It is not: it is the fixture set `scripts/seed.ts`
+ * writes into Firestore so a fresh project has something in it.
+ *
+ * It lives beside the seeder now so that distinction is structural rather than
+ * a matter of remembering. Nothing under `app/`, `components/` or `lib/` should
+ * import it — those read the collections, through `lib/firebase/roster-read.ts`.
+ */
+
 ﻿import type {
   Agency,
   BuyerAccount,

@@ -7,7 +7,7 @@ import { DriversTable } from "@/components/admin/drivers-table";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { requireService } from "@/lib/auth/agency";
-import { driverAccounts } from "@/lib/mock/admin";
+import { readDrivers } from "@/lib/firebase/roster-read";
 
 export const metadata: Metadata = { title: "Drivers · Agency" };
 
@@ -17,7 +17,7 @@ export default async function AgencyDriversPage() {
   const { agency } = await requireService("transport");
   const now = new Date();
 
-  const drivers = driverAccounts(now).filter((d) => d.agencyId === agency.id);
+  const drivers = (await readDrivers()).filter((d) => d.agencyId === agency.id);
 
   return (
     <>

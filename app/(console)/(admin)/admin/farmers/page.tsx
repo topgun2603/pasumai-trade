@@ -6,7 +6,7 @@ import { connection } from "next/server";
 import { FarmersTable } from "@/components/admin/farmers-table";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { Button } from "@/components/ui/button";
-import { farmerAccounts } from "@/lib/mock/admin";
+import { readFarmerAccounts } from "@/lib/firebase/roster-read";
 
 export const metadata: Metadata = { title: "Farmers · Admin" };
 
@@ -28,7 +28,7 @@ export default async function AdminFarmersPage() {
           </Button>
         }
       />
-      <FarmersTable accounts={farmerAccounts(now)} now={now.getTime()} />
+      <FarmersTable accounts={await readFarmerAccounts()} now={now.getTime()} />
     </>
   );
 }

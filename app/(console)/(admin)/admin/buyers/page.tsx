@@ -6,7 +6,7 @@ import { connection } from "next/server";
 import { BuyersTable } from "@/components/admin/buyers-table";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { Button } from "@/components/ui/button";
-import { buyerAccounts } from "@/lib/mock/admin";
+import { readBuyerAccounts } from "@/lib/firebase/roster-read";
 
 export const metadata: Metadata = { title: "Buyers · Admin" };
 
@@ -28,7 +28,7 @@ export default async function AdminBuyersPage() {
           </Button>
         }
       />
-      <BuyersTable accounts={buyerAccounts(now)} now={now.getTime()} />
+      <BuyersTable accounts={await readBuyerAccounts()} now={now.getTime()} />
     </>
   );
 }

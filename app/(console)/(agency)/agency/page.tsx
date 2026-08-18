@@ -8,7 +8,7 @@ import { StatusBadge } from "@/components/admin/badges";
 import { Badge } from "@/components/ui/badge";
 import { requireAgency } from "@/lib/auth/agency";
 import { agencyDispatchable, needsReview, worstExpiry } from "@/lib/domain/admin";
-import { driverAccounts, vehicles, workers } from "@/lib/mock/admin";
+import { readDrivers, readVehicles, readWorkers } from "@/lib/firebase/roster-read";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Overview · Agency" };
@@ -23,9 +23,9 @@ export default async function AgencyOverviewPage() {
   const mine = <T extends { agencyId: string }>(rows: T[]) =>
     rows.filter((r) => r.agencyId === agency.id);
 
-  const crew = mine(workers(now));
-  const fleet = mine(vehicles(now));
-  const drivers = mine(driverAccounts(now));
+  const crew = mine(await readWorkers());
+  const fleet = mine(await readVehicles());
+  const drivers = mine(await readDrivers());
 
   const tiles = [
     {

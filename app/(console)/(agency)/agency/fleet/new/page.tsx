@@ -4,7 +4,7 @@ import { connection } from "next/server";
 import { VehicleRegistrationForm } from "@/components/agency/vehicle-form";
 import { PageHeader } from "@/components/page-header";
 import { requireService } from "@/lib/auth/agency";
-import { driverAccounts } from "@/lib/mock/admin";
+import { readDrivers } from "@/lib/firebase/roster-read";
 import { GEOGRAPHY } from "@/lib/mock/locations";
 
 export const metadata: Metadata = { title: "Add vehicle · Agency" };
@@ -13,14 +13,13 @@ export default async function NewAgencyVehiclePage() {
   await connection();
 
   const { agency } = await requireService("transport");
-  const now = new Date();
 
   const districts = GEOGRAPHY.districts
     .filter((d) => d.active && agency.districts.includes(d.name))
     .map((d) => d.name)
     .sort((a, b) => a.localeCompare(b, "en-IN"));
 
-  const drivers = driverAccounts(now)
+  const drivers = (await readDrivers())
     .filter((d) => d.agencyId === agency.id)
     .map((d) => d.name)
     .sort((a, b) => a.localeCompare(b, "en-IN"));
