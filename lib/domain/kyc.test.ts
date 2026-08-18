@@ -416,3 +416,33 @@ describe("the evidence behind a check", () => {
     expect(recordManual("gst", "33AAECK4521M1ZP", NOW).documents).toBeUndefined();
   });
 });
+
+describe("approving settles the question", () => {
+  it("clears the reason it was asked about", () => {
+    // A verified check still showing "send this again" is what the applicant
+    // reads as their outstanding task, on a check that is finished.
+    const asked = askForReupload(
+      recordManual("pan", "AAECK4521M", NOW),
+      "ops",
+      "Blurred — send it again.",
+      NOW,
+    );
+    expect(asked.reason).toBe("Blurred — send it again.");
+
+    const done = approve({ ...asked, state: "review" }, "ops", NOW);
+    expect(done.reason).toBeUndefined();
+  });
+
+  it("keeps the question in the trail", () => {
+    // Cleared from `reason`, not from history: the record must still show that
+    // it was sent back once.
+    const asked = askForReupload(
+      recordManual("pan", "AAECK4521M", NOW),
+      "ops",
+      "Blurred.",
+      NOW,
+    );
+    const done = approve({ ...asked, state: "review" }, "ops", NOW);
+    expect(done.notes?.some((n) => n.message === "Blurred.")).toBe(true);
+  });
+});

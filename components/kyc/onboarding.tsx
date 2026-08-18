@@ -382,7 +382,7 @@ export function KycOnboarding({ view, roleLabel }: { view: OnboardingView; roleL
                 check, and both used to be invisible here — the applicant saw
                 "waiting on you" with nothing to act on.
               */}
-              {check?.reason ? (
+              {check?.reason && check.state !== "verified" ? (
                 <p
                   className={
                     check.state === "failed"

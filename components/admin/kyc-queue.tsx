@@ -9,7 +9,7 @@ import {
   XIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { ACCOUNT_GROUPS } from "@/components/admin/kyc-groups";
@@ -17,6 +17,7 @@ import { DocumentStrip, type ViewableDocument } from "@/components/kyc/documents
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Loader } from "@/components/ui/loader";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -28,6 +29,7 @@ import {
 } from "@/components/ui/table";
 import { CHECK_LABELS, type CheckKind } from "@/lib/domain/kyc";
 import type { Role } from "@/lib/auth/claims";
+import { cn } from "@/lib/utils";
 
 export interface QueueRow {
   readonly accountId: string;
@@ -82,6 +84,23 @@ export function KycQueue({ rows }: { rows: QueueRow[] }) {
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const [asking, setAsking] = useState<{ key: string; decision: Decision } | null>(null);
 
+  /*
+    A decision is recorded in Firestore long before this page can prove it.
+
+    `router.refresh()` re-runs the server component, and that means re-reading
+    four collections from a database on another continent — seconds, not
+    milliseconds. It is also not awaitable, so the old code cleared `pending`
+    the instant the POST returned: the buttons lit up again over a row that was
+    already decided, and an operator pressing Approve saw nothing change and
+    pressed it again.
+
+    So the settled checks are remembered here and shown as settled immediately,
+    and the refresh runs inside a transition whose pending flag says the page is
+    still catching up. The server's answer replaces both when it lands.
+  */
+  const [settled, setSettled] = useState<Record<string, Decision>>({});
+  const [refreshing, startRefresh] = useTransition();
+
   async function decide(row: QueueRow, kind: CheckKind, decision: Decision) {
     const key = `${row.accountId}:${kind}`;
     const reason = reasons[key] ?? "";
@@ -131,6 +150,9 @@ export function KycQueue({ rows }: { rows: QueueRow[] }) {
     }
 
     setAsking(null);
+    // Optimistic, and safe to be: the write has already succeeded. This only
+    // says so on screen before the read can.
+    setSettled((current) => ({ ...current, [key]: decision }));
     toast.success(
       decision === "approve"
         ? data.accountStatus === "verified"
@@ -138,8 +160,16 @@ export function KycQueue({ rows }: { rows: QueueRow[] }) {
           : `${CHECK_LABELS[kind]} approved`
         : `${CHECK_LABELS[kind]} refused`,
     );
-    router.refresh();
+    startRefresh(() => router.refresh());
   }
+
+  /** What a settled check now says, in the operator's own terms. */
+  const SETTLED_LABEL: Record<Decision, string> = {
+    approve: "Approved",
+    reject: "Refused",
+    askMore: "Asked — waiting on them",
+    askReupload: "Sent back — waiting on them",
+  };
 
   if (rows.length === 0) {
     return (
@@ -214,9 +244,18 @@ export function KycQueue({ rows }: { rows: QueueRow[] }) {
                         {row.waiting.map((item) => {
                           const key = `${row.accountId}:${item.kind}`;
                           const busy = pending === key;
+                          const done = settled[key];
 
                           return (
-                            <TableRow key={item.kind} className="hover:bg-transparent">
+                            <TableRow
+                              key={item.kind}
+                              className={cn(
+                                "hover:bg-transparent",
+                                // Visibly finished, and out of the way, while
+                                // the server catches up.
+                                done && "opacity-60",
+                              )}
+                            >
                               <TableCell className="align-top">
                                 <span className="flex flex-col leading-tight">
                                   <span className="text-sm font-medium">
@@ -286,6 +325,26 @@ export function KycQueue({ rows }: { rows: QueueRow[] }) {
                                 a sentence would settle.
                               */}
                               <TableCell className="align-top">
+                                {done ? (
+                                  <span className="flex items-center justify-end gap-2 whitespace-nowrap">
+                                    <Badge
+                                      variant="outline"
+                                      className={
+                                        done === "approve"
+                                          ? "border-success/40 text-success"
+                                          : done === "reject"
+                                            ? "border-destructive/40 text-destructive"
+                                            : "border-warning/40 bg-warning-soft text-warning"
+                                      }
+                                    >
+                                      <CheckIcon className="size-3" />
+                                      {SETTLED_LABEL[done]}
+                                    </Badge>
+                                    {/* Only while the page is still re-reading.
+                                        Once it lands this row is gone. */}
+                                    {refreshing ? <Loader size="xs" /> : null}
+                                  </span>
+                                ) : (
                                 <span className="flex flex-wrap justify-end gap-1.5">
                                   <Button
                                     size="sm"
@@ -293,7 +352,11 @@ export function KycQueue({ rows }: { rows: QueueRow[] }) {
                                     disabled={busy}
                                     onClick={() => decide(row, item.kind, "approve")}
                                   >
-                                    <CheckIcon className="size-3.5" />
+                                    {busy ? (
+                                      <Loader size="xs" />
+                                    ) : (
+                                      <CheckIcon className="size-3.5" />
+                                    )}
                                     Approve
                                   </Button>
                                   <Button
@@ -325,6 +388,7 @@ export function KycQueue({ rows }: { rows: QueueRow[] }) {
                                     Refuse
                                   </Button>
                                 </span>
+                                )}
                               </TableCell>
                             </TableRow>
                           );

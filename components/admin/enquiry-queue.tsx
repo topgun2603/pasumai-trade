@@ -2,13 +2,14 @@
 
 import { CheckIcon, PhoneIcon, SproutIcon, StoreIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { DataTable, type Column, type FilterTab } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Loader } from "@/components/ui/loader";
 import { STATUS_LABELS, type EnquiryStatus, type Interest } from "@/lib/domain/enquiry";
 
 /**
@@ -61,6 +62,16 @@ export function EnquiryQueue({ rows }: { rows: EnquiryRow[] }) {
   const [asking, setAsking] = useState<{ id: string; move: Move } | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
 
+  /*
+    The same lag as the KYC queue, for the same reason: `router.refresh()`
+    re-reads a database on another continent and is not awaitable, so clearing
+    `pending` on the POST's return re-lit the buttons over a row that had
+    already moved. Remembered here and shown as moved at once; the refresh runs
+    in a transition so the page can say it is still catching up.
+  */
+  const [moved, setMoved] = useState<Record<string, Move>>({});
+  const [refreshing, startRefresh] = useTransition();
+
   async function move(row: EnquiryRow, next: Move) {
     const note = notes[row.id] ?? "";
 
@@ -95,8 +106,10 @@ export function EnquiryQueue({ rows }: { rows: EnquiryRow[] }) {
 
     setAsking(null);
     setNotes((n) => ({ ...n, [row.id]: "" }));
+    // Optimistic and safe: the write already succeeded.
+    setMoved((current) => ({ ...current, [row.id]: next }));
     toast.success(`${row.name} — ${STATUS_LABELS[next].toLowerCase()}`);
-    router.refresh();
+    startRefresh(() => router.refresh());
   }
 
   /** Message, reason box and trail — needed in the card and in the expander. */
@@ -235,6 +248,20 @@ export function EnquiryQueue({ rows }: { rows: EnquiryRow[] }) {
       expand={(row) => detail(row)}
       rowActions={(row) => {
         const busy = pending === row.id;
+        const done = moved[row.id];
+
+        if (done) {
+          return (
+            <span className="flex items-center justify-end gap-2 whitespace-nowrap">
+              <Badge variant="outline" className={STATUS_STYLE[done]}>
+                <CheckIcon className="size-3" />
+                {STATUS_LABELS[done]}
+              </Badge>
+              {refreshing ? <Loader size="xs" /> : null}
+            </span>
+          );
+        }
+
         return (
           <span className="flex flex-wrap justify-end gap-1.5">
             {row.status === "new" ? (

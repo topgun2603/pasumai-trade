@@ -471,6 +471,11 @@ export function approve(check: Check, approvedBy: string, now: Date): Check {
     ...check,
     state: "verified",
     approvedBy,
+    // The question is answered; carrying it forward would leave a verified
+    // check still displaying "send this again", which is what the applicant
+    // reads as their outstanding task. The trail keeps the history — `reason`
+    // is only ever the thing currently being asked.
+    reason: undefined,
     checkedAt: now,
     notes: note(check, "operations", "verified", undefined, approvedBy, now),
   };
