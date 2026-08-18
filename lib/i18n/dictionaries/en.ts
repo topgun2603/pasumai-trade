@@ -62,22 +62,22 @@ export const en = {
   },
 
   prices: {
-    title: "What produce is settling at",
-    body: "Prices agreed between farmers and buyers on the platform today. Nobody sets these but the two people trading.",
+    title: "Today's prices",
+    body: "What farmers and buyers agreed on today. We do not set any price — the two people trading decide it.",
     refresh: "Refresh",
-    loading: "Loading today's rates",
-    sources: "{count} settled today",
-    noSettled: "First offer of the day",
+    loading: "Loading today's prices",
+    sources: "{count} sales today",
+    noSettled: "First price today",
     location: "location",
     locations: "locations",
     fresh: "Fresh",
     useSoon: "Use soon",
     endOfLife: "Today only",
     error:
-      "Rates could not be loaded just now. They change through the day, so an old number is worse than none.",
+      "Prices did not load. They change through the day, so an old price is worse than none.",
     retry: "Try again",
     disclaimer:
-      "Exclusive of freight, and subject to grading at collection. These are prices real buyers and farmers agreed — not a published index and not a platform quote.",
+      "Transport cost is not included. The grade is checked when the produce is collected. These are prices real farmers and buyers agreed on — not a rate we set or publish.",
   },
 
   languages: {
