@@ -63,7 +63,11 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           session={{ email: session.email, role: session.claims.role }}
           // Only the admin shell offers these. The buying and farm shells hold
           // one account and have nobody to look into.
-          consoles={CONSOLE_KINDS.map((kind) => ({ kind, label: CONSOLES[kind].label }))}
+          consoles={CONSOLE_KINDS.map((kind) => ({
+            kind,
+            label: CONSOLES[kind].label,
+            short: CONSOLES[kind].short,
+          }))}
         />
         {children}
       </div>

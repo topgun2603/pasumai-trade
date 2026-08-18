@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ChevronRightIcon,
   LayoutGridIcon,
   LogOutIcon,
   MonitorIcon,
@@ -9,10 +10,12 @@ import {
   UserRoundIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { CONSOLE_LOOK } from "@/components/console/console-look";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -24,6 +27,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ROLE_LABELS, type Role } from "@/lib/auth/claims";
 import { signOut } from "@/lib/auth/sign-in";
+import type { ConsoleKind } from "@/lib/domain/console-kinds";
+import { cn } from "@/lib/utils";
 
 /**
  * Theme, account and the way out — across the top rather than down the rail.
@@ -56,12 +61,20 @@ export function ConsoleTopBar({
    * component stays usable by the farmer and buying shells, which have nobody
    * to look at but themselves.
    */
-  consoles?: ReadonlyArray<{ kind: string; label: string }>;
+  consoles?: ReadonlyArray<{ kind: ConsoleKind; label: string; short: string }>;
   /** Anything the console wants on the left — a title, a breadcrumb, nothing. */
   children?: React.ReactNode;
 }) {
   const { setTheme } = useTheme();
   const [leaving, setLeaving] = useState(false);
+  const pathname = usePathname();
+
+  // The console being looked at, if any — it names the trigger, so the bar says
+  // where you are rather than only what you could open.
+  const current = consoles?.find((entry) =>
+    pathname.startsWith(`/admin/consoles/${entry.kind}`),
+  );
+  const CurrentIcon = current ? CONSOLE_LOOK[current.kind].icon : LayoutGridIcon;
 
   async function leave() {
     setLeaving(true);
@@ -88,24 +101,77 @@ export function ConsoleTopBar({
       {consoles && consoles.length > 0 ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="gap-2">
-              <LayoutGridIcon className="size-4" />
-              <span className="hidden sm:inline">Consoles</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "gap-2",
+                current ? CONSOLE_LOOK[current.kind].disc : undefined,
+              )}
+            >
+              <CurrentIcon className="size-4" />
+              <span className="hidden sm:inline">{current?.label ?? "Consoles"}</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="flex flex-col gap-0.5">
+
+          <DropdownMenuContent align="end" className="w-72 p-0">
+            <DropdownMenuLabel className="flex flex-col gap-0.5 border-b px-3 py-2.5">
               <span className="text-sm font-medium">Look into an account</span>
               <span className="text-muted-foreground text-xs font-normal">
                 Read-only. Operations never act as a client.
               </span>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {consoles.map((entry) => (
-              <DropdownMenuItem key={entry.kind} asChild>
-                <Link href={`/admin/consoles/${entry.kind}`}>{entry.label}</Link>
-              </DropdownMenuItem>
-            ))}
+
+            <div className="p-1.5">
+              {consoles.map((entry) => {
+                const look = CONSOLE_LOOK[entry.kind];
+                const here = entry.kind === current?.kind;
+
+                return (
+                  <DropdownMenuItem
+                    key={entry.kind}
+                    asChild
+                    /* The row draws its own hover and its own tint, so the
+                       menu's default highlight would paint over the colour that
+                       tells the rows apart. */
+                    className="focus:bg-transparent p-0"
+                  >
+                    <Link
+                      href={`/admin/consoles/${entry.kind}`}
+                      className={cn(
+                        "hover:bg-accent flex items-center gap-3 rounded-md px-2 py-2 transition-colors",
+                        here && look.active,
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "flex size-9 shrink-0 items-center justify-center rounded-lg",
+                          look.disc,
+                        )}
+                      >
+                        <look.icon className="size-4" />
+                      </span>
+
+                      <span className="flex min-w-0 flex-col leading-tight">
+                        <span className="text-sm font-medium">{entry.label}</span>
+                        <span className="text-muted-foreground truncate text-xs">
+                          {entry.short}
+                        </span>
+                      </span>
+
+                      {here ? (
+                        <span
+                          className={cn("ml-auto size-1.5 shrink-0 rounded-full", look.dot)}
+                          aria-label="Open now"
+                        />
+                      ) : (
+                        <ChevronRightIcon className="text-faint ml-auto size-3.5 shrink-0" />
+                      )}
+                    </Link>
+                  </DropdownMenuItem>
+                );
+              })}
+            </div>
           </DropdownMenuContent>
         </DropdownMenu>
       ) : null}

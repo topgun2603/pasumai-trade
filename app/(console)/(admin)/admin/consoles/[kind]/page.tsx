@@ -4,6 +4,7 @@ import { connection } from "next/server";
 
 import { AccountDirectory, type DirectoryRow } from "@/components/admin/account-directory";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { CONSOLE_LOOK } from "@/components/console/console-look";
 import { requireConsole } from "@/lib/auth/require";
 import { CONSOLES, isConsoleKind } from "@/lib/domain/console-kinds";
 import { describePlan } from "@/lib/domain/subscription";
@@ -50,6 +51,7 @@ export default async function ConsoleDirectoryPage({
   await requireConsole(["admin"]);
 
   const definition = CONSOLES[kind];
+  const look = CONSOLE_LOOK[kind];
   const accounts = await readAccountsOfKind(kind);
   const now = new Date().getTime();
 
@@ -72,6 +74,13 @@ export default async function ConsoleDirectoryPage({
   return (
     <>
       <AdminPageHeader
+        icon={
+          <span
+            className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${look.disc}`}
+          >
+            <look.icon className="size-5" />
+          </span>
+        }
         title={definition.label}
         description={`${definition.blurb} Open an account to see everything the platform knows about it.`}
         aside={

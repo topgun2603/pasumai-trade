@@ -17,6 +17,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { CONSOLE_LOOK } from "@/components/console/console-look";
 import { StatTile } from "@/components/franchise/stat-tile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -66,6 +67,7 @@ export default async function AccountDossierPage({
   await requireConsole(["admin"]);
 
   const definition = CONSOLES[kind];
+  const look = CONSOLE_LOOK[kind];
   const dossier = await readDossier(kind, id);
   if (!dossier) notFound();
 
@@ -83,6 +85,13 @@ export default async function AccountDossierPage({
   return (
     <>
       <AdminPageHeader
+        icon={
+          <span
+            className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${look.disc}`}
+          >
+            <look.icon className="size-5" />
+          </span>
+        }
         title={account.name}
         description={`${definition.one} · ${account.id}${account.place ? ` · ${account.place}` : ""}${account.district ? `, ${account.district}` : ""}`}
         aside={
@@ -158,7 +167,7 @@ export default async function AccountDossierPage({
         />
       </div>
 
-      <div className="grid flex-1 grid-cols-1 gap-6 p-6 xl:grid-cols-2">
+      <div className="grid grid-cols-1 content-start gap-6 p-6 xl:grid-cols-2">
         <section className="bg-card flex flex-col rounded-lg border">
           <div className="flex items-baseline justify-between border-b px-4 py-3">
             <h2 className="font-medium">Verification</h2>
@@ -173,7 +182,7 @@ export default async function AccountDossierPage({
               tone="waiting"
               title="Nothing submitted yet"
               description="This account has uploaded no documents. Until it does, it cannot trade."
-              className="m-4 border-0"
+              className="m-4 border-0 py-8"
             />
           ) : (
             <ul className="divide-y">
@@ -223,7 +232,7 @@ export default async function AccountDossierPage({
               tone="waiting"
               title="No activity yet"
               description="Listings, bargains, orders and vehicle requests appear here as they happen."
-              className="m-4 border-0"
+              className="m-4 border-0 py-8"
             />
           ) : (
             <ul className="divide-y">
@@ -246,12 +255,24 @@ export default async function AccountDossierPage({
           <div className="border-b px-4 py-3">
             <h2 className="font-medium">Everything on the account</h2>
           </div>
-          <dl className="grid grid-cols-2 gap-px bg-border sm:grid-cols-3 lg:grid-cols-6">
+          {/*
+            Tiles that wrap rather than cells in a fixed grid. The grid was six
+            columns wide for a list that is only ever three, four or five long
+            depending on the kind of account, so every dossier ended with a
+            stretch of empty ruled cells — which reads as data that failed to
+            load rather than a counter that does not apply here.
+          */}
+          <dl className="flex flex-wrap gap-3 p-4">
             {[
               { label: "Listings", value: activity.listings, icon: SproutIcon, show: supplies },
               { label: "Bargains", value: activity.bargains, icon: HandshakeIcon, show: true },
               { label: "Orders", value: activity.orders, icon: PackageIcon, show: buys },
-              { label: "Vehicle requests", value: activity.pickups, icon: TruckIcon, show: supplies },
+              {
+                label: "Vehicle requests",
+                value: activity.pickups,
+                icon: TruckIcon,
+                show: supplies,
+              },
               { label: "Vehicles", value: activity.vehicles, icon: TruckIcon, show: staffs },
               { label: "Drivers", value: activity.drivers, icon: UsersIcon, show: staffs },
               { label: "Workers", value: activity.workers, icon: HardHatIcon, show: staffs },
@@ -264,12 +285,19 @@ export default async function AccountDossierPage({
             ]
               .filter((entry) => entry.show)
               .map((entry) => (
-                <div key={entry.label} className="bg-card flex flex-col gap-1 px-4 py-3">
+                <div
+                  key={entry.label}
+                  className="flex min-w-36 flex-1 flex-col gap-1 rounded-lg border px-3 py-2.5"
+                >
                   <dt className="text-muted-foreground flex items-center gap-1.5 text-xs">
-                    <entry.icon className="size-3.5" />
+                    <entry.icon className="size-3.5 shrink-0" />
                     {entry.label}
                   </dt>
-                  <dd className="tabular text-xl font-semibold">{entry.value}</dd>
+                  <dd
+                    className={`tabular text-xl font-semibold ${entry.value === 0 ? "text-faint" : ""}`}
+                  >
+                    {entry.value}
+                  </dd>
                 </div>
               ))}
           </dl>

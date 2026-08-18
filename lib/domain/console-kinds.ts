@@ -51,6 +51,14 @@ export interface ConsoleDefinition {
   readonly role: Role;
   /** One line saying what this kind of account does, for the directory header. */
   readonly blurb: string;
+  /**
+   * Three or four words, for the menu row under the label.
+   *
+   * Separate from `blurb` rather than truncated from it: a sentence cut short
+   * ends mid-thought, and this one has to land in the time it takes to run an
+   * eye down five rows.
+   */
+  readonly short: string;
 }
 
 /*
@@ -68,6 +76,7 @@ export const CONSOLES: Record<ConsoleKind, ConsoleDefinition> = {
     collection: "farmers",
     role: "farmer",
     blurb: "Growers who list produce and settle prices with buyers.",
+    short: "Growers who list produce",
   },
   buyers: {
     kind: "buyers",
@@ -76,6 +85,7 @@ export const CONSOLES: Record<ConsoleKind, ConsoleDefinition> = {
     collection: "buyers",
     role: "buyer",
     blurb: "Businesses buying produce in bulk.",
+    short: "Businesses buying in bulk",
   },
   franchises: {
     kind: "franchises",
@@ -84,6 +94,7 @@ export const CONSOLES: Record<ConsoleKind, ConsoleDefinition> = {
     collection: "franchises",
     role: "franchise",
     blurb: "Contracted franchises. They buy, and they onboard farmers and dispatch vehicles.",
+    short: "Buy, onboard and dispatch",
   },
   transport: {
     kind: "transport",
@@ -92,6 +103,7 @@ export const CONSOLES: Record<ConsoleKind, ConsoleDefinition> = {
     collection: "agencies",
     role: "transport",
     blurb: "Agencies supplying vehicles and drivers for collection runs.",
+    short: "Vehicles and drivers",
   },
   manpower: {
     kind: "manpower",
@@ -100,6 +112,7 @@ export const CONSOLES: Record<ConsoleKind, ConsoleDefinition> = {
     collection: "agencies",
     role: "manpower",
     blurb: "Agencies supplying loading, grading and weighing crews.",
+    short: "Loading and grading crews",
   },
 };
 
