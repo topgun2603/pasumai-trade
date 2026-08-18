@@ -1,100 +1,130 @@
-import {
-  AlertTriangleIcon,
-  BoxesIcon,
-  SproutIcon,
-  TrendingUpIcon,
-} from "lucide-react";
+import { ClockIcon, HandshakeIcon, SproutIcon, UsersIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { connection } from "next/server";
 
-import {
-  ActivityChart,
-  CropValueChart,
-  DistrictChart,
-  GradeMix,
-  MandiChart,
-} from "@/components/admin/analytics-charts";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import {
+  AccountsPanel,
+  ActivityByDay,
+  SettledRates,
+  SupplyByCrop,
+  SupplyByDistrict,
+} from "@/components/admin/platform-charts";
 import { StatTile } from "@/components/franchise/stat-tile";
 import {
-  activityOverTime,
-  cropVolumes,
-  districtRows,
-  freshnessSplit,
-  gradeSplit,
-  stockValue,
-} from "@/lib/domain/analytics";
-import { formatMoney } from "@/lib/domain/money";
-import { openListings } from "@/lib/mock/listings";
-import { stockOffers } from "@/lib/mock/market";
+  accountMix,
+  activityByDay,
+  hoursToSettle,
+  outcomes,
+  real,
+  settledRates,
+  supplyByCrop,
+  supplyByDistrict,
+} from "@/lib/domain/platform-analytics";
+import { readAnalytics } from "@/lib/firebase/analytics-read";
 
 export const metadata: Metadata = { title: "Analytics · Admin" };
 
+/**
+ * What the platform can honestly say about itself.
+ *
+ * This page used to be built entirely from `lib/mock` — seeded stock and
+ * seeded listings — under a header claiming the numbers were "derived from the
+ * same records the operational screens use". They were derived from no record
+ * at all. One tile compared prices against "the mandi", for which there is no
+ * feed and never has been: the reference it charted against did not exist.
+ *
+ * Everything here now comes from collections somebody actually wrote to, and
+ * anything the platform cannot know is absent rather than estimated. That is
+ * why there is no inventory valuation — nothing here holds stock — and no
+ * market comparison.
+ *
+ * Seeded listings are excluded. A demo row is something the platform wrote
+ * about itself, which is the one thing that cannot be evidence about it.
+ */
 export default async function AnalyticsPage() {
   await connection();
 
-  const now = new Date();
-  const t = now.getTime();
-  const listings = openListings(now);
-  const offers = stockOffers(now);
+  const { listings, bargains, accounts, live } = await readAnalytics();
+  const now = new Date().getTime();
 
-  const value = stockValue(offers);
-  const freshness = freshnessSplit(offers, t);
-  const crops = cropVolumes(offers, listings);
-  const districts = districtRows(listings, offers);
+  const traded = real(listings);
+  const crops = supplyByCrop(traded);
+  const districts = supplyByDistrict(traded);
+  const result = outcomes(bargains);
+  const settled = settledRates(bargains);
+  const hours = hoursToSettle(bargains);
 
-  const cheaperThanMandi = crops.filter((c) => c.mandiLow > 0 && c.vsMandi < 0).length;
-  const withMandi = crops.filter((c) => c.mandiLow > 0).length;
+  const seeded = listings.length - traded.length;
 
   return (
     <>
       <AdminPageHeader
         title="Analytics"
-        description="Everything here is derived from the same records the operational screens use, so the numbers cannot drift apart from them."
+        description="Everything here is counted from the records the operational screens write. Nothing is modelled, and what the platform cannot know is left out rather than estimated."
       />
+
+      {live ? null : (
+        <p className="border-warning/40 bg-warning-soft text-warning border-b px-6 py-3 text-sm">
+          Nothing could be read from the database, so every figure below is zero. That is a
+          failure to read, not a quiet platform.
+        </p>
+      )}
 
       <div className="bg-border grid grid-cols-2 gap-px border-b lg:grid-cols-4">
         <StatTile
-          label="Stock on the shelf"
-          value={Math.round(value.minorUnits / 100_000)}
-          icon={BoxesIcon}
-          tone="default"
-          hint={`${formatMoney(value)} across ${offers.length} lines`}
-        />
-        <StatTile
-          label="At risk within a day"
-          value={freshness.endOfLife}
-          icon={AlertTriangleIcon}
-          tone="danger"
-          hint={`${formatMoney(freshness.atRisk)} unsellable tomorrow`}
-        />
-        <StatTile
-          label="Cheaper than the mandi"
-          value={cheaperThanMandi}
-          icon={TrendingUpIcon}
-          tone="success"
-          hint={`of ${withMandi} crops with a published reference`}
-        />
-        <StatTile
-          label="Open listings"
-          value={listings.length}
+          label="Listings posted"
+          value={traded.length}
           icon={SproutIcon}
           tone="default"
-          hint={`across ${districts.length} districts`}
+          hint={
+            seeded > 0
+              ? `${districts.length} districts · ${seeded} seeded row${seeded === 1 ? "" : "s"} excluded`
+              : `across ${districts.length} districts`
+          }
+        />
+        <StatTile
+          label="Bargains agreed"
+          value={result.agreed}
+          icon={HandshakeIcon}
+          tone="success"
+          hint={
+            result.agreedShare === null
+              ? "nothing has finished yet"
+              : `${result.agreedShare}% of finished bargains`
+          }
+        />
+        <StatTile
+          label="Bargains open"
+          value={result.open}
+          icon={ClockIcon}
+          tone="default"
+          hint={
+            // Null rather than zero when nothing has settled. Zero hours is a
+            // real answer meaning "instantly".
+            hours === null ? "none settled yet" : `typically ${hours}h to settle`
+          }
+        />
+        <StatTile
+          label="Accounts"
+          value={accounts.length}
+          icon={UsersIcon}
+          tone="default"
+          hint={`${accounts.filter((a) => a.status === "verified").length} verified`}
         />
       </div>
 
       <div className="flex flex-col gap-5 p-6">
-        <ActivityChart data={activityOverTime(listings, now)} />
+        <ActivityByDay data={activityByDay(traded, bargains, now)} />
 
         <div className="grid gap-5 xl:grid-cols-2">
-          <CropValueChart data={crops} />
-          <MandiChart data={crops} />
+          <SupplyByCrop data={crops} />
+          <SettledRates data={settled} />
         </div>
 
         <div className="grid gap-5 xl:grid-cols-2">
-          <DistrictChart data={districts} />
-          <GradeMix data={gradeSplit(offers)} />
+          <SupplyByDistrict data={districts} />
+          <AccountsPanel data={accountMix(accounts)} />
         </div>
       </div>
     </>
