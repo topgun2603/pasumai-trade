@@ -22,7 +22,7 @@ export default async function FarmVerificationPage() {
         description="Who you are and where you get paid. Done once."
       />
       <div className="flex flex-col gap-6 p-5">
-        <KycOnboarding view={onboardingView(checks, "farmer")} roleLabel="Farmer" />
+        <KycOnboarding view={await onboardingView(checks, "farmer")} roleLabel="Farmer" />
       </div>
     </>
   );

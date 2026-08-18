@@ -25,7 +25,7 @@ export default async function BuyerVerificationPage() {
       />
       <div className="flex flex-col gap-6 p-5">
         <KycOnboarding
-          view={onboardingView(checks, role)}
+          view={await onboardingView(checks, role)}
           roleLabel={role === "franchise" ? "Franchise" : "Buyer"}
         />
       </div>

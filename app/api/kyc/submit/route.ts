@@ -1,13 +1,17 @@
 import { requireSession } from "@/lib/api/write-guard";
 import {
+  MAX_DOCUMENTS,
+  isDocumentType,
   isWellFormedAadhaar,
   isWellFormedGstin,
   kycState,
   maskAadhaar,
   recordManual,
   respond,
+  withDocuments,
   type Check,
   type CheckKind,
+  type KycDocument,
 } from "@/lib/domain/kyc";
 import { checkIfsc, checkPan, normalise } from "@/lib/domain/registration";
 import { COLLECTION_FOR_SIGNUP, canSelfSignup } from "@/lib/domain/signup";
@@ -95,6 +99,39 @@ function validate(kind: CheckKind, raw: string): { reference: string } | { error
   }
 }
 
+/**
+ * The files the browser has just uploaded, taken only if they are this
+ * account's own.
+ *
+ * The path is checked against the caller rather than trusted, even though this
+ * server composed it a moment ago in `/api/kyc/uploads`. The two requests are
+ * separate and nothing carries between them but the body — so without this,
+ * anybody could attach `kyc/<someone else>/identity/…` to their own check and
+ * have operations sign and open another person's Aadhaar photograph on their
+ * behalf.
+ */
+function readDocuments(
+  raw: unknown,
+  accountId: string,
+  kind: CheckKind,
+  now: Date,
+): KycDocument[] {
+  if (!Array.isArray(raw)) return [];
+  const prefix = `kyc/${accountId}/${kind}/`;
+
+  return raw
+    .flatMap((entry): KycDocument[] => {
+      if (!entry || typeof entry !== "object") return [];
+      const d = entry as Record<string, unknown>;
+      const path = typeof d.path === "string" ? d.path : "";
+      const contentType = typeof d.contentType === "string" ? d.contentType.toLowerCase() : "";
+      if (!path.startsWith(prefix) || path.includes("..")) return [];
+      if (!isDocumentType(contentType)) return [];
+      return [{ path, contentType, uploadedAt: now }];
+    })
+    .slice(0, MAX_DOCUMENTS);
+}
+
 export async function POST(request: Request) {
   const gate = await requireSession();
   if (!gate.ok) return gate.response;
@@ -149,10 +186,22 @@ export async function POST(request: Request) {
   */
   const answering = already?.state === "moreInfo" || already?.state === "reupload";
   const message = typeof body.message === "string" ? body.message.trim() : "";
+  const documents = readDocuments(body.documents, accountId, kind, now);
 
-  const check = answering
+  /*
+    Evidence accumulates across passes rather than replacing what was there.
+    Operations who asked for a clearer photograph need to see both, or there is
+    no record that the first one was unreadable — and no way to tell somebody
+    who genuinely fixed it from somebody sending the same page again.
+  */
+  const base = answering
     ? { ...respond(already, message || undefined, now), reference: outcome.reference }
     : recordManual(kind, outcome.reference, now);
+
+  // `recordManual` starts a clean check, so what was already uploaded is put
+  // back before the new files go on top of it. Otherwise somebody resubmitting
+  // a refused check erases the photograph it was refused for.
+  const check = withDocuments({ ...base, documents: already?.documents }, documents);
 
   const checks: Check[] = [...existing.filter((c) => c.kind !== kind), check];
   const state = kycState(checks, role);

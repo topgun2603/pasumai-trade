@@ -23,6 +23,10 @@ import {
   respond,
   waitingOn,
   type CheckState,
+  isDocumentType,
+  withDocuments,
+  MAX_DOCUMENTS_KEPT,
+  type KycDocument,
 } from "./kyc";
 
 const NOW = new Date("2026-08-15T10:00:00+05:30");
@@ -360,5 +364,55 @@ describe("whose move it is", () => {
       askForReupload(recordManual("bank", "HDFC0001", NOW), "ops", "Blurred.", NOW),
     ];
     expect(kycState(checks, "farmer")).toBe("needsApplicant");
+  });
+});
+
+describe("the evidence behind a check", () => {
+  const photo = (n: number, day: number): KycDocument => ({
+    path: `kyc/F-1/identity/${n}.jpg`,
+    contentType: "image/jpeg",
+    uploadedAt: new Date(`2026-08-${day}T10:00:00+05:30`),
+  });
+
+  it("takes photographs and PDFs, and nothing that renders as a page", () => {
+    expect(isDocumentType("image/jpeg")).toBe(true);
+    expect(isDocumentType("IMAGE/PNG")).toBe(true);
+    expect(isDocumentType("application/pdf")).toBe(true);
+    // A stored text/html would open as a page from our own signed origin.
+    expect(isDocumentType("text/html")).toBe(false);
+    expect(isDocumentType("image/svg+xml")).toBe(false);
+  });
+
+  it("keeps what was sent before, so a refusal can still be checked against it", () => {
+    // The whole reason documents accumulate: operations who asked for a
+    // clearer photograph must be able to see the blurred one they refused.
+    const first = recordManual("identity", "XXXX XXXX 1234", NOW, [photo(1, 10)]);
+    const second = withDocuments(first, [photo(2, 12)]);
+
+    expect(second.documents).toHaveLength(2);
+    expect(second.documents?.map((d) => d.path)).toContain("kyc/F-1/identity/1.jpg");
+  });
+
+  it("puts the newest first, because that is what is being decided on", () => {
+    const check = withDocuments(recordManual("pan", "AAECK4521M", NOW, [photo(1, 10)]), [
+      photo(2, 12),
+    ]);
+    expect(check.documents?.[0].path).toBe("kyc/F-1/identity/2.jpg");
+  });
+
+  it("stops an account sent back repeatedly from growing without limit", () => {
+    let check = recordManual("bank", "HDFC0001 ••••4321", NOW);
+    for (let i = 0; i < 20; i++) check = withDocuments(check, [photo(i, 10)]);
+    expect(check.documents).toHaveLength(MAX_DOCUMENTS_KEPT);
+  });
+
+  it("leaves a check alone when nothing was uploaded", () => {
+    const check = recordManual("bank", "HDFC0001 ••••4321", NOW);
+    expect(withDocuments(check, []).documents).toBeUndefined();
+  });
+
+  it("still records a manual check with no photograph at all", () => {
+    // Legacy submissions predate uploads, and an operator can still ask for one.
+    expect(recordManual("gst", "33AAECK4521M1ZP", NOW).documents).toBeUndefined();
   });
 });

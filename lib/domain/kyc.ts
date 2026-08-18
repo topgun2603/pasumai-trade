@@ -147,6 +147,87 @@ export function waitingOn(state: CheckState): Waiting {
   }
 }
 
+/* -------------------------------------------------------------------------
+   The evidence itself
+   ------------------------------------------------------------------------- */
+
+/**
+ * A photograph or scan of the document behind a check.
+ *
+ * The gap this closes: a manual check used to be a *number* and nothing else —
+ * a masked Aadhaar, a PAN, an IFSC. An operator approving one was vouching for
+ * a string somebody typed, with nothing to look at. The queue said "review" and
+ * there was nothing to review.
+ *
+ * A **path**, never a URL. The bucket is private and its URLs are signed for an
+ * hour; storing one would give a link that is dead by the time anybody opens
+ * the record, and a permanently public URL for a photograph of somebody's
+ * Aadhaar is not a thing to have.
+ */
+export interface KycDocument {
+  /** Storage path. Composed by the server; never taken from a client. */
+  readonly path: string;
+  readonly contentType: string;
+  readonly uploadedAt: Date;
+}
+
+/**
+ * Per submission, not per check.
+ *
+ * Both sides of an Aadhaar card, a passbook page, and a spare for the one that
+ * came out blurred. More than that on a single check is somebody uploading
+ * their whole folder, which makes the queue slower to work rather than better
+ * evidenced.
+ */
+export const MAX_DOCUMENTS = 4;
+
+/**
+ * The ceiling across every pass.
+ *
+ * Documents accumulate rather than replace — see `withDocuments` — so an
+ * account sent back three times would otherwise grow without limit.
+ */
+export const MAX_DOCUMENTS_KEPT = 12;
+
+export const MAX_DOCUMENT_BYTES = 8 * 1024 * 1024;
+
+/**
+ * What can be uploaded as evidence.
+ *
+ * Phone photographs, and PDF because a GST certificate and an FSSAI licence
+ * arrive as downloads rather than pictures — refusing those would send the
+ * buyers who have the cleanest evidence off to find a screenshot tool.
+ */
+export function isDocumentType(type: string): boolean {
+  return ["image/jpeg", "image/png", "image/webp", "image/heic", "application/pdf"].includes(
+    type.toLowerCase(),
+  );
+}
+
+/**
+ * Adds evidence to a check without discarding what was there.
+ *
+ * Appended rather than replaced, and this is the point of the whole record: an
+ * account on its third pass through the queue should show the blurred first
+ * photograph next to the clear third one. Replacing would destroy the evidence
+ * that operations were right to send it back — and destroy the one thing that
+ * distinguishes somebody who fixed a genuine problem from somebody who keeps
+ * sending the same unreadable page.
+ *
+ * Newest first, because an operator is deciding on the latest and should not
+ * have to swipe past three rejected attempts to reach it.
+ */
+export function withDocuments(
+  check: Check,
+  documents: readonly KycDocument[],
+): Check {
+  if (documents.length === 0) return check;
+  return {
+    ...check,
+    documents: [...documents, ...(check.documents ?? [])].slice(0, MAX_DOCUMENTS_KEPT),
+  };
+}
+
 /**
  * One thing operations said, or the applicant did.
  *
@@ -187,6 +268,13 @@ export interface Check {
   readonly reason?: string;
   /** Everything said about this check, oldest first. */
   readonly notes?: readonly ReviewNote[];
+  /**
+   * Photographs or scans of the document, newest first.
+   *
+   * Absent on eKYC, which has no photograph — the authority answered directly
+   * and there is nothing for a person to look at.
+   */
+  readonly documents?: readonly KycDocument[];
 }
 
 /* -------------------------------------------------------------------------
@@ -346,13 +434,19 @@ export function recordEkyc(
  * return `verified`, deliberately: the state that means "a person vouched for
  * this" must be unreachable from the path where no person has.
  */
-export function recordManual(kind: CheckKind, reference: string, now: Date): Check {
+export function recordManual(
+  kind: CheckKind,
+  reference: string,
+  now: Date,
+  documents: readonly KycDocument[] = [],
+): Check {
   return {
     kind,
     method: "manual",
     state: "review",
     reference,
     checkedAt: now,
+    documents: documents.length > 0 ? documents : undefined,
   };
 }
 

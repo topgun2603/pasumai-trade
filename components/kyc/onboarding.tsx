@@ -4,14 +4,17 @@ import {
   BadgeCheckIcon,
   ClockIcon,
   FileTextIcon,
+  PaperclipIcon,
   ShieldCheckIcon,
   TriangleAlertIcon,
+  XIcon,
   ZapIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { DocumentStrip, type ViewableDocument } from "@/components/kyc/documents";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +22,9 @@ import { Label } from "@/components/ui/label";
 import {
   CHECK_LABELS,
   KYC_LABELS,
+  MAX_DOCUMENTS,
+  MAX_DOCUMENT_BYTES,
+  isDocumentType,
   type Check,
   type CheckKind,
   type KycState,
@@ -36,6 +42,21 @@ export interface OnboardingView {
   readonly instant: Record<string, boolean>;
   /** A DigiLocker consent URL, when one is configured. */
   readonly consentUrl?: string;
+  /**
+   * What has already been uploaded, per check, signed for viewing.
+   *
+   * Shown back deliberately. Somebody told their photograph was unreadable can
+   * look at the one operations saw, rather than being asked to take it on faith
+   * and guess at what to change.
+   */
+  readonly documents: Record<string, ViewableDocument[]>;
+}
+
+/** A file chosen but not yet sent. */
+interface Chosen {
+  readonly file: File;
+  /** Object URL for the thumbnail; revoked when the file is dropped. */
+  readonly preview: string;
 }
 
 const HELP: Record<CheckKind, { placeholder: string; hint: string }> = {
@@ -87,19 +108,120 @@ export function KycOnboarding({ view, roleLabel }: { view: OnboardingView; roleL
   const [values, setValues] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = useState<string | null>(null);
+  const [chosen, setChosen] = useState<Record<string, Chosen[]>>({});
+  const pickers = useRef<Record<string, HTMLInputElement | null>>({});
 
   const byKind = (kind: CheckKind) => view.checks.find((c) => c.kind === kind);
+
+  /** Adds files to the pile for one check, refusing what the server would. */
+  function pick(kind: CheckKind, list: FileList | null) {
+    if (!list) return;
+    const files = Array.from(list);
+
+    const bad = files.find((file) => !isDocumentType(file.type));
+    if (bad) {
+      setErrors((e) => ({ ...e, [kind]: "Upload a photograph or a PDF." }));
+      return;
+    }
+    const heavy = files.find((file) => file.size > MAX_DOCUMENT_BYTES);
+    if (heavy) {
+      setErrors((e) => ({
+        ...e,
+        [kind]: "That file is too large. A photograph from a phone camera is well under the limit.",
+      }));
+      return;
+    }
+
+    setChosen((current) => {
+      const existing = current[kind] ?? [];
+      const room = MAX_DOCUMENTS - existing.length;
+      if (room <= 0) return current;
+      const added = files.slice(0, room).map((file) => ({
+        file,
+        preview: URL.createObjectURL(file),
+      }));
+      return { ...current, [kind]: [...existing, ...added] };
+    });
+    setErrors((e) => ({ ...e, [kind]: "" }));
+  }
+
+  function drop(kind: CheckKind, index: number) {
+    setChosen((current) => {
+      const existing = current[kind] ?? [];
+      // The object URL is a live handle to the file; not revoking it keeps the
+      // whole photograph in memory for the life of the tab.
+      URL.revokeObjectURL(existing[index]?.preview ?? "");
+      return { ...current, [kind]: existing.filter((_, i) => i !== index) };
+    });
+  }
+
+  /**
+   * Sends the chosen files straight to storage and returns what to record.
+   *
+   * Two steps because the bytes do not pass through the application server: it
+   * signs a URL per file, the browser PUTs to it, and only the paths come back
+   * here. A phone photograph is comfortably past what a serverless function
+   * will accept as a request body.
+   */
+  async function sendFiles(kind: CheckKind): Promise<Array<{ path: string; contentType: string }>> {
+    const files = chosen[kind] ?? [];
+    if (files.length === 0) return [];
+
+    const response = await fetch("/api/kyc/uploads", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        kind,
+        files: files.map(({ file }) => ({ contentType: file.type, bytes: file.size })),
+      }),
+    });
+
+    const data = (await response.json().catch(() => ({}))) as {
+      error?: string;
+      uploads?: Array<{ path: string; url: string; contentType: string }>;
+    };
+    if (!response.ok || !data.uploads) {
+      throw new Error(data.error ?? "Could not prepare the upload.");
+    }
+
+    await Promise.all(
+      data.uploads.map(async (upload, i) => {
+        const put = await fetch(upload.url, {
+          method: "PUT",
+          headers: { "content-type": upload.contentType },
+          body: files[i].file,
+        });
+        // A failed PUT would otherwise be recorded as a document that is not
+        // there, and operations would sign a path with no object behind it.
+        if (!put.ok) throw new Error("An upload did not finish. Check the connection.");
+      }),
+    );
+
+    return data.uploads.map(({ path, contentType }) => ({ path, contentType }));
+  }
 
   async function submit(kind: CheckKind) {
     const value = values[kind] ?? "";
     setPending(kind);
+
+    let documents: Array<{ path: string; contentType: string }>;
+    try {
+      documents = await sendFiles(kind);
+    } catch (error) {
+      setPending(null);
+      setErrors((e) => ({
+        ...e,
+        [kind]: error instanceof Error ? error.message : "Could not upload that.",
+      }));
+      return;
+    }
 
     let response: Response;
     try {
       response = await fetch("/api/kyc/submit", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ kind, value }),
+        body: JSON.stringify({ kind, value, documents }),
       });
     } catch {
       setPending(null);
@@ -118,6 +240,8 @@ export function KycOnboarding({ view, roleLabel }: { view: OnboardingView; roleL
 
     setErrors((e) => ({ ...e, [kind]: "" }));
     setValues((v) => ({ ...v, [kind]: "" }));
+    for (const file of chosen[kind] ?? []) URL.revokeObjectURL(file.preview);
+    setChosen((c) => ({ ...c, [kind]: [] }));
     toast.success(`${CHECK_LABELS[kind]} submitted`, {
       description: "Operations will check it. You will not be asked again.",
     });
@@ -223,6 +347,13 @@ export function KycOnboarding({ view, roleLabel }: { view: OnboardingView; roleL
                 <p className="text-destructive text-sm">{check.reason}</p>
               ) : null}
 
+              {/* Everything sent so far, newest first. A person asked to send a
+                  clearer photograph can see the one that was refused. */}
+              <DocumentStrip
+                documents={view.documents[kind] ?? []}
+                label={CHECK_LABELS[kind]}
+              />
+
               {!done ? (
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor={`kyc-${kind}`} className="sr-only">
@@ -249,6 +380,81 @@ export function KycOnboarding({ view, roleLabel }: { view: OnboardingView; roleL
                       {pending === kind ? "Sending…" : "Submit"}
                     </Button>
                   </div>
+
+                  {/*
+                    The photograph, next to the number rather than instead of
+                    it. The number is what gets checked against a register; the
+                    photograph is what an operator looks at when there is no
+                    register to check against — which is every manual check on
+                    this platform today.
+
+                    `capture` is deliberately absent: on a phone the file picker
+                    already offers the camera, and forcing it would stop
+                    somebody attaching a certificate they were emailed.
+                  */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      ref={(el) => {
+                        pickers.current[kind] = el;
+                      }}
+                      id={`kyc-file-${kind}`}
+                      type="file"
+                      multiple
+                      accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
+                      className="sr-only"
+                      onChange={(e) => {
+                        pick(kind, e.target.files);
+                        // Cleared so choosing the same file twice still fires.
+                        e.target.value = "";
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={(chosen[kind]?.length ?? 0) >= MAX_DOCUMENTS}
+                      onClick={() => pickers.current[kind]?.click()}
+                    >
+                      <PaperclipIcon className="size-3.5" />
+                      Attach photo
+                    </Button>
+                    <span className="text-faint text-xs">
+                      {(chosen[kind]?.length ?? 0) > 0
+                        ? `${chosen[kind].length} of ${MAX_DOCUMENTS} attached`
+                        : `Up to ${MAX_DOCUMENTS}. Photo or PDF.`}
+                    </span>
+                  </div>
+
+                  {(chosen[kind]?.length ?? 0) > 0 ? (
+                    <ul className="flex flex-wrap gap-2">
+                      {chosen[kind].map((file, i) => (
+                        <li key={file.preview} className="relative">
+                          <span className="border-border bg-secondary flex size-20 items-center justify-center overflow-hidden rounded-md border">
+                            {file.file.type === "application/pdf" ? (
+                              <FileTextIcon className="text-muted-foreground size-6" />
+                            ) : (
+                              /* A local object URL, not a remote one — next/image
+                                 has nothing to optimise here. */
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={file.preview}
+                                alt={file.file.name}
+                                className="size-full object-cover"
+                              />
+                            )}
+                          </span>
+                          <button
+                            type="button"
+                            aria-label={`Remove ${file.file.name}`}
+                            onClick={() => drop(kind, i)}
+                            className="bg-background border-border hover:bg-secondary absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full border"
+                          >
+                            <XIcon className="size-3" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                   {errors[kind] ? (
                     <p className="text-destructive flex items-center gap-1 text-xs">
                       <TriangleAlertIcon className="size-3 shrink-0" />

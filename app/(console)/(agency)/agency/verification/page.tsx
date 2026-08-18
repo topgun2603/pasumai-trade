@@ -26,7 +26,7 @@ export default async function AgencyVerificationPage() {
       />
       <div className="flex flex-col gap-6 p-5">
         <KycOnboarding
-          view={onboardingView(checks, role)}
+          view={await onboardingView(checks, role)}
           roleLabel={role === "transport" ? "Transport" : "Manpower"}
         />
       </div>

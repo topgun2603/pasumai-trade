@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { DocumentStrip, type ViewableDocument } from "@/components/kyc/documents";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,8 @@ export interface QueueRow {
     submittedLabel?: string;
     /** What has already been said about it, oldest first. Dates pre-formatted. */
     notes?: Array<{ by: "operations" | "applicant"; state: string; message?: string; at: string }>;
+    /** The photographs, newest first. Signed and short-lived. */
+    documents?: ViewableDocument[];
   }>;
 }
 
@@ -207,6 +210,18 @@ export function KycQueue({ rows }: { rows: QueueRow[] }) {
                       </Button>
                     </span>
                   </div>
+
+                  {/*
+                    What is actually being approved. Before this the queue held
+                    a masked number and four buttons — an operator "reviewing"
+                    a string somebody typed, with nothing to look at and no
+                    grounds to send anything back.
+                  */}
+                  <DocumentStrip
+                    documents={item.documents ?? []}
+                    label={`${row.name} — ${CHECK_LABELS[item.kind]}`}
+                    emptyNote="No document uploaded. Ask for one before approving."
+                  />
 
                   {asking?.key === key ? (
                     <Input

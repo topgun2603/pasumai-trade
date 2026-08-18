@@ -6,11 +6,13 @@ import type {
   CheckKind,
   CheckMethod,
   CheckState,
+  KycDocument,
   ReviewNote,
 } from "@/lib/domain/kyc";
+import { MAX_DOCUMENTS_KEPT, isDocumentType } from "@/lib/domain/kyc";
 import { COLLECTION_FOR_SIGNUP, canSelfSignup } from "@/lib/domain/signup";
 
-import { adminDb } from "./admin";
+import { adminDb, adminStorage } from "./admin";
 
 /**
  * KYC checks live on the account document, under `kyc`.
@@ -85,10 +87,38 @@ export function shapeChecks(raw: unknown): Check[] {
               ];
             })
           : undefined,
+        documents: shapeDocuments(d.documents),
         checkedAt: toDate(d.checkedAt),
       },
     ];
   });
+}
+
+/**
+ * The evidence, as stored.
+ *
+ * A document with no readable path is dropped: it cannot be signed, so it would
+ * render as a broken tile in the operator's carousel and be mistaken for a
+ * document that failed to load rather than one that was never there.
+ */
+function shapeDocuments(raw: unknown): KycDocument[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+
+  const documents = raw.flatMap((entry): KycDocument[] => {
+    if (!entry || typeof entry !== "object") return [];
+    const d = entry as Record<string, unknown>;
+    const path = typeof d.path === "string" ? d.path : "";
+    if (!path) return [];
+    return [
+      {
+        path,
+        contentType: typeof d.contentType === "string" ? d.contentType : "image/jpeg",
+        uploadedAt: toDate(d.uploadedAt) ?? new Date(0),
+      },
+    ];
+  });
+
+  return documents.length > 0 ? documents.slice(0, MAX_DOCUMENTS_KEPT) : undefined;
 }
 
 /** Firestore wants plain values; `undefined` is rejected outright. */
@@ -111,7 +141,78 @@ export function serialiseChecks(checks: readonly Check[]): Record<string, unknow
       operator: n.operator ?? null,
       message: n.message ?? null,
     })),
+    // Paths, never URLs. A signed URL written here would be dead within the
+    // hour and the record would point at nothing.
+    documents: (c.documents ?? []).map((d) => ({
+      path: d.path,
+      contentType: d.contentType,
+      uploadedAt: d.uploadedAt,
+    })),
   }));
+}
+
+/* -------------------------------------------------------------------------
+   Showing the evidence
+   ------------------------------------------------------------------------- */
+
+/**
+ * Short-lived, because these are photographs of somebody's Aadhaar.
+ *
+ * Fifteen minutes rather than the hour a listing photograph gets. A crop
+ * photograph leaking is an embarrassment; an identity document leaking is
+ * somebody's identity. Long enough to work a queue, short enough that a URL
+ * pasted into a chat is useless by the time anyone opens it.
+ */
+const DOCUMENT_TTL_MS = 15 * 60 * 1000;
+
+export interface SignedDocument {
+  readonly url: string;
+  readonly contentType: string;
+  readonly uploadedAt: Date;
+}
+
+/** Signed view URLs for a check's evidence, in the order stored. */
+export async function signDocuments(
+  documents: readonly KycDocument[] | undefined,
+): Promise<SignedDocument[]> {
+  if (!documents || documents.length === 0) return [];
+
+  // A deployment with no bucket configured still has a review queue worth
+  // working — the numbers on each check are there. Throwing here would take the
+  // whole page down over the photographs.
+  let bucket: ReturnType<typeof adminStorage>;
+  try {
+    bucket = adminStorage();
+  } catch {
+    return [];
+  }
+
+  const expires = Date.now() + DOCUMENT_TTL_MS;
+
+  const signed = await Promise.all(
+    documents.map(async (document) => {
+      // A content type we would not accept on the way in is not rendered on the
+      // way out either — a stored `text/html` would otherwise open as a page
+      // from our own signed origin.
+      if (!isDocumentType(document.contentType)) return null;
+      try {
+        const [url] = await bucket
+          .file(document.path)
+          .getSignedUrl({ version: "v4", action: "read", expires });
+        return {
+          url,
+          contentType: document.contentType,
+          uploadedAt: document.uploadedAt,
+        };
+      } catch {
+        // An upload that half-failed, or an object since deleted. Dropped
+        // rather than shown as a tile that will not load.
+        return null;
+      }
+    }),
+  );
+
+  return signed.filter((d): d is SignedDocument => d !== null);
 }
 
 export async function readChecks(role: Role, accountId: string | undefined): Promise<Check[]> {
@@ -136,13 +237,18 @@ export interface PendingReview {
 }
 
 /**
- * Everything waiting on operations, across every kind of account.
+ * Every account that has ever submitted a manual check.
  *
  * Three reads rather than a collection group query: the accounts live in three
  * collections with no shared parent, and a collection group needs an index per
  * field which is more moving parts than a queue this size justifies.
+ *
+ * Not filtered to what is waiting, because the same scan answers both questions
+ * the review page asks — what needs deciding, and what was decided. Reading the
+ * three collections twice to split them afterwards would double the cost of a
+ * page that already reads everything.
  */
-export async function readReviewQueue(): Promise<PendingReview[]> {
+export async function readKycAccounts(): Promise<PendingReview[]> {
   const db = adminDb();
   const sources: Array<{ collection: string; roles: Role[] }> = [
     { collection: "farmers", roles: ["farmer"] },
@@ -157,8 +263,11 @@ export async function readReviewQueue(): Promise<PendingReview[]> {
 
     for (const doc of snapshot.docs) {
       const checks = shapeChecks(doc.data().kyc);
+      // Manual only. An eKYC result was settled by an issuing authority and has
+      // no photograph and no operator behind it — showing it in a review record
+      // would credit operations with a decision nobody made.
+      if (!checks.some((c) => c.method === "manual")) continue;
       const waiting = checks.filter((c) => c.state === "review");
-      if (waiting.length === 0) continue;
 
       const data = doc.data();
       // An agency's role is not stored on the document — a transport and a
@@ -187,4 +296,10 @@ export async function readReviewQueue(): Promise<PendingReview[]> {
   return queue.sort(
     (a, b) => (a.submittedAt?.getTime() ?? 0) - (b.submittedAt?.getTime() ?? 0),
   );
+}
+
+/** Only what is waiting on operations, for callers that want the queue alone. */
+export async function readReviewQueue(): Promise<PendingReview[]> {
+  const all = await readKycAccounts();
+  return all.filter((entry) => entry.checks.some((c) => c.state === "review"));
 }
