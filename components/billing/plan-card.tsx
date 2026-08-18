@@ -106,18 +106,26 @@ const BASELINE = STANDARD_TERMS.find((t) => t.term === "m1")!.price.minorUnits;
 
 export function PlanCard({
   option,
-  selected = false,
+  current = false,
   footer,
 }: {
   option: TermOption;
-  selected?: boolean;
+  /**
+   * The plan this account is actually on.
+   *
+   * Outranks `recommended`. Somebody already paying for the popular plan used
+   * to see only "Popular" — the same badge every visitor sees — and nothing at
+   * all saying which one was theirs. The question "what am I on" is the reason
+   * most people open this page, and it was the one thing it did not answer.
+   */
+  current?: boolean;
   footer?: React.ReactNode;
 }) {
   const tier = TIERS[option.badge.id] ?? TIERS.member;
   const monthly = perMonth(option);
   const saving = savingPercent(option);
 
-  if (option.highlight) return <LifetimeCard option={option} footer={footer} />;
+  if (option.highlight) return <LifetimeCard option={option} current={current} footer={footer} />;
 
   return (
     <div
@@ -125,10 +133,13 @@ export function PlanCard({
         "group bg-card relative flex flex-col gap-4 overflow-hidden rounded-xl border pt-5 pb-4 transition-all duration-200",
         "hover:-translate-y-0.5 hover:shadow-md",
         tier.ring,
-        option.recommended
-          ? "border-primary/50 shadow-sm ring-1 ring-primary/20"
-          : selected
-            ? "border-primary/40"
+        // Current first: a faint border that "Popular" overrode was the old
+        // behaviour, and it meant the plan you pay for could be the only card
+        // on the page with no marking.
+        current
+          ? "border-success/60 shadow-md ring-2 ring-success/30"
+          : option.recommended
+            ? "border-primary/50 shadow-sm ring-1 ring-primary/20"
             : "border-border",
       )}
     >
@@ -138,7 +149,14 @@ export function PlanCard({
         aria-hidden
       />
 
-      {option.recommended ? (
+      {/* One pill, and "yours" beats "popular" — the second is advice, the
+          first is a fact about this account. */}
+      {current ? (
+        <span className="bg-success text-background absolute top-4 right-4 flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase">
+          <CheckIcon className="size-3" />
+          Your plan
+        </span>
+      ) : option.recommended ? (
         <span className="bg-primary text-primary-foreground absolute top-4 right-4 rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase">
           Popular
         </span>
@@ -204,9 +222,11 @@ export function PlanCard({
  */
 function LifetimeCard({
   option,
+  current = false,
   footer,
 }: {
   option: TermOption;
+  current?: boolean;
   footer?: React.ReactNode;
 }) {
   return (
@@ -225,13 +245,28 @@ function LifetimeCard({
         room the decision deserves, and the three parts — what it costs, what
         that buys, and the way in — sit side by side instead of stacked.
       */}
-      <div className="relative flex flex-col gap-6 overflow-hidden rounded-2xl border border-stone-500/50 bg-gradient-to-br from-stone-500/[0.10] via-transparent to-amber-500/[0.10] p-6 md:flex-row md:items-center md:gap-10 dark:from-stone-400/[0.14] dark:to-amber-400/[0.14]">
+      <div
+        className={cn(
+          "relative flex flex-col gap-6 overflow-hidden rounded-2xl border bg-gradient-to-br from-stone-500/[0.10] via-transparent to-amber-500/[0.10] p-6 md:flex-row md:items-center md:gap-10 dark:from-stone-400/[0.14] dark:to-amber-400/[0.14]",
+          current ? "border-success/60 ring-2 ring-success/30" : "border-stone-500/50",
+        )}
+      >
         <span
           className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-stone-700 via-amber-400 to-stone-700 dark:from-stone-300 dark:to-stone-300"
           aria-hidden
         />
-        <span className="absolute top-4 right-4 rounded-full bg-stone-800 px-2 py-0.5 text-[10px] font-medium tracking-wide text-white uppercase dark:bg-stone-200 dark:text-stone-900">
-          Best value
+        <span
+          className={cn(
+            "absolute top-4 right-4 flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase",
+            current
+              ? "bg-success text-background"
+              : "bg-stone-800 text-white dark:bg-stone-200 dark:text-stone-900",
+          )}
+        >
+          {current ? <CheckIcon className="size-3" /> : null}
+          {/* "Best value" is a pitch. To somebody who has already bought it,
+              the useful word is that it is theirs. */}
+          {current ? "Your plan" : "Best value"}
         </span>
 
         <div className="flex shrink-0 flex-col gap-2 pt-1">

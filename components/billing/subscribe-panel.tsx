@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  BanknoteIcon,
-  ClockIcon,
-  CopyIcon,
-  FlaskConicalIcon,
-  InfinityIcon,
-  ShieldCheckIcon,
-} from "lucide-react";
+import { BanknoteIcon, CheckIcon, ClockIcon, CopyIcon, FlaskConicalIcon, InfinityIcon, ShieldCheckIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -170,7 +163,39 @@ export function SubscribePanel({
     }
   }
 
-  const cta = (option: TermOption) => (
+  /**
+   * The plan this account is on right now.
+   *
+   * Matched on the tier id rather than the displayed label — the old check
+   * compared `current.termLabel` to `option.label`, so a wording change to
+   * either would have silently stopped highlighting anything, and nothing
+   * would have failed.
+   *
+   * Only while the subscription is actually running. An expired plan is not
+   * "your plan", it is the plan you had: marking it current would put a green
+   * "Your plan" badge on a card whose button says Renew.
+   */
+  const running = current.status === "active" || current.status === "trialing";
+
+  const isCurrent = (option: TermOption) =>
+    running &&
+    (option.highlight
+      ? current.lifetime === true
+      : current.badge?.id === option.badge.id);
+
+  const cta = (option: TermOption) => {
+    // Nothing to sell somebody who has already bought it. A live button here
+    // invites a second payment for the plan they are on.
+    if (isCurrent(option)) {
+      return (
+        <div className="border-success/40 bg-success-soft text-success flex w-full items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium">
+          <CheckIcon className="size-4" />
+          {current.renewsAtLabel ? `Runs to ${current.renewsAtLabel}` : "Your current plan"}
+        </div>
+      );
+    }
+
+    return (
     <Button
       type="button"
       // Violet on the lifetime band: a primary-green button sitting on it is
@@ -193,8 +218,9 @@ export function SubscribePanel({
           : current.status === "expired" || current.status === "pastDue"
             ? "Renew"
             : `Pay ${formatMoney(option.price)}`}
-    </Button>
-  );
+      </Button>
+    );
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -298,7 +324,7 @@ export function SubscribePanel({
           <PlanCard
             key={option.term}
             option={option}
-            selected={current.termLabel === option.label}
+            current={isCurrent(option)}
             footer={cta(option)}
           />
         ))}
@@ -313,7 +339,7 @@ export function SubscribePanel({
             </span>
             <span className="to-border h-px flex-1 bg-gradient-to-r from-transparent" />
           </div>
-          <PlanCard option={lifetime} footer={cta(lifetime)} />
+          <PlanCard option={lifetime} current={isCurrent(lifetime)} footer={cta(lifetime)} />
         </div>
       ) : null}
     </div>
