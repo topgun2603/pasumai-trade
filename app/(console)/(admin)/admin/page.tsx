@@ -1,15 +1,14 @@
 import {
   AlertTriangleIcon,
-  BanIcon,
   ClockIcon,
   FileWarningIcon,
+  TruckIcon,
 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 
 import { StatusBadge } from "@/components/admin/badges";
-import { OverviewSnapshot } from "@/components/admin/overview-snapshot";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { StatTile } from "@/components/franchise/stat-tile";
 import { Badge } from "@/components/ui/badge";
@@ -22,21 +21,12 @@ import {
   worstExpiry,
   type ComplianceDocument,
 } from "@/lib/domain/admin";
-import {
-  cropVolumes,
-  freshnessSplit,
-  stockValue,
-} from "@/lib/domain/analytics";
+import { isWaiting } from "@/lib/domain/enquiry";
+import { CHECK_LABELS } from "@/lib/domain/kyc";
 import { relativeTime } from "@/lib/format";
-import {
-  buyerAccounts,
-  driverAccounts,
-  farmerAccounts,
-  workers,
-  vehicles,
-} from "@/lib/mock/admin";
-import { openListings } from "@/lib/mock/listings";
-import { stockOffers } from "@/lib/mock/market";
+import { readCompliance, readWaitingPickups } from "@/lib/firebase/compliance-read";
+import { readEnquiries } from "@/lib/firebase/enquiries";
+import { readKycAccounts } from "@/lib/firebase/kyc-read";
 
 export const metadata: Metadata = { title: "Overview · Admin" };
 
@@ -48,144 +38,111 @@ interface Lapse {
   days: number;
 }
 
+/**
+ * What needs a decision today.
+ *
+ * This page used to be built entirely from `lib/mock/admin` — five fixtures
+ * with invented expiry dates — while the real `vehicles`, `drivers` and
+ * `workers` collections sat in Firestore unread. The banner warning that a
+ * vehicle was off the road was warning about a lorry nobody owns, and a
+ * genuinely lapsed insurance certificate would not have shown up anywhere at
+ * all. That is the worst way for a compliance screen to be wrong: reassuring.
+ *
+ * Everything here is now counted from records somebody wrote. The old "run past
+ * their credit" framing is gone with it — no credit is extended on this
+ * platform, every order is paid when placed, and the header said otherwise.
+ */
 export default async function AdminOverviewPage() {
   await connection();
 
   const now = new Date();
   const t = now.getTime();
 
-  const buyers = buyerAccounts(now);
-  const farmers = farmerAccounts(now);
-  const drivers = driverAccounts(now);
-  const fleet = vehicles(now);
-  const crew = workers(now);
-  const listings = openListings(now);
-  const offers = stockOffers(now);
+  const [{ subjects, live }, pickups, enquiries, kycAccounts] = await Promise.all([
+    readCompliance(),
+    readWaitingPickups(),
+    readEnquiries(),
+    readKycAccounts(),
+  ]);
 
-  const pendingBuyers = buyers.filter((b) => needsReview(b.status));
-  const pendingFarmers = farmers.filter((f) => needsReview(f.status));
-  const pendingDrivers = drivers.filter((d) => needsReview(d.status));
-  const pendingVehicles = fleet.filter((v) => needsReview(v.status));
-  const pendingCrew = crew.filter((m) => needsReview(m.status));
-
+  /*
+    Everything waiting on a person here, from the two places work actually
+    arrives: somebody who asked to be called, and a document somebody uploaded.
+    The old version listed accounts with a `pending` status, which is a state
+    the mock set and nothing on the live platform ever writes.
+  */
   const awaitingReview = [
-    ...pendingBuyers.map((b) => ({
-      id: b.id,
-      name: b.name,
-      kind: "Buyer",
-      href: "/admin/buyers",
-      at: b.registeredAt,
-      status: b.status,
-    })),
-    ...pendingFarmers.map((f) => ({
-      id: f.id,
-      name: f.name,
-      kind: "Farmer",
-      href: "/admin/farmers",
-      at: f.registeredAt,
-      status: f.status,
-    })),
-    ...pendingDrivers.map((d) => ({
-      id: d.id,
-      name: d.name,
-      kind: "Driver",
-      href: "/admin/transport/drivers",
-      at: d.registeredAt,
-      status: d.status,
-    })),
-    ...pendingVehicles.map((v) => ({
-      id: v.id,
-      name: v.registration,
-      kind: "Vehicle",
-      href: "/admin/transport/vehicles",
-      at: v.registeredAt,
-      status: v.status,
-    })),
-    ...pendingCrew.map((m) => ({
-      id: m.id,
-      name: m.name,
-      kind: "Crew",
-      href: "/admin/transport/manpower",
-      at: m.registeredAt,
-      status: m.status,
-    })),
+    ...enquiries
+      .filter((enquiry) => isWaiting(enquiry.status))
+      .map((enquiry) => ({
+        id: `enquiry-${enquiry.id}`,
+        name: enquiry.name,
+        kind: "Enquiry",
+        href: "/admin/enquiries",
+        at: enquiry.createdAt,
+        status: "pending",
+      })),
+    ...kycAccounts.flatMap((account) =>
+      account.checks
+        .filter((check) => check.state === "review")
+        .map((check) => ({
+          id: `kyc-${account.accountId}-${check.kind}`,
+          name: account.name,
+          kind: CHECK_LABELS[check.kind],
+          href: "/admin/kyc",
+          at: check.checkedAt ?? now,
+          status: "pending",
+        })),
+    ),
   ].sort((a, b) => a.at.getTime() - b.at.getTime());
 
-  // Expiries across every entity that carries documents, worst first. This is
-  // the list that stops a load going out uninsured.
-  const lapses: Lapse[] = [
-    ...drivers.flatMap((d) =>
-      expiringDocuments(d.documents, t).map((doc) => ({
-        subject: d.name,
-        href: "/admin/transport/drivers",
-        kind: "Driver",
-        document: doc,
-        days: daysUntilExpiry(doc, t) ?? 0,
+  // Expiries across everything that carries documents, worst first. This is the
+  // list that stops a load going out uninsured.
+  const lapses: Lapse[] = subjects
+    .flatMap((subject) =>
+      expiringDocuments(subject.documents, t).map((document) => ({
+        subject: subject.name,
+        href: subject.href,
+        kind: subject.kind,
+        document,
+        days: daysUntilExpiry(document, t) ?? 0,
       })),
-    ),
-    ...fleet.flatMap((v) =>
-      expiringDocuments(v.documents, t).map((doc) => ({
-        subject: v.registration,
-        href: "/admin/transport/vehicles",
-        kind: "Vehicle",
-        document: doc,
-        days: daysUntilExpiry(doc, t) ?? 0,
-      })),
-    ),
-    ...crew.flatMap((m) =>
-      expiringDocuments(m.documents, t).map((doc) => ({
-        subject: m.name,
-        href: "/admin/transport/manpower",
-        kind: "Crew",
-        document: doc,
-        days: daysUntilExpiry(doc, t) ?? 0,
-      })),
-    ),
-    ...buyers.flatMap((b) =>
-      expiringDocuments(b.documents, t).map((doc) => ({
-        subject: b.name,
-        href: "/admin/buyers",
-        kind: "Buyer",
-        document: doc,
-        days: daysUntilExpiry(doc, t) ?? 0,
-      })),
-    ),
-  ].sort((a, b) => a.days - b.days);
+    )
+    .sort((a, b) => a.days - b.days);
 
-  const expired = lapses.filter((l) => l.days < 0);
+  const expired = lapses.filter((lapse) => lapse.days < 0);
 
-  // No credit is extended — every order is paid when it is placed — so the
-  // fourth thing worth watching is accounts operations has stopped.
-  const stopped = [
-    ...buyers
-      .filter((b) => b.status === "suspended" || b.status === "rejected")
-      .map((b) => ({ id: b.id, name: b.name, kind: "Buyer", href: "/admin/buyers", status: b.status })),
-    ...farmers
-      .filter((f) => f.status === "suspended" || f.status === "rejected")
-      .map((f) => ({ id: f.id, name: f.name, kind: "Farmer", href: "/admin/farmers", status: f.status })),
-    ...drivers
-      .filter((d) => d.status === "suspended" || d.status === "rejected")
-      .map((d) => ({ id: d.id, name: d.name, kind: "Driver", href: "/admin/transport/drivers", status: d.status })),
-  ];
+  const stopped = subjects.filter(
+    (subject) => subject.status === "suspended" || subject.status === "rejected",
+  );
 
-  const groundedVehicles = fleet.filter(
-    (v) => worstExpiry(v.documents, t) === "expired",
+  const unverified = subjects.filter((subject) => needsReview(subject.status));
+
+  const grounded = subjects.filter(
+    (subject) => subject.kind === "Vehicle" && worstExpiry(subject.documents, t) === "expired",
   );
 
   return (
     <>
       <AdminPageHeader
         title="Overview"
-        description="What needs a decision today. Registrations waiting on review, documents lapsing, and accounts that have run past their credit."
+        description="What needs a decision today. Enquiries and documents waiting on a person, certificates lapsing, and produce with no vehicle coming for it."
       />
 
-      <div className="grid grid-cols-2 gap-px border-b bg-border lg:grid-cols-4">
+      {live ? null : (
+        <p className="border-warning/40 bg-warning-soft text-warning border-b px-6 py-3 text-sm">
+          Nothing could be read from the database, so every figure below is zero. That is a
+          failure to read, not a quiet platform.
+        </p>
+      )}
+
+      <div className="bg-border grid grid-cols-2 gap-px border-b lg:grid-cols-4">
         <StatTile
-          label="Awaiting review"
+          label="Waiting on us"
           value={awaitingReview.length}
           icon={ClockIcon}
           tone="warning"
-          hint="Cannot transact until approved"
+          hint="Enquiries to call and documents to check"
         />
         <StatTile
           label="Documents expired"
@@ -202,27 +159,25 @@ export default async function AdminOverviewPage() {
           hint="Renewals take weeks — chase now"
         />
         <StatTile
-          label="Accounts stopped"
-          value={stopped.length}
-          icon={BanIcon}
-          tone="danger"
-          hint="Suspended or rejected"
+          label="Produce with no vehicle"
+          value={pickups.length}
+          icon={TruckIcon}
+          tone={pickups.length > 0 ? "danger" : "default"}
+          hint="Cut and waiting at the farm"
         />
       </div>
 
-      {groundedVehicles.length > 0 ? (
+      {grounded.length > 0 ? (
         <div className="border-destructive/40 bg-destructive-soft text-foreground mx-6 mt-6 flex items-start gap-3 rounded-lg border px-4 py-3">
           <AlertTriangleIcon className="text-destructive mt-0.5 size-4 shrink-0" />
           <div className="flex flex-col gap-1">
             <span className="text-sm font-medium">
-              {groundedVehicles.length}{" "}
-              {groundedVehicles.length === 1 ? "vehicle is" : "vehicles are"} off
-              the road
+              {grounded.length} {grounded.length === 1 ? "vehicle is" : "vehicles are"} off the
+              road
             </span>
             <span className="text-muted-foreground text-sm">
-              {groundedVehicles.map((v) => v.registration).join(", ")} — a lapsed
-              certificate means any load carried is uninsured. Block dispatch
-              before the next assignment.
+              {grounded.map((vehicle) => vehicle.name).join(", ")} — a lapsed certificate means
+              any load carried is uninsured. Block dispatch before the next assignment.
             </span>
           </div>
           <Button asChild variant="outline" size="sm" className="ml-auto shrink-0">
@@ -232,40 +187,74 @@ export default async function AdminOverviewPage() {
       ) : null}
 
       <div className="grid flex-1 grid-cols-1 gap-6 p-6 xl:grid-cols-2">
-        <OverviewSnapshot
-          stock={stockValue(offers)}
-          freshness={freshnessSplit(offers, t)}
-          crops={cropVolumes(offers, listings)}
-        />
+        {/*
+          First panel, because it is the only thing here with produce spoiling
+          behind it. Everything else on this page can wait until tomorrow.
+        */}
+        <section className="bg-card flex flex-col rounded-lg border">
+          <div className="flex items-baseline justify-between border-b px-4 py-3">
+            <h2 className="font-medium">Produce with no vehicle</h2>
+            <span className="text-faint text-xs">Longest wait first</span>
+          </div>
+
+          {pickups.length === 0 ? (
+            <p className="text-muted-foreground p-6 text-center text-sm">
+              Every load has a vehicle coming for it.
+            </p>
+          ) : (
+            <ul className="divide-y">
+              {pickups.map((pickup) => (
+                <li key={pickup.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                  <span className="flex min-w-0 flex-col leading-tight">
+                    <span className="truncate text-sm font-medium">
+                      {pickup.produceName} · {pickup.quantity} {pickup.unit}
+                    </span>
+                    <span className="text-faint text-xs">
+                      {pickup.farmerName} · {pickup.district} · asked{" "}
+                      {relativeTime(pickup.requestedAt, t)}
+                    </span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-2">
+                    {pickup.expiresAt.getTime() < t ? (
+                      <Badge
+                        variant="outline"
+                        className="border-destructive/40 bg-destructive-soft text-destructive"
+                      >
+                        Nobody took it
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-warning/40 text-warning">
+                        Still looking
+                      </Badge>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
         <section className="bg-card flex flex-col rounded-lg border">
           <div className="flex items-baseline justify-between border-b px-4 py-3">
-            <h2 className="font-medium">Awaiting review</h2>
+            <h2 className="font-medium">Waiting on us</h2>
             <span className="text-faint text-xs">Oldest first</span>
           </div>
 
           {awaitingReview.length === 0 ? (
-            <p className="text-muted-foreground p-6 text-center text-sm">
-              Nothing waiting.
-            </p>
+            <p className="text-muted-foreground p-6 text-center text-sm">Nothing waiting.</p>
           ) : (
             <ul className="divide-y">
               {awaitingReview.map((item) => (
-                <li
-                  key={item.id}
-                  className="flex items-center justify-between gap-3 px-4 py-3"
-                >
+                <li key={item.id} className="flex items-center justify-between gap-3 px-4 py-3">
                   <span className="flex min-w-0 flex-col leading-tight">
                     <span className="truncate text-sm font-medium">{item.name}</span>
                     <span className="text-faint text-xs">
-                      {item.kind} · {item.id} · submitted{" "}
-                      {relativeTime(item.at, t)}
+                      {item.kind} · asked {relativeTime(item.at, t)}
                     </span>
                   </span>
                   <span className="flex shrink-0 items-center gap-2">
-                    <StatusBadge status={item.status} />
                     <Button asChild variant="outline" size="sm">
-                      <Link href={item.href}>Review</Link>
+                      <Link href={item.href}>Open</Link>
                     </Button>
                   </span>
                 </li>
@@ -292,9 +281,7 @@ export default async function AdminOverviewPage() {
                   className="flex items-center justify-between gap-3 px-4 py-3"
                 >
                   <span className="flex min-w-0 flex-col leading-tight">
-                    <span className="truncate text-sm font-medium">
-                      {lapse.subject}
-                    </span>
+                    <span className="truncate text-sm font-medium">{lapse.subject}</span>
                     <span className="text-faint text-xs">
                       {lapse.kind} · {DOCUMENT_LABELS[lapse.document.kind]} ·{" "}
                       {lapse.document.reference}
@@ -323,36 +310,40 @@ export default async function AdminOverviewPage() {
           )}
         </section>
 
-        {stopped.length > 0 ? (
-          <section className="bg-card flex flex-col rounded-lg border xl:col-span-2">
-            <div className="border-b px-4 py-3">
-              <h2 className="font-medium">Stopped accounts</h2>
-            </div>
+        <section className="bg-card flex flex-col rounded-lg border">
+          <div className="flex items-baseline justify-between border-b px-4 py-3">
+            <h2 className="font-medium">Not cleared to work</h2>
+            <span className="text-faint text-xs">Stopped or unverified</span>
+          </div>
+
+          {stopped.length + unverified.length === 0 ? (
+            <p className="text-muted-foreground p-6 text-center text-sm">
+              Everybody on the platform is cleared.
+            </p>
+          ) : (
             <ul className="divide-y">
-              {stopped.map((account) => (
+              {[...stopped, ...unverified].map((subject) => (
                 <li
-                  key={account.id}
+                  key={`${subject.kind}-${subject.id}`}
                   className="flex items-center justify-between gap-3 px-4 py-3"
                 >
                   <span className="flex min-w-0 flex-col leading-tight">
-                    <span className="truncate text-sm font-medium">
-                      {account.name}
-                    </span>
+                    <span className="truncate text-sm font-medium">{subject.name}</span>
                     <span className="text-faint text-xs">
-                      {account.kind} · {account.id}
+                      {subject.kind} · {subject.id}
                     </span>
                   </span>
                   <span className="flex shrink-0 items-center gap-3">
-                    <StatusBadge status={account.status} />
+                    <StatusBadge status={subject.status} />
                     <Button asChild variant="outline" size="sm">
-                      <Link href={account.href}>Open</Link>
+                      <Link href={subject.href}>Open</Link>
                     </Button>
                   </span>
                 </li>
               ))}
             </ul>
-          </section>
-        ) : null}
+          )}
+        </section>
       </div>
     </>
   );
