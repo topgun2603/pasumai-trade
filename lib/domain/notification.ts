@@ -39,6 +39,8 @@ export const NOTIFICATION_KINDS = [
   "checkNeedsReupload",
   /** Every check passed. The account can trade. */
   "accountVerified",
+  /** A subscription is running out, or has. */
+  "subscriptionEnding",
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -221,6 +223,14 @@ export const NOTIFICATION_COPY: Record<NotificationKind, Copy> = {
     ml: "നിങ്ങളുടെ അക്കൗണ്ട് പരിശോധിച്ചു. ഇനി വ്യാപാരം ചെയ്യാം.",
     hi: "आपका खाता सत्यापित है। अब आप व्यापार कर सकते हैं।",
   },
+  subscriptionEnding: {
+    en: "Your plan is ending. Renew to keep trading.",
+    ta: "உங்கள் திட்டம் முடிவடைகிறது. தொடர புதுப்பிக்கவும்.",
+    te: "మీ ప్లాన్ ముగుస్తోంది. కొనసాగించడానికి పునరుద్ధరించండి.",
+    kn: "ನಿಮ್ಮ ಯೋಜನೆ ಮುಗಿಯುತ್ತಿದೆ. ಮುಂದುವರಿಸಲು ನವೀಕರಿಸಿ.",
+    ml: "നിങ്ങളുടെ പ്ലാൻ അവസാനിക്കുന്നു. തുടരാൻ പുതുക്കുക.",
+    hi: "आपकी योजना समाप्त हो रही है। जारी रखने के लिए नवीनीकरण करें।",
+  },
   transportArranged: {
     en: "{agency} is collecting {amount}{produce}.",
     ta: "{amount}{produce} ஐ {agency} எடுத்துச் செல்கிறது.",
@@ -361,6 +371,10 @@ export const NOTIFICATION_GROUPS = {
   settled: ["bargainAgreed", "bargainClosed", "orderPlaced"],
   produce: ["produceListed"],
   transport: ["transportArranged"],
+  // Its own group rather than folded into verification: a renewal reminder is
+  // about money and a deadline, and somebody muting "verification" should not
+  // thereby stop hearing that their access is about to stop.
+  billing: ["subscriptionEnding"],
 } as const satisfies Record<string, readonly NotificationKind[]>;
 
 export type NotificationGroup = keyof typeof NOTIFICATION_GROUPS;

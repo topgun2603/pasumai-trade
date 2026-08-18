@@ -46,6 +46,29 @@ export interface PlatformPolicy {
 
   /** Registered farmers below which a district is flagged thin. Was 30. */
   readonly thinSupplyFarmers: number;
+
+  /* Subscriptions -------------------------------------------------------- */
+
+  /*
+    The reminder ladder, as three distances from the end.
+
+    Numbers rather than a list, so they fit the one editor Controls already has
+    and every value carries its own bounds. How far ahead to warn somebody is a
+    commercial decision — an annual plan wants a month's notice, a monthly one
+    would be nagging — so it belongs to operations rather than to a constant.
+
+    Set any of them to 0 to switch that rung off.
+  */
+  readonly reminderFarDays: number;
+  readonly reminderNearDays: number;
+  readonly reminderLastDays: number;
+  /**
+   * Days after expiry to try once more.
+   *
+   * The rung most easily forgotten and the one that matters most: somebody who
+   * has already lapsed is exactly who a pre-expiry reminder failed to reach.
+   */
+  readonly reminderLapsedDays: number;
   /** Fallback minimum order where a district sets none, in paise. */
   readonly defaultMinOrderValue: number;
 
@@ -69,6 +92,10 @@ export const DEFAULT_POLICY: PlatformPolicy = {
   useSoonHours: 60,
   expiringSoonDays: 30,
   thinSupplyFarmers: 30,
+  reminderFarDays: 14,
+  reminderNearDays: 7,
+  reminderLastDays: 1,
+  reminderLapsedDays: 1,
   defaultMinOrderValue: 1_500_000,
   roadFactorPercent: 130,
 };
@@ -86,7 +113,13 @@ export interface PolicyField {
   readonly max: number;
   /** Held in paise, entered in rupees. */
   readonly money?: boolean;
-  readonly group: "Bargaining" | "Freshness" | "Compliance" | "Supply" | "Distance";
+  readonly group:
+    | "Bargaining"
+    | "Freshness"
+    | "Compliance"
+    | "Supply"
+    | "Distance"
+    | "Subscriptions";
 }
 
 /**
@@ -150,6 +183,42 @@ export const POLICY_FIELDS: readonly PolicyField[] = [
     min: 1,
     max: 1000,
     group: "Supply",
+  },
+  {
+    key: "reminderFarDays",
+    label: "First renewal reminder",
+    help: "Days before a subscription ends that the first reminder goes out. 0 switches it off.",
+    suffix: "days before",
+    min: 0,
+    max: 120,
+    group: "Subscriptions",
+  },
+  {
+    key: "reminderNearDays",
+    label: "Second reminder",
+    help: "The follow-up, closer to the end. Should be smaller than the first.",
+    suffix: "days before",
+    min: 0,
+    max: 90,
+    group: "Subscriptions",
+  },
+  {
+    key: "reminderLastDays",
+    label: "Final reminder",
+    help: "The last warning before access stops.",
+    suffix: "days before",
+    min: 0,
+    max: 30,
+    group: "Subscriptions",
+  },
+  {
+    key: "reminderLapsedDays",
+    label: "Chase after it lapses",
+    help: "Days after expiry to try once more. Somebody already locked out is exactly who the earlier reminders failed to reach.",
+    suffix: "days after",
+    min: 0,
+    max: 60,
+    group: "Subscriptions",
   },
   {
     key: "defaultMinOrderValue",

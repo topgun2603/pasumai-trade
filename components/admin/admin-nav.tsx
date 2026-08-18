@@ -3,6 +3,7 @@
 import {
   BadgeCheckIcon,
   ArrowLeftRightIcon,
+  BanknoteIcon,
   BuildingIcon,
   ChartColumnIcon,
   BellIcon,
@@ -100,6 +101,8 @@ const SECTIONS: Array<{ title?: string; links: NavLink[] }> = [
   {
     title: "Trade",
     links: [
+      // Revenue was the one thing this console could not see at all.
+      { href: "/admin/subscriptions", label: "Subscriptions", icon: BanknoteIcon },
       { href: "/admin/listings", label: "Listings", icon: ClipboardListIcon },
       {
         href: "/admin/controls",

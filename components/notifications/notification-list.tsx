@@ -1,17 +1,6 @@
 "use client";
 
-import {
-  BadgeCheckIcon,
-  BellIcon,
-  CheckCheckIcon,
-  FileQuestionIcon,
-  HandshakeIcon,
-  MessageSquareIcon,
-  PackageIcon,
-  SproutIcon,
-  TruckIcon,
-  UploadIcon,
-} from "lucide-react";
+import { BadgeCheckIcon, BanknoteIcon, BellIcon, CheckCheckIcon, FileQuestionIcon, HandshakeIcon, MessageSquareIcon, PackageIcon, SproutIcon, TruckIcon, UploadIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -47,6 +36,7 @@ import { cn } from "@/lib/utils";
  */
 
 const ICONS: Record<NotificationKind, typeof BellIcon> = {
+  subscriptionEnding: BanknoteIcon,
   produceListed: SproutIcon,
   bargainOpened: HandshakeIcon,
   bargainCountered: HandshakeIcon,
@@ -71,6 +61,8 @@ const TONES: Partial<Record<NotificationKind, string>> = {
   bargainAgreed: "text-success",
   orderPlaced: "text-success",
   transportArranged: "text-primary",
+  // Amber, not red: a plan ending is a deadline rather than a failure.
+  subscriptionEnding: "text-warning",
 };
 
 const GROUP_LABELS: Record<NotificationGroup | "all", string> = {
@@ -80,6 +72,7 @@ const GROUP_LABELS: Record<NotificationGroup | "all", string> = {
   settled: "Sold",
   produce: "New produce",
   transport: "Transport",
+  billing: "Plan",
 };
 
 export function NotificationList({
