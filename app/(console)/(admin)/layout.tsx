@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { AdminNav } from "@/components/admin/admin-nav";
 import { ConsoleTopBar } from "@/components/console/top-bar";
+import { CONSOLES, CONSOLE_KINDS } from "@/lib/domain/console-kinds";
 import { requireConsole } from "@/lib/auth/require";
 import { needsReview } from "@/lib/domain/admin";
 import { countWaiting } from "@/lib/firebase/enquiries";
@@ -58,7 +59,12 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     <div className="flex min-h-svh w-full">
       <AdminNav pending={pending} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <ConsoleTopBar session={{ email: session.email, role: session.claims.role }} />
+        <ConsoleTopBar
+          session={{ email: session.email, role: session.claims.role }}
+          // Only the admin shell offers these. The buying and farm shells hold
+          // one account and have nobody to look into.
+          consoles={CONSOLE_KINDS.map((kind) => ({ kind, label: CONSOLES[kind].label }))}
+        />
         {children}
       </div>
     </div>

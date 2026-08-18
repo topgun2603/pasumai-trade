@@ -1,6 +1,14 @@
 "use client";
 
-import { LogOutIcon, MonitorIcon, MoonIcon, SunIcon, UserRoundIcon } from "lucide-react";
+import {
+  LayoutGridIcon,
+  LogOutIcon,
+  MonitorIcon,
+  MoonIcon,
+  SunIcon,
+  UserRoundIcon,
+} from "lucide-react";
+import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -36,9 +44,19 @@ import { signOut } from "@/lib/auth/sign-in";
  */
 export function ConsoleTopBar({
   session,
+  consoles,
   children,
 }: {
   session: { email?: string; role: Role };
+  /**
+   * The client consoles an operator can look into.
+   *
+   * Admin only, and a *view* rather than a way in — see
+   * `lib/domain/console-kinds.ts`. Passed in rather than imported so this
+   * component stays usable by the farmer and buying shells, which have nobody
+   * to look at but themselves.
+   */
+  consoles?: ReadonlyArray<{ kind: string; label: string }>;
   /** Anything the console wants on the left — a title, a breadcrumb, nothing. */
   children?: React.ReactNode;
 }) {
@@ -66,6 +84,31 @@ export function ConsoleTopBar({
   return (
     <header className="bg-background/95 border-border sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 border-b px-4 backdrop-blur">
       <div className="min-w-0 flex-1">{children}</div>
+
+      {consoles && consoles.length > 0 ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="gap-2">
+              <LayoutGridIcon className="size-4" />
+              <span className="hidden sm:inline">Consoles</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="flex flex-col gap-0.5">
+              <span className="text-sm font-medium">Look into an account</span>
+              <span className="text-muted-foreground text-xs font-normal">
+                Read-only. Operations never act as a client.
+              </span>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {consoles.map((entry) => (
+              <DropdownMenuItem key={entry.kind} asChild>
+                <Link href={`/admin/consoles/${entry.kind}`}>{entry.label}</Link>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : null}
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
