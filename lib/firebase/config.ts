@@ -48,8 +48,31 @@ const REQUIRED = [
   "appId",
 ] as const satisfies readonly (keyof typeof firebaseConfig)[];
 
+/**
+ * Values that are present but obviously not real.
+ *
+ * A production deploy once shipped with every one of these set to the literal
+ * string `[SENSITIVE]` — a redacted environment dump had been pasted into the
+ * host's settings, placeholders and all. Nothing complained: the values were
+ * present, so the check below passed, the SDK initialised, and every call went
+ * to `identitytoolkit.googleapis.com` with `key=%5BSENSITIVE%5D`. Sign-in was
+ * dead for every account and the only clue was a failed request nobody could
+ * read.
+ *
+ * A missing value and a placeholder value are the same fault with the same fix,
+ * so they are reported the same way. Kept narrow on purpose — it matches
+ * redaction markers and obvious fillers, never a value that merely looks odd,
+ * because refusing to start on a real key would be the worse failure.
+ */
+const PLACEHOLDER =
+  /^(?:\s*|\[[^\]]*\]|<[^>]*>|your[-_ ]?(?:api[-_ ]?key|app[-_ ]?id|project[-_ ]?id|sender[-_ ]?id|auth[-_ ]?domain|bucket|value|key|id|here)|change[-_ ]?me|x{3,}|todo|placeholder|undefined|null)$/i;
+
+export function looksLikePlaceholder(value: string | undefined): boolean {
+  return value === undefined || PLACEHOLDER.test(value.trim());
+}
+
 export function missingConfigKeys(): string[] {
-  return REQUIRED.filter((key) => !firebaseConfig[key]);
+  return REQUIRED.filter((key) => looksLikePlaceholder(firebaseConfig[key]));
 }
 
 /**
@@ -62,9 +85,10 @@ export function requireFirebaseConfig(): FirebaseWebConfig {
   const missing = missingConfigKeys();
   if (missing.length > 0) {
     throw new Error(
-      `Firebase is not configured. Missing: ${missing
+      `Firebase is not configured. Missing or placeholder: ${missing
         .map((k) => `NEXT_PUBLIC_FIREBASE_${camelToScreaming(k)}`)
-        .join(", ")}. Copy .env.example to .env.local and fill it in.`,
+        .join(", ")}. These are inlined at build time, so setting them on the ` +
+        `host is not enough — the deployment has to be rebuilt.`,
     );
   }
   return firebaseConfig as FirebaseWebConfig;
