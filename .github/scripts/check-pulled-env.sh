@@ -37,8 +37,13 @@ while IFS= read -r line; do
   value="${line#*=}"
   value="${value%\"}"
   value="${value#\"}"
+  # Only the unreadable-value marker. An empty value is *not* a fault here:
+  # NEXT_PUBLIC_FIREBASE_DATABASE_URL is legitimately blank on this project, and
+  # failing a deploy over it would be this check breaking what it guards. A
+  # required variable left empty is caught where it belongs — `missingConfigKeys`
+  # in lib/firebase/config.ts refuses to start the app on one.
   case "$value" in
-    "[SENSITIVE]" | "" ) bad+=("$name") ;;
+    "[SENSITIVE]" ) bad+=("$name") ;;
   esac
 done < "$env_file"
 
