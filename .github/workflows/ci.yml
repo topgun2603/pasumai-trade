@@ -119,8 +119,12 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
+      # Invoked through `bash` rather than executed directly. The executable bit
+      # is recorded in git but authored on Windows, where the filesystem cannot
+      # store it — a single `git add` stripped it from all three scripts once
+      # already and the deploy died on its first step with exit 126.
       - name: Check Vercel credentials
-        run: .github/scripts/check-vercel-secrets.sh
+        run: bash .github/scripts/check-vercel-secrets.sh
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
@@ -167,7 +171,7 @@ jobs:
           cache: npm
 
       - name: Check Vercel credentials
-        run: .github/scripts/check-vercel-secrets.sh
+        run: bash .github/scripts/check-vercel-secrets.sh
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
@@ -178,7 +182,7 @@ jobs:
       # NEXT_PUBLIC_* values are inlined by the build below, so a variable that
       # pulled as "[SENSITIVE]" would be compiled into the bundle and shipped.
       - name: Check the pulled environment
-        run: .github/scripts/check-pulled-env.sh .vercel/.env.production.local
+        run: bash .github/scripts/check-pulled-env.sh .vercel/.env.production.local
 
       - name: Build
         run: vercel build --prod
@@ -198,4 +202,4 @@ jobs:
           # Deployment Protection answers a bare curl with its own sign-in
           # redirect, so without this the smoke test never reaches the site.
           BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-        run: .github/scripts/smoke-test.sh
+        run: bash .github/scripts/smoke-test.sh
