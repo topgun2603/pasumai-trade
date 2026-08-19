@@ -123,7 +123,7 @@ export function AccountDirectory({
       columns={columns}
       tabs={tabs}
       entityLabel="accounts"
-      searchPlaceholder="Name, account id or mobile number"
+      searchPlaceholder="Name, Account id or Mobile number"
       // The mobile number is searchable without being a column: it is what a
       // caller reads out, and what an operator has in front of them.
       searchText={(row) => `${row.name} ${row.accountId} ${row.mobile ?? ""} ${row.where}`}
