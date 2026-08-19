@@ -131,7 +131,7 @@ jobs:
       # NEXT_PUBLIC_* values are inlined by the build below, so a variable that
       # pulled as "[SENSITIVE]" would be compiled into the bundle and shipped.
       - name: Check the pulled environment
-        run: .github/scripts/check-pulled-env.sh .vercel/.env.preview.local
+        run: bash .github/scripts/check-pulled-env.sh .vercel/.env.preview.local
 
       - name: Build
         run: vercel build
