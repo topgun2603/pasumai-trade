@@ -25,14 +25,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DISTRICT_NAMES } from "@/lib/mock/locations";
-import { validateSignup, type SignupForm, type SignupRole } from "@/lib/domain/signup";
+import { INDIAN_STATES, districtsOf } from "@/lib/domain/india";
+import {
+  validateSignup,
+  type SignupForm,
+  type SignupRole,
+} from "@/lib/domain/signup";
 import type { Dictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n/config";
 
 const DOORS: Record<
   SignupRole,
-  { label: string; blurb: string; nameLabel: string; placeLabel: string; icon: typeof UserRoundIcon }
+  {
+    label: string;
+    blurb: string;
+    nameLabel: string;
+    placeLabel: string;
+    icon: typeof UserRoundIcon;
+  }
 > = {
   farmer: {
     label: "Farmer",
@@ -71,7 +81,13 @@ const DOORS: Record<
   },
 };
 
-const ORDER: SignupRole[] = ["farmer", "franchise", "buyer", "transport", "manpower"];
+const ORDER: SignupRole[] = [
+  "farmer",
+  "franchise",
+  "buyer",
+  "transport",
+  "manpower",
+];
 
 function Field({
   id,
@@ -93,7 +109,10 @@ function Field({
       </Label>
       {children}
       {error ? (
-        <p id={`${id}-error`} className="text-destructive flex items-center gap-1 text-xs">
+        <p
+          id={`${id}-error`}
+          className="text-destructive flex items-center gap-1 text-xs"
+        >
           <TriangleAlertIcon className="size-3 shrink-0" />
           {error}
         </p>
@@ -120,10 +139,13 @@ export function SignUpForm({
     password: "",
     mobile: "",
     place: "",
+    state: "",
     district: "",
     pincode: "",
   });
-  const [errors, setErrors] = useState<Partial<Record<keyof SignupForm, string>>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof SignupForm, string>>
+  >({});
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState<string | null>(null);
 
@@ -134,6 +156,22 @@ export function SignUpForm({
     setValues((v) => ({ ...v, [key]: value }));
     setErrors((e) => ({ ...e, [key]: undefined }));
   }
+
+  /**
+   * Changing the state clears the district.
+   *
+   * Without this, choosing Tamil Nadu, picking Erode and then switching to
+   * Punjab leaves "Erode" selected under a state that has no such district —
+   * the server would refuse it, but only after the form had looked correct.
+   */
+  function setState(stateId: string) {
+    setValues((v) => ({ ...v, state: stateId, district: "" }));
+    setErrors((e) => ({ ...e, state: undefined, district: undefined }));
+  }
+
+  // Empty until a state is chosen, which is what makes the second dropdown
+  // wait rather than offering all 727 districts at once.
+  const districts = districtsOf(values.state);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -159,7 +197,9 @@ export function SignUpForm({
       });
     } catch {
       setSubmitting(false);
-      toast.error("Could not reach the server. Check your connection and try again.");
+      toast.error(
+        "Could not reach the server. Check your connection and try again.",
+      );
       return;
     }
 
@@ -174,7 +214,8 @@ export function SignUpForm({
       // Server-side field errors land on the fields they belong to, so a
       // duplicate email is shown at the email box rather than as a toast the
       // person has to map back themselves.
-      if (data.fields) setErrors(data.fields as Partial<Record<keyof SignupForm, string>>);
+      if (data.fields)
+        setErrors(data.fields as Partial<Record<keyof SignupForm, string>>);
       toast.error(data.error ?? "Could not create the account.");
       return;
     }
@@ -191,8 +232,9 @@ export function SignUpForm({
           <div className="flex flex-col gap-1.5">
             <span className="font-medium">Account created</span>
             <p className="text-muted-foreground text-sm">
-              Your reference is <span className="font-mono">{created}</span>. Worth keeping — it
-              is what operations ask for if you ever phone them.
+              Your reference is <span className="font-mono">{created}</span>.
+              Worth keeping — it is what operations ask for if you ever phone
+              them.
             </p>
           </div>
         </div>
@@ -260,7 +302,11 @@ export function SignUpForm({
         </Field>
 
         {!isFarmer ? (
-          <Field id="contactName" label="Contact person" error={errors.contactName}>
+          <Field
+            id="contactName"
+            label="Contact person"
+            error={errors.contactName}
+          >
             <Input
               id="contactName"
               value={values.contactName}
@@ -285,13 +331,39 @@ export function SignUpForm({
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field id="district" label="District" error={errors.district}>
-            <Select value={values.district} onValueChange={(v) => set("district", v)}>
-              <SelectTrigger id="district" aria-invalid={Boolean(errors.district)}>
+          <Field id="state" label="State" error={errors.state}>
+            <Select value={values.state} onValueChange={setState}>
+              <SelectTrigger id="state" aria-invalid={Boolean(errors.state)}>
                 <SelectValue placeholder="Choose" />
               </SelectTrigger>
               <SelectContent>
-                {DISTRICT_NAMES.map((name) => (
+                {INDIAN_STATES.map((state) => (
+                  <SelectItem key={state.id} value={state.id}>
+                    {state.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <Field id="district" label="District" error={errors.district}>
+            <Select
+              value={values.district}
+              onValueChange={(v) => set("district", v)}
+              // Nothing to choose from until a state is picked, and a dropdown
+              // that opens empty is worse than one that says why it cannot.
+              disabled={districts.length === 0}
+            >
+              <SelectTrigger
+                id="district"
+                aria-invalid={Boolean(errors.district)}
+              >
+                <SelectValue
+                  placeholder={values.state ? "Choose" : "Pick a state first"}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {districts.map((name) => (
                   <SelectItem key={name} value={name}>
                     {name}
                   </SelectItem>
@@ -299,7 +371,9 @@ export function SignUpForm({
               </SelectContent>
             </Select>
           </Field>
+        </div>
 
+        <div className="grid gap-4 sm:grid-cols-2">
           <Field id="place" label={door.placeLabel} error={errors.place}>
             <Input
               id="place"
@@ -308,19 +382,19 @@ export function SignUpForm({
               aria-invalid={Boolean(errors.place)}
             />
           </Field>
-        </div>
 
-        <Field id="pincode" label="PIN code" error={errors.pincode}>
-          <Input
-            id="pincode"
-            inputMode="numeric"
-            maxLength={6}
-            placeholder="641001"
-            value={values.pincode}
-            onChange={(e) => set("pincode", e.target.value)}
-            aria-invalid={Boolean(errors.pincode)}
-          />
-        </Field>
+          <Field id="pincode" label="PIN code" error={errors.pincode}>
+            <Input
+              id="pincode"
+              inputMode="numeric"
+              maxLength={6}
+              placeholder="641001"
+              value={values.pincode}
+              onChange={(e) => set("pincode", e.target.value)}
+              aria-invalid={Boolean(errors.pincode)}
+            />
+          </Field>
+        </div>
 
         <Field id="email" label="Email" error={errors.email}>
           <Input
@@ -358,7 +432,9 @@ export function SignUpForm({
       </form>
 
       <div className="flex flex-col gap-2">
-        <span className="text-muted-foreground text-xs">Registering as something else?</span>
+        <span className="text-muted-foreground text-xs">
+          Registering as something else?
+        </span>
         <div className="flex flex-wrap gap-1.5">
           {ORDER.filter((r) => r !== initial).map((r) => (
             <Link
@@ -387,7 +463,10 @@ export function SignUpForm({
 
       <p className="text-muted-foreground text-center text-sm">
         Already registered?{" "}
-        <Link href={`/${locale}/signin?as=${initial}`} className="text-primary hover:underline">
+        <Link
+          href={`/${locale}/signin?as=${initial}`}
+          className="text-primary hover:underline"
+        >
           Sign in
         </Link>
       </p>

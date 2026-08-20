@@ -14,7 +14,7 @@ import type { Dictionary } from "@/lib/i18n";
  *
  * It is also the honest picture of the product: crop names are held per
  * language as data, editable by operations, because the same crop genuinely
- * goes by different words across Tamil Nadu.
+ * goes by different words across India.
  *
  * Rendered server-side as plain text. Each cell carries `lang`, so the right
  * font is selected and a screen reader switches voice rather than attempting

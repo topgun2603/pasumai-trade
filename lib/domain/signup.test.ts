@@ -24,6 +24,7 @@ function form(over: Partial<SignupForm> = {}): SignupForm {
     password: "tomato river lantern",
     mobile: "9843011204",
     place: "Tiruppur",
+    state: "tamil-nadu",
     district: "Tiruppur",
     pincode: "641601",
     ...over,

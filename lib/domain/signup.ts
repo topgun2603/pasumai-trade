@@ -6,6 +6,7 @@ import {
   required,
   type FieldErrors,
 } from "./registration";
+import { isDistrictOf, stateById } from "@/lib/domain/india";
 
 /**
  * Self-signup.
@@ -83,8 +84,11 @@ export interface SignupForm {
   email: string;
   password: string;
   mobile: string;
-  /** Village for a farmer, town otherwise. */
+  /** Village for a farmer, town otherwise. Free text: the finest level of
+      Indian geography nobody maintains a list of. */
   place: string;
+  /** A state id from `lib/domain/india.ts`, not the name people read. */
+  state: string;
   district: string;
   pincode: string;
 }
@@ -118,7 +122,20 @@ export function validateSignup(values: SignupForm): FieldErrors<SignupForm> {
     password: checkPassword(values.password),
     mobile: checkMobile(values.mobile),
     place: required(values.place, "Village or town"),
-    district: required(values.district, "District"),
+    state: stateById(values.state) ? undefined : "Choose your state",
+    /*
+      The district has to belong to the state, not merely be a district.
+
+      Both arrive from a browser and the pair is what gets stored, so "Erode,
+      Punjab" would otherwise reach operations looking like something somebody
+      meant. Checked here rather than only in the form, because the form is not
+      what posts to the endpoint.
+    */
+    district: !values.district
+      ? "District is required"
+      : isDistrictOf(values.state, values.district)
+        ? undefined
+        : "Pick a district in the state you chose",
     pincode: checkPincode(values.pincode),
   };
 }
@@ -149,6 +166,7 @@ export function accountFor(
       mobile: values.mobile,
       village: values.place,
       district: values.district,
+      state: values.state,
       bankAccountTail: "",
       registeredBy: "self",
       activeListings: 0,
@@ -169,6 +187,7 @@ export function accountFor(
       mobile: values.mobile,
       email: values.email,
       district: values.district,
+      state: values.state,
       town: values.place,
       districts: [values.district],
       photoUrl: null,
@@ -183,6 +202,7 @@ export function accountFor(
     mobile: values.mobile,
     town: values.place,
     district: values.district,
+    state: values.state,
     districts: [values.district],
     ordersPlaced: 0,
     lifetimeValue: { minorUnits: 0, currency: "INR" },

@@ -66,6 +66,9 @@ export async function POST(request: Request) {
     password: typeof body.password === "string" ? body.password : "",
     mobile: text(body.mobile, 20),
     place: text(body.place),
+    // A state id, not a name. `validateSignup` refuses one that is not a state
+    // and refuses a district that does not belong to it.
+    state: text(body.state, 60),
     district: text(body.district),
     pincode: text(body.pincode, 10),
   };

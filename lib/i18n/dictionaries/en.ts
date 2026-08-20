@@ -35,7 +35,7 @@ export const en = {
     cardSettled: "Settled",
     cardGrade: "Grade",
     cardNote: "Grade A only, agreed by the farmer and the buyer. Illustrative.",
-    badge: "Tamil Nadu · {districts} districts · {farmers} farmers",
+    badge: "India · {districts} districts · {farmers} farmers",
     titleLine1: "Empowering Farmers.",
     titleLine2: "Building A Greener Future.",
     body: "Pasumai Trade connects farmers and buyers on one trusted platform. Fair trade. Better prices. Sustainable tomorrow.",
@@ -89,7 +89,7 @@ export const en = {
   languages: {
     eyebrow: "Six languages",
     title: "A farmer sees the word their village uses",
-    body: "Crop names are held per language as data, not translation files — because the same crop genuinely goes by different words across Tamil Nadu, and a picker full of words nobody says is a picker nobody uses.",
+    body: "Crop names are held per language as data, not translation files — because the same crop genuinely goes by different words across India, and a picker full of words nobody says is a picker nobody uses.",
     caption: "Crop names across the six languages the platform speaks",
   },
 
@@ -291,7 +291,7 @@ export const en = {
   },
 
   footer: {
-    tagline: "Farm-to-business produce trade and logistics for Tamil Nadu.",
+    tagline: "Farm-to-business produce trade and logistics for India.",
     platform: "Platform",
     signIn: "Sign in",
     buyerOrFranchise: "Buyer or franchise",

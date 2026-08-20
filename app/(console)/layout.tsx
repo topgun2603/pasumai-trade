@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     template: "%s · Pasumai Trade",
   },
   description:
-    "Farm-to-business marketplace and logistics network for Tamil Nadu.",
+    "Farm-to-business marketplace and logistics network for India.",
   robots: { index: false },
 };
 

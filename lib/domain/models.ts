@@ -23,7 +23,7 @@ import { forQuantity, money, type Money } from "./money";
  * enough that operations must be able to edit them without a developer.
  *
  * `regional` overrides a name for one district. This is not a nicety — the
- * same crop genuinely goes by different names across Tamil Nadu, and showing a
+ * same crop genuinely goes by different names across India, and showing a
  * farmer a word nobody in their village uses undermines the whole listing
  * flow.
  *

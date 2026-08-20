@@ -1,7 +1,7 @@
-import { LeafIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
+import { BrandMark } from "@/components/marketing/brand-mark";
 import { SignUpForm } from "@/components/marketing/signup-form";
 import { canSelfSignup, type SignupRole } from "@/lib/domain/signup";
 import { getDictionary, isLocale } from "@/lib/i18n";
@@ -31,17 +31,21 @@ export default async function SignUpPage({
   // usefully than either.
   if (as === "admin") redirect(`/${locale}/signin?as=admin`);
 
-  const role: SignupRole = canSelfSignup(as ?? "") ? (as as SignupRole) : "farmer";
+  const role: SignupRole = canSelfSignup(as ?? "")
+    ? (as as SignupRole)
+    : "farmer";
   const t = getDictionary(locale);
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-8 px-5 py-16">
       <div className="flex flex-col items-center gap-3 text-center">
         <span className="bg-primary text-primary-foreground flex size-11 items-center justify-center rounded-xl">
-          <LeafIcon className="size-5" />
+          <BrandMark className="size-6" />
         </span>
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Create an account</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Create an account
+          </h1>
           <p className="text-muted-foreground text-sm">
             Takes a minute. You can sign in and look around straight away.
           </p>
