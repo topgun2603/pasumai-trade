@@ -1,16 +1,32 @@
 import { cn } from "@/lib/utils";
 
 /**
- * The Pasumai Trade mark: two leaves growing out of a ring.
+ * The two buds, as path data.
  *
- * Drawn rather than shipped as an image file, for the reason every mark on a
- * page like this should be: an SVG scales to the header, the footer and a
- * retina display from one 700-byte definition, and it takes its colour from
- * the surrounding text — so the dark theme needs no second asset.
+ * Exported because the loader draws the same pair — it animates them, so it
+ * cannot reuse the component, and a second copy of the geometry is a second
+ * drawing that quietly stops matching the first. `LEAD` is the larger bud.
+ */
+export const BRAND_LEAF_LEAD = "M25 32C22.2 22.2 27.2 11 38 5 41.2 16.4 36 27.8 25 32Z";
+export const BRAND_LEAF_TRAIL =
+  "M22.4 33.2C14.2 30.4 8.2 22 7.8 11.4 17 13.8 22.4 21.4 23.2 31.8Z";
+
+/**
+ * The Pasumai Trade mark: two leaf buds on a stem.
  *
- * `currentColor` throughout. The ring and the leaves are the same green as the
- * wordmark beside them, which is what keeps the lockup reading as one object
- * rather than an icon placed next to some words.
+ * The ring is gone. It was a half-circle the leaves grew out of, and it did two
+ * things badly — it read as a seal or a badge at any size worth putting in a
+ * header, and at sixteen pixels it collapsed into a grey smudge that took the
+ * leaves down with it. What is left is the part that meant something.
+ *
+ * The two buds are deliberately unequal and set in a V. A matched pair reads as
+ * a logo made with a mirror tool; one leading bud with a smaller one behind it
+ * reads as a plant, and the offset is what makes the shape identifiable in a
+ * browser tab rather than merely present.
+ *
+ * Drawn rather than shipped as an image file: an SVG scales from a favicon to a
+ * hero from one definition, and it takes its colour from the surrounding text —
+ * so the dark theme needs no second asset.
  */
 export function BrandMark({ className }: { className?: string }) {
   return (
@@ -21,38 +37,32 @@ export function BrandMark({ className }: { className?: string }) {
       className={cn("shrink-0", className)}
     >
       {/*
-        The ring is open at the foot. A closed circle reads as a badge or a
-        seal; the gap is where the stem enters, which is what makes the whole
-        thing read as something growing rather than something stamped.
+        The stem, short and thick. It was longer when a ring enclosed it; on its
+        own a thin stalk is the first thing to disappear when the mark is scaled
+        down, and a sprout without one reads as two loose leaves.
       */}
       <path
-        d="M24 3.5a20.5 20.5 0 1 1-9.6 38.6"
+        d="M24 43.5V31"
         stroke="currentColor"
-        strokeWidth="3.2"
+        strokeWidth="4.4"
         strokeLinecap="round"
       />
 
-      {/* The stem, rising from the gap in the ring through both leaves. */}
+      {/* The leading bud, reaching up and to the right. */}
       <path
-        d="M24 39.5V21.5"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
+        d={BRAND_LEAF_LEAD}
+        fill="currentColor"
       />
 
       {/*
-        Two leaves, deliberately unequal. A symmetrical pair reads as a logo
-        drawn with a mirror tool; the smaller left leaf is what makes it read as
-        a plant.
+        The second bud, smaller and held back. The lighter fill puts it behind
+        the first rather than beside it, which is what gives a flat mark depth
+        without a second colour.
       */}
       <path
-        d="M24 22.5c0-6.6 4.4-11.8 11.4-12.4.7 7.3-3.6 13-11.4 12.4Z"
+        d={BRAND_LEAF_TRAIL}
         fill="currentColor"
-      />
-      <path
-        d="M24 30.2c0-5.4-3.6-9.6-9.3-10.1-.6 5.9 2.9 10.6 9.3 10.1Z"
-        fill="currentColor"
-        opacity="0.72"
+        opacity="0.68"
       />
     </svg>
   );
@@ -95,7 +105,7 @@ export function BrandLockup({
             taglineClassName,
           )}
         >
-          Trade Green, Grow Green
+          Empowering Farmers
         </span>
       </span>
     </span>

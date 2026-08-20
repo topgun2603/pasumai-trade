@@ -5,7 +5,6 @@ import {
   BellIcon,
   CreditCardIcon,
   HandshakeIcon,
-  LeafIcon,
   PackageIcon,
   StoreIcon,
   TruckIcon,
@@ -18,6 +17,7 @@ import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Separator } from "@/components/ui/separator";
 import type { Notification } from "@/lib/domain/notification";
 import type { Role } from "@/lib/auth/claims";
+import { BrandMark } from "@/components/marketing/brand-mark";
 import { cn } from "@/lib/utils";
 
 /**
@@ -74,7 +74,7 @@ export function ConsoleNav({
     <nav className="bg-sidebar border-sidebar-border sticky top-0 hidden h-svh w-60 shrink-0 flex-col border-r md:flex">
       <div className="flex items-center gap-2.5 px-4 py-4">
         <span className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-md">
-          <LeafIcon className="size-4" />
+          <BrandMark className="size-5" />
         </span>
         <span className="flex min-w-0 flex-1 flex-col leading-tight">
           <span className="truncate text-sm font-semibold">Pasumai Trade</span>

@@ -11,7 +11,6 @@ import {
   GaugeIcon,
   InboxIcon,
   HardHatIcon,
-  LeafIcon,
   ShieldCheckIcon,
   SlidersHorizontalIcon,
   StoreIcon,
@@ -24,6 +23,7 @@ import { usePathname } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { BrandMark } from "@/components/marketing/brand-mark";
 import { cn } from "@/lib/utils";
 
 /** Counts of what is waiting, keyed by href. */
@@ -114,7 +114,7 @@ export function AdminNav({ pending }: { pending: PendingCounts }) {
     <nav className="bg-sidebar border-sidebar-border sticky top-0 hidden h-svh w-60 shrink-0 flex-col border-r md:flex">
       <div className="flex items-center gap-2.5 px-4 py-4">
         <span className="bg-foreground text-background flex size-8 items-center justify-center rounded-md">
-          <LeafIcon className="size-4" />
+          <BrandMark className="size-5" />
         </span>
         <span className="flex min-w-0 flex-col leading-tight">
           <span className="truncate text-sm font-semibold">Pasumai Trade</span>

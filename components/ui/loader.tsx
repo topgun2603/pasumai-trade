@@ -1,3 +1,7 @@
+import {
+  BRAND_LEAF_LEAD,
+  BRAND_LEAF_TRAIL,
+} from "@/components/marketing/brand-mark";
 import { cn } from "@/lib/utils";
 
 /**
@@ -58,9 +62,12 @@ export function Loader({
       className={cn("shrink-0 text-current", SIZES[size], className)}
     >
       {/*
-        The sweep. An arc rather than a full ring, and open at the foot like the
-        mark it comes from — a closed circle rotating is every spinner ever
-        drawn, and the gap is what makes this one recognisable at 14 pixels.
+        The sweep. Two opposed arcs rather than a closed ring: a full circle
+        rotating is every spinner ever drawn, and the gaps are what make this
+        one recognisable at 14 pixels.
+
+        This is the spinner, not the mark — the mark has no ring, and never did
+        have this one. What the two share is the leaves below.
       */}
       <g
         className={cn(
@@ -84,9 +91,13 @@ export function Loader({
       </g>
 
       {/*
-        The leaves, breathing out of phase with the sweep. Deliberately unequal
-        and offset in time — a symmetrical pair pulsing together reads as a
-        loading dot, and the whole point is that it reads as something growing.
+        The brand's own two buds, scaled down to sit inside the sweep and
+        breathing out of phase with it. The paths are imported rather than
+        redrawn: a second copy would be a second drawing, and it would stop
+        matching the mark the first time either changed.
+
+        Offset in time on purpose — a matched pair pulsing together reads as a
+        loading dot, and the point is that it reads as something growing.
       */}
       <g
         className={cn(
@@ -94,13 +105,17 @@ export function Loader({
           "motion-reduce:animate-[pasumai-fade_1.8s_ease-in-out_infinite]",
         )}
       >
-        <path d="M24 25.5c0-5 3.4-9 8.7-9.4.5 5.6-2.8 9.9-8.7 9.4Z" fill="currentColor" />
-        <path
-          d="M24 31c0-4-2.7-7.2-7-7.5-.4 4.4 2.2 7.9 7 7.5Z"
-          fill="currentColor"
-          opacity="0.6"
-          style={{ animationDelay: "-0.8s" }}
-        />
+        {/* Scaled about the centre of the box, so the pair keeps its
+            proportions and lands inside the arcs. */}
+        <g transform="translate(24 24) scale(0.52) translate(-24 -24)">
+          <path d={BRAND_LEAF_LEAD} fill="currentColor" />
+          <path
+            d={BRAND_LEAF_TRAIL}
+            fill="currentColor"
+            opacity="0.6"
+            style={{ animationDelay: "-0.8s" }}
+          />
+        </g>
       </g>
     </svg>
   );
