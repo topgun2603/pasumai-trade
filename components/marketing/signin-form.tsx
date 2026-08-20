@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -49,7 +50,10 @@ export function SignInForm({
   const [audience, setAudience] = useState<Audience>(initial);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<{ identifier?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{
+    identifier?: string;
+    password?: string;
+  }>({});
   const [submitting, setSubmitting] = useState(false);
 
   /*
@@ -66,9 +70,10 @@ export function SignInForm({
   );
   const [mobile, setMobile] = useState("");
   const [code, setCode] = useState("");
-  const [confirmer, setConfirmer] = useState<Awaited<
-    ReturnType<typeof startPhoneSignIn>
-  >["confirmer"]>(undefined);
+  const [confirmer, setConfirmer] =
+    useState<Awaited<ReturnType<typeof startPhoneSignIn>>["confirmer"]>(
+      undefined,
+    );
 
   const audiences: Array<{
     value: Audience;
@@ -135,6 +140,20 @@ export function SignInForm({
    */
 
   /** Land where the account is entitled to go, not where the tab said. */
+  const router = useRouter();
+
+  /**
+   * A verified number with no account behind it.
+   *
+   * Pushed rather than assigned, unlike every other landing here. Phone auth
+   * keeps its user in memory only, and the register page finishes by refreshing
+   * that user's token to pick up the claims it was just given — a full document
+   * load would throw the user away and strand them one step from the end.
+   */
+  function landNewUser() {
+    router.push(`/${locale}/register`);
+  }
+
   function land(role: string | undefined) {
     const destination =
       role && role in HOME_FOR_ROLE
@@ -193,6 +212,11 @@ export function SignInForm({
       setSubmitting(false);
       setErrors({ password: result.error });
       toast.error(result.error ?? "Could not sign in.");
+      return;
+    }
+
+    if (result.needsProfile) {
+      landNewUser();
       return;
     }
 
@@ -278,7 +302,10 @@ export function SignInForm({
               aria-describedby={errors.identifier ? "mobile-error" : undefined}
             />
             {errors.identifier ? (
-              <p id="mobile-error" className="text-destructive flex items-center gap-1 text-xs">
+              <p
+                id="mobile-error"
+                className="text-destructive flex items-center gap-1 text-xs"
+              >
                 <TriangleAlertIcon className="size-3 shrink-0" />
                 {errors.identifier}
               </p>
@@ -308,7 +335,10 @@ export function SignInForm({
                 aria-describedby={errors.password ? "code-error" : undefined}
               />
               {errors.password ? (
-                <p id="code-error" className="text-destructive flex items-center gap-1 text-xs">
+                <p
+                  id="code-error"
+                  className="text-destructive flex items-center gap-1 text-xs"
+                >
                   <TriangleAlertIcon className="size-3 shrink-0" />
                   {errors.password}
                 </p>
@@ -357,7 +387,9 @@ export function SignInForm({
                 setErrors((x) => ({ ...x, identifier: undefined }));
               }}
               aria-invalid={Boolean(errors.identifier)}
-              aria-describedby={errors.identifier ? "identifier-error" : undefined}
+              aria-describedby={
+                errors.identifier ? "identifier-error" : undefined
+              }
               placeholder="you@company.in"
             />
             {errors.identifier ? (
@@ -397,7 +429,10 @@ export function SignInForm({
               aria-describedby={errors.password ? "password-error" : undefined}
             />
             {errors.password ? (
-              <p id="password-error" className="text-destructive flex items-center gap-1 text-xs">
+              <p
+                id="password-error"
+                className="text-destructive flex items-center gap-1 text-xs"
+              >
                 <TriangleAlertIcon className="size-3 shrink-0" />
                 {errors.password}
               </p>
@@ -450,7 +485,9 @@ export function SignInForm({
         <p className="text-muted-foreground flex items-start gap-2 text-sm">
           <InfoIcon className="mt-0.5 size-4 shrink-0" />
           {audience === "admin" ? (
-            <span>Operations accounts are issued internally, not by signing up.</span>
+            <span>
+              Operations accounts are issued internally, not by signing up.
+            </span>
           ) : (
             <span>
               No account yet?{" "}
@@ -467,7 +504,9 @@ export function SignInForm({
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-muted-foreground text-xs">{t.signin.otherDoors}</span>
+        <span className="text-muted-foreground text-xs">
+          {t.signin.otherDoors}
+        </span>
         <div className="flex flex-wrap gap-1.5">
           {audiences
             .filter((option) => option.value !== audience)
@@ -487,7 +526,6 @@ export function SignInForm({
             ))}
         </div>
       </div>
-
     </div>
   );
 }

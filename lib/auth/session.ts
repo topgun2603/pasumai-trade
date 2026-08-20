@@ -47,9 +47,26 @@ export interface Session {
  * immediately after signing in and posts it straight here, so anything older
  * is a replay of a captured token rather than a real sign-in.
  */
-export async function createSession(idToken: string): Promise<
-  { ok: true; role: Role } | { ok: false; error: string }
-> {
+export type SessionStart =
+  | { ok: true; role: Role }
+  /**
+   * A verified sign-in with nobody behind it yet.
+   *
+   * Phone auth creates the Firebase user the moment the code is right, so a
+   * number nobody has registered arrives here holding a genuine token and no
+   * role. That used to be refused with "ask operations to finish activating
+   * it", which is a dead end for the one person the platform most wants — a
+   * new farmer who has just proved they own the handset.
+   *
+   * A cookie is still minted, deliberately. It grants nothing: `verifySession`
+   * requires claims and every console guard goes through it, so the only thing
+   * this session can reach is the profile endpoint that turns it into a real
+   * account.
+   */
+  | { ok: true; needsProfile: true }
+  | { ok: false; error: string };
+
+export async function createSession(idToken: string): Promise<SessionStart> {
   if (!hasAdminCredentials()) {
     return {
       ok: false,
@@ -74,15 +91,18 @@ export async function createSession(idToken: string): Promise<
 
   const claims = readClaims(decoded as unknown as Record<string, unknown>);
   if (!claims) {
-    // The account exists in Firebase Auth but operations has not given it a
-    // role. Said plainly, because the person cannot fix it themselves.
-    return {
-      ok: false,
-      error:
-        "This account is not set up for the platform yet. Ask operations to finish activating it.",
-    };
+    // Verified, but no role yet — they have proved the handset and not yet said
+    // who they are. See `SessionStart` for why this still gets a cookie.
+    await mint(auth, idToken);
+    return { ok: true, needsProfile: true };
   }
 
+  await mint(auth, idToken);
+  return { ok: true, role: claims.role };
+}
+
+/** The cookie itself. One definition, so the pending and full paths agree. */
+async function mint(auth: ReturnType<typeof adminAuth>, idToken: string): Promise<void> {
   const sessionCookie = await auth.createSessionCookie(idToken, {
     expiresIn: SESSION_MAX_AGE_MS,
   });
@@ -95,8 +115,36 @@ export async function createSession(idToken: string): Promise<
     path: "/",
     maxAge: SESSION_MAX_AGE_MS / 1000,
   });
+}
 
-  return { ok: true, role: claims.role };
+/**
+ * Who is holding a cookie, whether or not they have a role.
+ *
+ * `verifySession` returns null without claims, which is what every console
+ * guard needs. This is the one thing that must see the other case: somebody who
+ * has verified a handset and is on their way to creating a profile. It returns
+ * the identity and nothing else — no role, no accountId — so it cannot be
+ * mistaken for authorisation.
+ */
+export async function readPendingSession(): Promise<
+  { uid: string; phone?: string; email?: string } | null
+> {
+  if (!hasAdminCredentials()) return null;
+
+  const store = await cookies();
+  const cookie = store.get(SESSION_COOKIE)?.value;
+  if (!cookie) return null;
+
+  try {
+    const decoded = await adminAuth().verifySessionCookie(cookie, true);
+    return {
+      uid: decoded.uid,
+      phone: decoded.phone_number as string | undefined,
+      email: decoded.email,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**

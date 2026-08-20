@@ -30,6 +30,13 @@ export async function POST(request: Request) {
     return Response.json({ error: result.error }, { status: 401 });
   }
 
+  /*
+    A verified handset with no account behind it is a success, not a failure.
+    The caller sends them to create a profile; the cookie they now hold reaches
+    nothing else, because every console guard requires claims.
+  */
+  if ("needsProfile" in result) return Response.json({ needsProfile: true });
+
   return Response.json({ role: result.role });
 }
 

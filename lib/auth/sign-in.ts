@@ -31,6 +31,8 @@ export interface SignInResult {
   readonly ok: boolean;
   readonly role?: string;
   readonly error?: string;
+  /** Verified, but nobody has said who they are yet. Send them to register. */
+  readonly needsProfile?: boolean;
 }
 
 /** Firebase error codes, said in a way that helps without helping an attacker. */
@@ -122,8 +124,36 @@ async function exchange(idToken: string): Promise<SignInResult> {
     return { ok: false, error: detail ?? "Could not start a session." };
   }
 
-  const { role } = (await response.json()) as { role: string };
-  return { ok: true, role };
+  const body = (await response.json()) as { role?: string; needsProfile?: boolean };
+  if (body.needsProfile) return { ok: true, needsProfile: true };
+  return { ok: true, role: body.role };
+}
+
+/**
+ * Swap a stale session for one that knows the new claims.
+ *
+ * Registration sets `role` and `accountId` on the Firebase user *after* the
+ * cookie was minted, so the cookie in the browser still says nothing. Forcing a
+ * token refresh picks the claims up and exchanges again; without it the console
+ * would turn the new account straight back around.
+ *
+ * Returns `ok: false` rather than throwing when there is no signed-in user,
+ * which happens if the page was reloaded — persistence here is in memory by
+ * design. The caller sends them to sign in, which now works, because by this
+ * point the account exists.
+ */
+export async function refreshSession(): Promise<SignInResult> {
+  const user = firebaseAuth().currentUser;
+  if (!user) return { ok: false, error: "Sign in again to finish." };
+
+  try {
+    // `true` forces a round trip to Firebase; without it the cached token comes
+    // back with exactly the claims it had before.
+    const idToken = await user.getIdToken(true);
+    return exchange(idToken);
+  } catch {
+    return { ok: false, error: "Sign in again to finish." };
+  }
 }
 
 export async function signOut(): Promise<void> {
