@@ -1,5 +1,20 @@
 import "server-only";
 
+import { cache } from "react";
+
+/*
+  Read once per request, however many times it is asked for.
+
+  A console page and the layout around it both render in one request, and both
+  want the same counts — the admin rail reads the KYC queue for a badge and the
+  overview reads it again for a tile. `cache` from React memoises for the life of
+  one request, so the second caller gets the first caller's promise instead of a
+  second trip to a database on another continent.
+
+  Per request, not across requests: nothing here is stale, and a write followed
+  by a fresh render still reads the new value.
+*/
+
 import type {
   Agency,
   AgencyService,
@@ -52,7 +67,12 @@ const DOCUMENT_KINDS: DocumentKind[] = [
   "fssai",
 ];
 
-const STATUSES: VerificationStatus[] = ["pending", "verified", "rejected", "suspended"];
+const STATUSES: VerificationStatus[] = [
+  "pending",
+  "verified",
+  "rejected",
+  "suspended",
+];
 
 function toDate(value: unknown): Date | undefined {
   if (!value) return undefined;
@@ -126,7 +146,7 @@ async function readAll<T>(
 
 const VEHICLE_TYPES: VehicleType[] = ["miniTruck", "tempo", "truck", "reefer"];
 
-export function readVehicles(): Promise<Vehicle[]> {
+export const readVehicles = cache(function readVehicles(): Promise<Vehicle[]> {
   return readAll("vehicles", (id, data) => ({
     id,
     registration: str(data.registration, id),
@@ -139,15 +159,19 @@ export function readVehicles(): Promise<Vehicle[]> {
     district: str(data.district),
     status: status(data.status),
     registeredAt: toDate(data.registeredAt) ?? new Date(0),
-    assignedDriver: typeof data.assignedDriver === "string" ? data.assignedDriver : undefined,
+    assignedDriver:
+      typeof data.assignedDriver === "string" ? data.assignedDriver : undefined,
     refrigerated: data.refrigerated === true,
     photoUrl: typeof data.photoUrl === "string" ? data.photoUrl : undefined,
-    platePhotoUrl: typeof data.platePhotoUrl === "string" ? data.platePhotoUrl : undefined,
+    platePhotoUrl:
+      typeof data.platePhotoUrl === "string" ? data.platePhotoUrl : undefined,
     documents: documents(data.documents),
   }));
-}
+});
 
-export function readDrivers(): Promise<DriverAccount[]> {
+export const readDrivers = cache(function readDrivers(): Promise<
+  DriverAccount[]
+> {
   return readAll("drivers", (id, data) => ({
     id,
     agencyId: str(data.agencyId),
@@ -157,17 +181,20 @@ export function readDrivers(): Promise<DriverAccount[]> {
     status: status(data.status),
     registeredAt: toDate(data.registeredAt) ?? new Date(0),
     tripsCompleted: num(data.tripsCompleted),
-    assignedVehicle: typeof data.assignedVehicle === "string" ? data.assignedVehicle : undefined,
+    assignedVehicle:
+      typeof data.assignedVehicle === "string"
+        ? data.assignedVehicle
+        : undefined,
     photoUrl: typeof data.photoUrl === "string" ? data.photoUrl : undefined,
     documents: documents(data.documents),
   }));
-}
+});
 
 // Reused from the domain rather than restated, so a skill added there is
 // not silently dropped by this reader.
 const BASES: EngagementBasis[] = ["daily", "perTrip", "monthly"];
 
-export function readWorkers(): Promise<Worker[]> {
+export const readWorkers = cache(function readWorkers(): Promise<Worker[]> {
   return readAll("workers", (id, data) => ({
     id,
     agencyId: str(data.agencyId),
@@ -193,16 +220,20 @@ export function readWorkers(): Promise<Worker[]> {
     photoUrl: typeof data.photoUrl === "string" ? data.photoUrl : undefined,
     documents: documents(data.documents),
   }));
-}
+});
 
 const SERVICES: AgencyService[] = ["manpower", "transport"];
 
-export function readAgencyRecords(): Promise<Agency[]> {
+export const readAgencyRecords = cache(function readAgencyRecords(): Promise<
+  Agency[]
+> {
   return readAll("agencies", (id, data) => ({
     id,
     name: str(data.name, id),
     services: Array.isArray(data.services)
-      ? data.services.filter((s): s is AgencyService => SERVICES.includes(s as AgencyService))
+      ? data.services.filter((s): s is AgencyService =>
+          SERVICES.includes(s as AgencyService),
+        )
       : // A firm with no services listed is one nothing can be dispatched
         // from, which is a worse default than assuming the pair it registered
         // under. Both, and the console shows what it actually does.
@@ -222,7 +253,7 @@ export function readAgencyRecords(): Promise<Agency[]> {
     photoUrl: typeof data.photoUrl === "string" ? data.photoUrl : undefined,
     documents: documents(data.documents),
   }));
-}
+});
 
 /* -------------------------------------------------------------------------
    Trading accounts
@@ -253,22 +284,29 @@ function shapeBuying(id: string, data: Record<string, unknown>): BuyerAccount {
     lat: typeof data.lat === "number" ? data.lat : null,
     lng: typeof data.lng === "number" ? data.lng : null,
     status: status(data.status),
-    registeredAt: toDate(data.registeredAt) ?? toDate(data.createdAt) ?? new Date(0),
+    registeredAt:
+      toDate(data.registeredAt) ?? toDate(data.createdAt) ?? new Date(0),
     lifetimeValue: money(num(data.lifetimeValue)),
     photoUrl: typeof data.photoUrl === "string" ? data.photoUrl : undefined,
     documents: documents(data.documents),
   };
 }
 
-export function readBuyerAccounts(): Promise<BuyerAccount[]> {
+export const readBuyerAccounts = cache(function readBuyerAccounts(): Promise<
+  BuyerAccount[]
+> {
   return readAll("buyers", shapeBuying);
-}
+});
 
-export function readFranchiseAccounts(): Promise<BuyerAccount[]> {
-  return readAll("franchises", shapeBuying);
-}
+export const readFranchiseAccounts = cache(
+  function readFranchiseAccounts(): Promise<BuyerAccount[]> {
+    return readAll("franchises", shapeBuying);
+  },
+);
 
-export function readFarmerAccounts(): Promise<FarmerAccount[]> {
+export const readFarmerAccounts = cache(function readFarmerAccounts(): Promise<
+  FarmerAccount[]
+> {
   return readAll("farmers", (id, data) => ({
     id,
     name: str(data.name, id),
@@ -277,12 +315,14 @@ export function readFarmerAccounts(): Promise<FarmerAccount[]> {
     district: str(data.district),
     bankAccountTail: str(data.bankAccountTail),
     status: status(data.status),
-    registeredAt: toDate(data.registeredAt) ?? toDate(data.createdAt) ?? new Date(0),
+    registeredAt:
+      toDate(data.registeredAt) ?? toDate(data.createdAt) ?? new Date(0),
     registeredBy: str(data.registeredBy),
     activeListings: num(data.activeListings),
     completedOrders: num(data.completedOrders),
     photoUrl: typeof data.photoUrl === "string" ? data.photoUrl : undefined,
-    landPhotoUrl: typeof data.landPhotoUrl === "string" ? data.landPhotoUrl : undefined,
+    landPhotoUrl:
+      typeof data.landPhotoUrl === "string" ? data.landPhotoUrl : undefined,
     documents: documents(data.documents),
   }));
-}
+});

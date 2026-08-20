@@ -1,5 +1,20 @@
 import "server-only";
 
+import { cache } from "react";
+
+/*
+  Read once per request, however many times it is asked for.
+
+  A console page and the layout around it both render in one request, and both
+  want the same counts — the admin rail reads the KYC queue for a badge and the
+  overview reads it again for a tile. `cache` from React memoises for the life of
+  one request, so the second caller gets the first caller's promise instead of a
+  second trip to a database on another continent.
+
+  Per request, not across requests: nothing here is stale, and a write followed
+  by a fresh render still reads the new value.
+*/
+
 import type { Role } from "@/lib/auth/claims";
 import type {
   Check,
@@ -63,7 +78,8 @@ export function shapeChecks(raw: unknown): Check[] {
         method: d.method === "ekyc" ? "ekyc" : ("manual" as CheckMethod),
         state: d.state as CheckState,
         reference: typeof d.reference === "string" ? d.reference : undefined,
-        verifiedName: typeof d.verifiedName === "string" ? d.verifiedName : undefined,
+        verifiedName:
+          typeof d.verifiedName === "string" ? d.verifiedName : undefined,
         approvedBy: typeof d.approvedBy === "string" ? d.approvedBy : undefined,
         reason: typeof d.reason === "string" ? d.reason : undefined,
         notes: Array.isArray(d.notes)
@@ -81,8 +97,10 @@ export function shapeChecks(raw: unknown): Check[] {
                   at,
                   by,
                   state: n.state as CheckState,
-                  operator: typeof n.operator === "string" ? n.operator : undefined,
-                  message: typeof n.message === "string" ? n.message : undefined,
+                  operator:
+                    typeof n.operator === "string" ? n.operator : undefined,
+                  message:
+                    typeof n.message === "string" ? n.message : undefined,
                 },
               ];
             })
@@ -112,17 +130,22 @@ function shapeDocuments(raw: unknown): KycDocument[] | undefined {
     return [
       {
         path,
-        contentType: typeof d.contentType === "string" ? d.contentType : "image/jpeg",
+        contentType:
+          typeof d.contentType === "string" ? d.contentType : "image/jpeg",
         uploadedAt: toDate(d.uploadedAt) ?? new Date(0),
       },
     ];
   });
 
-  return documents.length > 0 ? documents.slice(0, MAX_DOCUMENTS_KEPT) : undefined;
+  return documents.length > 0
+    ? documents.slice(0, MAX_DOCUMENTS_KEPT)
+    : undefined;
 }
 
 /** Firestore wants plain values; `undefined` is rejected outright. */
-export function serialiseChecks(checks: readonly Check[]): Record<string, unknown>[] {
+export function serialiseChecks(
+  checks: readonly Check[],
+): Record<string, unknown>[] {
   return checks.map((c) => ({
     kind: c.kind,
     method: c.method,
@@ -215,7 +238,10 @@ export async function signDocuments(
   return signed.filter((d): d is SignedDocument => d !== null);
 }
 
-export async function readChecks(role: Role, accountId: string | undefined): Promise<Check[]> {
+export async function readChecks(
+  role: Role,
+  accountId: string | undefined,
+): Promise<Check[]> {
   if (!accountId || !canSelfSignup(role)) return [];
   const snapshot = await adminDb()
     .collection(COLLECTION_FOR_SIGNUP[role])
@@ -248,7 +274,9 @@ export interface PendingReview {
  * three collections twice to split them afterwards would double the cost of a
  * page that already reads everything.
  */
-export async function readKycAccounts(): Promise<PendingReview[]> {
+export const readKycAccounts = cache(async function readKycAccounts(): Promise<
+  PendingReview[]
+> {
   const db = adminDb();
   const sources: Array<{ collection: string; roles: Role[] }> = [
     { collection: "farmers", roles: ["farmer"] },
@@ -300,10 +328,12 @@ export async function readKycAccounts(): Promise<PendingReview[]> {
   return queue.sort(
     (a, b) => (a.submittedAt?.getTime() ?? 0) - (b.submittedAt?.getTime() ?? 0),
   );
-}
+});
 
 /** Only what is waiting on operations, for callers that want the queue alone. */
-export async function readReviewQueue(): Promise<PendingReview[]> {
+export const readReviewQueue = cache(async function readReviewQueue(): Promise<
+  PendingReview[]
+> {
   const all = await readKycAccounts();
   return all.filter((entry) => entry.checks.some((c) => c.state === "review"));
-}
+});

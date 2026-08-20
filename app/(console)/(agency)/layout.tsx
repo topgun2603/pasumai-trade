@@ -34,16 +34,25 @@ export default async function AgencyLayout({
   const mine = <T extends { agencyId: string }>(rows: T[]) =>
     rows.filter((r) => r.agencyId === agency.id);
 
+  /*
+    Together, not one after another. Written as three awaits inside an object
+    literal these ran in series — JavaScript evaluates properties in order — so
+    a rail badge cost three round trips to a database in another continent on
+    every page of this console.
+  */
+  const [workers, vehicles, drivers, seenTours] = await Promise.all([
+    readWorkers(),
+    readVehicles(),
+    readDrivers(),
+    // In the same batch: the tour flag is one document, and reading it after
+    // the rest would add a whole round trip to save nothing.
+    readSeenTours(agency.id),
+  ]);
+
   const pending = {
-    "/agency/workers": mine(await readWorkers()).filter((w) =>
-      needsReview(w.status),
-    ).length,
-    "/agency/fleet": mine(await readVehicles()).filter((v) =>
-      needsReview(v.status),
-    ).length,
-    "/agency/drivers": mine(await readDrivers()).filter((d) =>
-      needsReview(d.status),
-    ).length,
+    "/agency/workers": mine(workers).filter((w) => needsReview(w.status)).length,
+    "/agency/fleet": mine(vehicles).filter((v) => needsReview(v.status)).length,
+    "/agency/drivers": mine(drivers).filter((d) => needsReview(d.status)).length,
   };
 
   /*
@@ -52,10 +61,7 @@ export default async function AgencyLayout({
     out. The role on the session is the only thing that tells them apart.
   */
   const definition = tourFor(session!.claims.role);
-  const tour =
-    definition && !(await readSeenTours(agency.id)).has(definition.id)
-      ? definition
-      : null;
+  const tour = definition && !seenTours.has(definition.id) ? definition : null;
 
   return (
     <div className="flex min-h-svh w-full">

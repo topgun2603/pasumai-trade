@@ -1,5 +1,20 @@
 import "server-only";
 
+import { cache } from "react";
+
+/*
+  Read once per request, however many times it is asked for.
+
+  A console page and the layout around it both render in one request, and both
+  want the same counts — the admin rail reads the KYC queue for a badge and the
+  overview reads it again for a tile. `cache` from React memoises for the life of
+  one request, so the second caller gets the first caller's promise instead of a
+  second trip to a database on another continent.
+
+  Per request, not across requests: nothing here is stale, and a write followed
+  by a fresh render still reads the new value.
+*/
+
 import type {
   ComplianceDocument,
   DocumentKind,
@@ -83,86 +98,97 @@ export interface Compliance {
   readonly live: boolean;
 }
 
-export async function readCompliance(): Promise<Compliance> {
-  if (!hasAdminCredentials()) return { subjects: [], live: false };
+export const readCompliance = cache(
+  async function readCompliance(): Promise<Compliance> {
+    if (!hasAdminCredentials()) return { subjects: [], live: false };
 
-  try {
-    const db = adminDb();
-    const [vehicleDocs, driverDocs, workerDocs, buyerDocs] = await Promise.all([
-      db.collection("vehicles").get(),
-      db.collection("drivers").get(),
-      db.collection("workers").get(),
-      db.collection("buyers").get(),
-    ]);
+    try {
+      const db = adminDb();
+      const [vehicleDocs, driverDocs, workerDocs, buyerDocs] =
+        await Promise.all([
+          db.collection("vehicles").get(),
+          db.collection("drivers").get(),
+          db.collection("workers").get(),
+          db.collection("buyers").get(),
+        ]);
 
-    /*
+      /*
       Narrowed here rather than by every caller. An unreadable status becomes
       `pending`, which is the safe direction: it puts the record in front of an
       operator rather than clearing something nobody checked.
     */
-    const STATUSES: VerificationStatus[] = ["pending", "verified", "rejected", "suspended"];
-    const status = (data: Record<string, unknown>): VerificationStatus =>
-      STATUSES.includes(data.status as VerificationStatus)
-        ? (data.status as VerificationStatus)
-        : "pending";
+      const STATUSES: VerificationStatus[] = [
+        "pending",
+        "verified",
+        "rejected",
+        "suspended",
+      ];
+      const status = (data: Record<string, unknown>): VerificationStatus =>
+        STATUSES.includes(data.status as VerificationStatus)
+          ? (data.status as VerificationStatus)
+          : "pending";
 
-    const subjects: ComplianceSubject[] = [
-      ...vehicleDocs.docs.map((doc): ComplianceSubject => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          // A lorry is known by its plate. Nobody in a depot calls it V-408.
-          name: typeof data.registration === "string" ? data.registration : doc.id,
-          kind: "Vehicle",
-          href: "/admin/transport/vehicles",
-          status: status(data),
-          documents: shapeDocuments(data.documents),
-          registeredAt: toDate(data.registeredAt),
-        };
-      }),
-      ...driverDocs.docs.map((doc): ComplianceSubject => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          name: typeof data.name === "string" ? data.name : doc.id,
-          kind: "Driver",
-          href: "/admin/transport/drivers",
-          status: status(data),
-          documents: shapeDocuments(data.documents),
-          registeredAt: toDate(data.registeredAt),
-        };
-      }),
-      ...workerDocs.docs.map((doc): ComplianceSubject => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          name: typeof data.name === "string" ? data.name : doc.id,
-          kind: "Crew",
-          href: "/admin/transport/manpower",
-          status: status(data),
-          documents: shapeDocuments(data.documents),
-          registeredAt: toDate(data.registeredAt),
-        };
-      }),
-      ...buyerDocs.docs.map((doc): ComplianceSubject => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          name: typeof data.name === "string" ? data.name : doc.id,
-          kind: "Buyer",
-          href: "/admin/buyers",
-          status: status(data),
-          documents: shapeDocuments(data.documents),
-          registeredAt: toDate(data.registeredAt),
-        };
-      }),
-    ];
+      const subjects: ComplianceSubject[] = [
+        ...vehicleDocs.docs.map((doc): ComplianceSubject => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            // A lorry is known by its plate. Nobody in a depot calls it V-408.
+            name:
+              typeof data.registration === "string"
+                ? data.registration
+                : doc.id,
+            kind: "Vehicle",
+            href: "/admin/transport/vehicles",
+            status: status(data),
+            documents: shapeDocuments(data.documents),
+            registeredAt: toDate(data.registeredAt),
+          };
+        }),
+        ...driverDocs.docs.map((doc): ComplianceSubject => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            name: typeof data.name === "string" ? data.name : doc.id,
+            kind: "Driver",
+            href: "/admin/transport/drivers",
+            status: status(data),
+            documents: shapeDocuments(data.documents),
+            registeredAt: toDate(data.registeredAt),
+          };
+        }),
+        ...workerDocs.docs.map((doc): ComplianceSubject => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            name: typeof data.name === "string" ? data.name : doc.id,
+            kind: "Crew",
+            href: "/admin/transport/manpower",
+            status: status(data),
+            documents: shapeDocuments(data.documents),
+            registeredAt: toDate(data.registeredAt),
+          };
+        }),
+        ...buyerDocs.docs.map((doc): ComplianceSubject => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            name: typeof data.name === "string" ? data.name : doc.id,
+            kind: "Buyer",
+            href: "/admin/buyers",
+            status: status(data),
+            documents: shapeDocuments(data.documents),
+            registeredAt: toDate(data.registeredAt),
+          };
+        }),
+      ];
 
-    return { subjects, live: true };
-  } catch {
-    return { subjects: [], live: false };
-  }
-}
+      return { subjects, live: true };
+    } catch {
+      return { subjects: [], live: false };
+    }
+  },
+);
 
 /* -------------------------------------------------------------------------
    Loads that have not found a vehicle
@@ -188,31 +214,38 @@ export interface WaitingPickup {
  * an expired one is a farmer whose produce is sitting in the sun and whose
  * screen has gone quiet.
  */
-export async function readWaitingPickups(): Promise<WaitingPickup[]> {
-  if (!hasAdminCredentials()) return [];
+export const readWaitingPickups = cache(
+  async function readWaitingPickups(): Promise<WaitingPickup[]> {
+    if (!hasAdminCredentials()) return [];
 
-  try {
-    const snapshot = await adminDb()
-      .collection("pickups")
-      .where("status", "in", ["searching", "expired"])
-      .get();
+    try {
+      const snapshot = await adminDb()
+        .collection("pickups")
+        .where("status", "in", ["searching", "expired"])
+        .get();
 
-    return snapshot.docs
-      .map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          farmerName: typeof data.farmerName === "string" ? data.farmerName : "",
-          produceName: typeof data.produceName === "string" ? data.produceName : "",
-          quantity: typeof data.quantity === "number" ? data.quantity : 0,
-          unit: typeof data.unit === "string" ? data.unit : "kg",
-          district: typeof data.pickupDistrict === "string" ? data.pickupDistrict : "",
-          requestedAt: toDate(data.requestedAt) ?? new Date(0),
-          expiresAt: toDate(data.expiresAt) ?? new Date(0),
-        };
-      })
-      .sort((a, b) => a.requestedAt.getTime() - b.requestedAt.getTime());
-  } catch {
-    return [];
-  }
-}
+      return snapshot.docs
+        .map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            farmerName:
+              typeof data.farmerName === "string" ? data.farmerName : "",
+            produceName:
+              typeof data.produceName === "string" ? data.produceName : "",
+            quantity: typeof data.quantity === "number" ? data.quantity : 0,
+            unit: typeof data.unit === "string" ? data.unit : "kg",
+            district:
+              typeof data.pickupDistrict === "string"
+                ? data.pickupDistrict
+                : "",
+            requestedAt: toDate(data.requestedAt) ?? new Date(0),
+            expiresAt: toDate(data.expiresAt) ?? new Date(0),
+          };
+        })
+        .sort((a, b) => a.requestedAt.getTime() - b.requestedAt.getTime());
+    } catch {
+      return [];
+    }
+  },
+);

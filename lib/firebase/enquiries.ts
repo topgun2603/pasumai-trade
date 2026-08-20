@@ -1,6 +1,26 @@
 import "server-only";
 
-import type { Enquiry, EnquiryNote, EnquiryStatus, Interest } from "@/lib/domain/enquiry";
+import { cache } from "react";
+
+/*
+  Read once per request, however many times it is asked for.
+
+  A console page and the layout around it both render in one request, and both
+  want the same counts — the admin rail reads the KYC queue for a badge and the
+  overview reads it again for a tile. `cache` from React memoises for the life of
+  one request, so the second caller gets the first caller's promise instead of a
+  second trip to a database on another continent.
+
+  Per request, not across requests: nothing here is stale, and a write followed
+  by a fresh render still reads the new value.
+*/
+
+import type {
+  Enquiry,
+  EnquiryNote,
+  EnquiryStatus,
+  Interest,
+} from "@/lib/domain/enquiry";
 import { ENQUIRY_STATUSES } from "@/lib/domain/enquiry";
 
 import { adminDb, hasAdminCredentials } from "./admin";
@@ -23,7 +43,10 @@ function toDate(value: unknown): Date | undefined {
   return typeof stamp.toDate === "function" ? stamp.toDate() : undefined;
 }
 
-export function shapeEnquiry(id: string, data: Record<string, unknown>): Enquiry {
+export function shapeEnquiry(
+  id: string,
+  data: Record<string, unknown>,
+): Enquiry {
   const status = ENQUIRY_STATUSES.includes(data.status as EnquiryStatus)
     ? (data.status as EnquiryStatus)
     : // An unreadable status becomes `new` rather than being dropped. Losing an
@@ -35,7 +58,8 @@ export function shapeEnquiry(id: string, data: Record<string, unknown>): Enquiry
     id,
     interest: data.interest === "farmer" ? "farmer" : ("buyer" as Interest),
     name: typeof data.name === "string" ? data.name : "",
-    organisation: typeof data.organisation === "string" ? data.organisation : undefined,
+    organisation:
+      typeof data.organisation === "string" ? data.organisation : undefined,
     mobile: typeof data.mobile === "string" ? data.mobile : "",
     district: typeof data.district === "string" ? data.district : "",
     message: typeof data.message === "string" ? data.message : undefined,
@@ -83,17 +107,21 @@ function serialise(enquiry: Omit<Enquiry, "id">): Record<string, unknown> {
   };
 }
 
-export async function writeEnquiry(enquiry: Omit<Enquiry, "id">): Promise<string> {
+export async function writeEnquiry(
+  enquiry: Omit<Enquiry, "id">,
+): Promise<string> {
   const ref = adminDb().collection(COLLECTION).doc();
   await ref.set(serialise(enquiry));
   return ref.id;
 }
 
-export async function readEnquiries(): Promise<Enquiry[]> {
+export const readEnquiries = cache(async function readEnquiries(): Promise<
+  Enquiry[]
+> {
   if (!hasAdminCredentials()) return [];
   const snapshot = await adminDb().collection(COLLECTION).get();
   return snapshot.docs.map((doc) => shapeEnquiry(doc.id, doc.data()));
-}
+});
 
 export async function readEnquiry(id: string): Promise<Enquiry | null> {
   const snapshot = await adminDb().collection(COLLECTION).doc(id).get();
@@ -102,7 +130,10 @@ export async function readEnquiry(id: string): Promise<Enquiry | null> {
 
 export async function updateEnquiry(enquiry: Enquiry): Promise<void> {
   const { id, ...rest } = enquiry;
-  await adminDb().collection(COLLECTION).doc(id).set(serialise(rest), { merge: true });
+  await adminDb()
+    .collection(COLLECTION)
+    .doc(id)
+    .set(serialise(rest), { merge: true });
 }
 
 /**
@@ -112,17 +143,19 @@ export async function updateEnquiry(enquiry: Enquiry): Promise<void> {
  * collection. This runs on every admin page load to feed the badge in the rail,
  * so it must not be a scan.
  */
-export async function countWaiting(): Promise<number> {
-  if (!hasAdminCredentials()) return 0;
-  try {
-    const snapshot = await adminDb()
-      .collection(COLLECTION)
-      .where("status", "==", "new")
-      .count()
-      .get();
-    return snapshot.data().count;
-  } catch {
-    // A badge is not worth taking the console down for.
-    return 0;
-  }
-}
+export const countWaiting = cache(
+  async function countWaiting(): Promise<number> {
+    if (!hasAdminCredentials()) return 0;
+    try {
+      const snapshot = await adminDb()
+        .collection(COLLECTION)
+        .where("status", "==", "new")
+        .count()
+        .get();
+      return snapshot.data().count;
+    } catch {
+      // A badge is not worth taking the console down for.
+      return 0;
+    }
+  },
+);

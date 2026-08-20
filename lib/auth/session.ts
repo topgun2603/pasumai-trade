@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { cookies } from "next/headers";
 
 import { adminAuth, hasAdminCredentials } from "@/lib/firebase/admin";
@@ -102,7 +104,10 @@ export async function createSession(idToken: string): Promise<SessionStart> {
 }
 
 /** The cookie itself. One definition, so the pending and full paths agree. */
-async function mint(auth: ReturnType<typeof adminAuth>, idToken: string): Promise<void> {
+async function mint(
+  auth: ReturnType<typeof adminAuth>,
+  idToken: string,
+): Promise<void> {
   const sessionCookie = await auth.createSessionCookie(idToken, {
     expiresIn: SESSION_MAX_AGE_MS,
   });
@@ -126,9 +131,11 @@ async function mint(auth: ReturnType<typeof adminAuth>, idToken: string): Promis
  * the identity and nothing else — no role, no accountId — so it cannot be
  * mistaken for authorisation.
  */
-export async function readPendingSession(): Promise<
-  { uid: string; phone?: string; email?: string } | null
-> {
+export async function readPendingSession(): Promise<{
+  uid: string;
+  phone?: string;
+  email?: string;
+} | null> {
   if (!hasAdminCredentials()) return null;
 
   const store = await cookies();
@@ -156,23 +163,37 @@ export async function readPendingSession(): Promise<
  * would have to be caught at each call site, and one missed catch would be an
  * unguarded endpoint.
  */
-export async function verifySession(): Promise<Session | null> {
-  if (!hasAdminCredentials()) return null;
+/*
+  Verified once per request.
 
-  const store = await cookies();
-  const cookie = store.get(SESSION_COOKIE)?.value;
-  if (!cookie) return null;
+  `verifySessionCookie(cookie, true)` asks Firebase whether the session has been
+  revoked, which is a network call — and this runs from `requireConsole`, from
+  `requireAgency` inside it, and again from every page under a layout that
+  already did it. Three or four revocation checks for one page view, all with
+  the same answer.
 
-  try {
-    const decoded = await adminAuth().verifySessionCookie(cookie, true);
-    const claims = readClaims(decoded as unknown as Record<string, unknown>);
-    if (!claims) return null;
+  `cache` is per request, so revocation is still checked on every page view. It
+  is checked once instead of once per caller.
+*/
+export const verifySession = cache(
+  async function verifySession(): Promise<Session | null> {
+    if (!hasAdminCredentials()) return null;
 
-    return { uid: decoded.uid, email: decoded.email, claims };
-  } catch {
-    return null;
-  }
-}
+    const store = await cookies();
+    const cookie = store.get(SESSION_COOKIE)?.value;
+    if (!cookie) return null;
+
+    try {
+      const decoded = await adminAuth().verifySessionCookie(cookie, true);
+      const claims = readClaims(decoded as unknown as Record<string, unknown>);
+      if (!claims) return null;
+
+      return { uid: decoded.uid, email: decoded.email, claims };
+    } catch {
+      return null;
+    }
+  },
+);
 
 /** Signs out here and everywhere — revokes the refresh tokens too. */
 export async function destroySession(): Promise<void> {

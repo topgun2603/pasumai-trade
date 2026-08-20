@@ -25,9 +25,32 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     Both counts the rail carries that mean somebody is waiting on us. Read
     together so the two badges cannot disagree about how much work there is.
   */
-  const [enquiriesWaiting, kycAccounts] = await Promise.all([
+  /*
+    Every count the rail carries, in one round trip's worth of wall clock.
+
+    These five used to sit as `(await readBuyerAccounts())` inside the object
+    literal below, which reads as a list and runs as a queue: JavaScript
+    evaluates the properties in order, so each awaited a full collection before
+    the next was even issued. Against Firestore in `nam5` that is five
+    US round trips in series on *every* admin page, and it was most of the eight
+    seconds the console took to answer.
+  */
+  const [
+    enquiriesWaiting,
+    kycAccounts,
+    buyers,
+    farmers,
+    drivers,
+    vehicles,
+    workers,
+  ] = await Promise.all([
     countWaiting(),
     readKycAccounts(),
+    readBuyerAccounts(),
+    readFarmerAccounts(),
+    readDrivers(),
+    readVehicles(),
+    readWorkers(),
   ]);
 
   const kycWaiting = kycAccounts.reduce(
@@ -46,12 +69,11 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     "/admin/notifications": enquiriesWaiting + kycWaiting,
     "/admin/enquiries": enquiriesWaiting,
     "/admin/kyc": kycWaiting,
-    "/admin/buyers": (await readBuyerAccounts()).filter((a) => needsReview(a.status)).length,
-    "/admin/farmers": (await readFarmerAccounts()).filter((a) => needsReview(a.status)).length,
-    "/admin/transport/drivers": (await readDrivers()).filter((a) => needsReview(a.status)).length,
-    "/admin/transport/vehicles": (await readVehicles()).filter((v) => needsReview(v.status)).length,
-    "/admin/transport/manpower": (await readWorkers()).filter((m) => needsReview(m.status))
-      .length,
+    "/admin/buyers": buyers.filter((a) => needsReview(a.status)).length,
+    "/admin/farmers": farmers.filter((a) => needsReview(a.status)).length,
+    "/admin/transport/drivers": drivers.filter((a) => needsReview(a.status)).length,
+    "/admin/transport/vehicles": vehicles.filter((v) => needsReview(v.status)).length,
+    "/admin/transport/manpower": workers.filter((m) => needsReview(m.status)).length,
     "/admin/listings": openListings(now).filter((l) => l.pendingSync).length,
   };
 
