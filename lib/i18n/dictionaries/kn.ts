@@ -4,7 +4,7 @@ import type { Dictionary } from "./en";
 export const kn: Dictionary = {
   nav: {
     howItWorks: "ಇದು ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ",
-    pricing: "ಬೆಲೆ ನಿಗದಿ",
+    pricing: "ಚಂದಾದಾರಿಕೆ",
     languages: "ಭಾಷೆಗಳು",
     forFarmers: "ರೈತರಿಗಾಗಿ",
     forBuyers: "ಖರೀದಿದಾರರಿಗಾಗಿ",

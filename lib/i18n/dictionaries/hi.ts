@@ -4,7 +4,7 @@ import type { Dictionary } from "./en";
 export const hi: Dictionary = {
   nav: {
     howItWorks: "यह कैसे काम करता है",
-    pricing: "दाम कैसे तय होते हैं",
+    pricing: "सदस्यता",
     languages: "भाषाएँ",
     forFarmers: "किसानों के लिए",
     forBuyers: "खरीदारों के लिए",

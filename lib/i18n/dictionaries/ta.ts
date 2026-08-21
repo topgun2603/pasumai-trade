@@ -10,7 +10,7 @@ import type { Dictionary } from "./en";
 export const ta: Dictionary = {
   nav: {
     howItWorks: "எப்படி இயங்குகிறது",
-    pricing: "விலை நிர்ணயம்",
+    pricing: "சந்தா",
     languages: "மொழிகள்",
     forFarmers: "விவசாயிகளுக்கு",
     forBuyers: "வாங்குபவர்களுக்கு",

@@ -4,7 +4,7 @@ import type { Dictionary } from "./en";
 export const ml: Dictionary = {
   nav: {
     howItWorks: "എങ്ങനെ പ്രവർത്തിക്കുന്നു",
-    pricing: "വില നിർണയം",
+    pricing: "സബ്‌സ്‌ക്രിപ്ഷൻ",
     languages: "ഭാഷകൾ",
     forFarmers: "കർഷകർക്കായി",
     forBuyers: "വാങ്ങുന്നവർക്കായി",

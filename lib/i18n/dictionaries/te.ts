@@ -4,7 +4,7 @@ import type { Dictionary } from "./en";
 export const te: Dictionary = {
   nav: {
     howItWorks: "ఇది ఎలా పనిచేస్తుంది",
-    pricing: "ధర నిర్ణయం",
+    pricing: "చందా",
     languages: "భాషలు",
     forFarmers: "రైతుల కోసం",
     forBuyers: "కొనుగోలుదారుల కోసం",

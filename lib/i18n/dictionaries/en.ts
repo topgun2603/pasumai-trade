@@ -8,7 +8,7 @@
 export const en = {
   nav: {
     howItWorks: "How it works",
-    pricing: "Pricing",
+    pricing: "Subscription",
     languages: "Languages",
     forFarmers: "For farmers",
     forBuyers: "For buyers",
