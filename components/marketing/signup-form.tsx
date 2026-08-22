@@ -234,7 +234,7 @@ export function SignUpForm({
     // Same reason as the sign-in form: a different root layout, so this is a
     // document load either way.
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-    if (sent || signedInOk) window.location.assign("/profile");
+    if (sent || signedInOk) window.location.assign(`/profile?as=${initial}`);
   }
 
   if (created) {

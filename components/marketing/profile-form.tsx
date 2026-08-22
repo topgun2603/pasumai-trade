@@ -78,6 +78,7 @@ interface Values {
 
 export function ProfileForm({
   mobile,
+  chosen,
 }: {
   /**
    * The proven handset, or empty.
@@ -88,9 +89,17 @@ export function ProfileForm({
    * `app/api/auth/profile/route.ts`.
    */
   mobile: string;
+  /**
+   * The door they came through, when there was one.
+   *
+   * Sign-in and signup both start at a door — Farmer, Buyer, Transport — so by
+   * the time anybody reaches this form the question has been answered once
+   * already. Asking a second time reads as not having listened.
+   */
+  chosen?: SignupRole;
 }) {
   const [values, setValues] = useState<Values>({
-    role: "",
+    role: chosen ?? "",
     name: "",
     mobile: "",
     email: "",
@@ -221,38 +230,63 @@ export function ProfileForm({
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-5" noValidate>
-      <fieldset className="flex flex-col gap-2">
-        <legend className="mb-2 text-sm font-medium">
-          What are you registering as?
-        </legend>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {SELF_SIGNUP_ROLES.map((role) => {
-            const chosen = values.role === role;
-            return (
-              <button
-                key={role}
-                type="button"
-                onClick={() => set("role", role)}
-                aria-pressed={chosen}
-                className={cn(
-                  "flex flex-col gap-0.5 rounded-lg border p-3 text-left transition-colors",
-                  chosen ? "border-primary bg-accent" : "hover:bg-accent/50",
-                )}
-              >
-                <span className="text-sm font-medium">
-                  {ROLE_LABEL[role].label}
-                </span>
-                <span className="text-muted-foreground text-xs">
-                  {ROLE_LABEL[role].blurb}
-                </span>
-              </button>
-            );
-          })}
+      {/*
+        Shown, not asked, when the door already said so — and still changeable,
+        because nothing stops somebody registering as something else and a
+        one-way choice made three screens ago is a trap.
+      */}
+      {chosen && values.role === chosen ? (
+        <div className="border-border bg-secondary flex items-start gap-3 rounded-lg border p-3">
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5 leading-tight">
+            <span className="text-sm font-medium">
+              {ROLE_LABEL[chosen].label}
+            </span>
+            <span className="text-muted-foreground text-xs">
+              {ROLE_LABEL[chosen].blurb}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => set("role", "")}
+            className="text-primary shrink-0 text-xs underline-offset-2 hover:underline"
+          >
+            Change
+          </button>
         </div>
-        {errors.role ? (
-          <p className="text-destructive text-sm">{errors.role}</p>
-        ) : null}
-      </fieldset>
+      ) : (
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-2 text-sm font-medium">
+            What are you registering as?
+          </legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {SELF_SIGNUP_ROLES.map((role) => {
+              const active = values.role === role;
+              return (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => set("role", role)}
+                  aria-pressed={active}
+                  className={cn(
+                    "flex flex-col gap-0.5 rounded-lg border p-3 text-left transition-colors",
+                    active ? "border-primary bg-accent" : "hover:bg-accent/50",
+                  )}
+                >
+                  <span className="text-sm font-medium">
+                    {ROLE_LABEL[role].label}
+                  </span>
+                  <span className="text-muted-foreground text-xs">
+                    {ROLE_LABEL[role].blurb}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {errors.role ? (
+            <p className="text-destructive text-sm">{errors.role}</p>
+          ) : null}
+        </fieldset>
+      )}
 
       <Field
         id="name"

@@ -158,7 +158,7 @@ export function SignInForm({
       layout, so crossing to it is an MPA navigation whichever API asks for it.
     */
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-    window.location.assign("/profile");
+    window.location.assign(`/profile?as=${audience}`);
   }
 
   function land(role: string | undefined) {
