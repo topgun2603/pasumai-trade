@@ -65,15 +65,21 @@ export function LanguageSwitcher({
 
     rememberLocale(next);
 
-    // Swap the first path segment; everything after it is locale-independent.
+    /*
+      Swap the first path segment only where there is one to swap.
+
+      The public site carries the locale in the path — `/ta/pricing`. The
+      consoles do not, and inserting one turned `/farm` into `/ta/farm`, which
+      is not a route: changing language inside the farmer console produced a
+      404. On those surfaces the cookie is the whole mechanism and a refresh is
+      enough, because the server reads it on the next render.
+    */
     const segments = pathname.split("/");
     if (isLocale(segments[1])) {
       segments[1] = next;
-    } else {
-      segments.splice(1, 0, next);
+      router.push(segments.join("/") || `/${next}`);
     }
 
-    router.push(segments.join("/") || `/${next}`);
     router.refresh();
   }
 

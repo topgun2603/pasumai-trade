@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { ServiceWorker } from "@/components/console/service-worker";
 import { ConsoleTour } from "@/components/console/tour";
 import { FarmNav } from "@/components/farm/farm-nav";
 import { requireFarmer } from "@/lib/auth/farm";
@@ -76,6 +77,10 @@ export default async function FarmLayout({
           console page; it rides the same parallel batch as the notification
           feed, so it costs a read rather than a round trip. */}
       {tour ? <ConsoleTour tour={tour} /> : null}
+
+      {/* Makes this console installable, and gives it a page to show when the
+          signal goes. See components/console/service-worker.tsx. */}
+      <ServiceWorker />
     </div>
   );
 }
