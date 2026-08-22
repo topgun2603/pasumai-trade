@@ -16,10 +16,12 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { MobileOtpForm } from "@/components/marketing/mobile-otp-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
+import { HOME_FOR_ROLE } from "@/lib/auth/claims";
 import { sendVerificationEmail, signIn } from "@/lib/auth/sign-in";
 import {
   validateCredentials,
@@ -144,6 +146,14 @@ export function SignUpForm({
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
+  /*
+    Mobile is the default door for a farmer and the second one for everybody
+    else — a business registering has an email and expects to use it, a grower
+    has a handset.
+  */
+  const [method, setMethod] = useState<"otp" | "password">(
+    initial === "farmer" ? "otp" : "password",
+  );
 
   const door = DOORS[initial];
   const isFarmer = initial === "farmer";
@@ -330,8 +340,45 @@ export function SignUpForm({
         </span>
       </div>
 
-      <form onSubmit={submit} noValidate className="flex flex-col gap-4">
-        {/*
+      {/*
+        Mobile first, for the same reason sign-in leads with it: a farmer has a
+        handset and often no email habit, and an OTP proves the number rather
+        than merely collecting it.
+
+        The same operation as signing in — Firebase creates the user when the
+        number is unknown — so a new number lands at the profile step and a
+        known one goes to its console. Which of the two is decided by the
+        result, not by which page they started on.
+      */}
+      {method === "otp" ? (
+        <MobileOtpForm
+          containerId="signup-recaptcha"
+          labels={{
+            mobile: "Mobile number",
+            code: "Six-digit code",
+            send: "Send one-time code",
+            sending: "Sending…",
+            submit: "Verify and continue",
+            submitting: "Checking…",
+          }}
+          onDone={(result) => {
+            if (result.needsProfile || !result.role) {
+              // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+              window.location.assign(`/profile?as=${initial}`);
+              return;
+            }
+            // A number that already has an account: this was a sign-in.
+            // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+            window.location.assign(
+              result.role in HOME_FOR_ROLE
+                ? HOME_FOR_ROLE[result.role as keyof typeof HOME_FOR_ROLE]
+                : "/",
+            );
+          }}
+        />
+      ) : (
+        <form onSubmit={submit} noValidate className="flex flex-col gap-4">
+          {/*
           Only what it takes to open a login.
 
           Name, mobile and address used to be here — seven fields before the
@@ -340,39 +387,66 @@ export function SignUpForm({
           registration abandoned halfway leaves a login they can come back to
           rather than nothing at all.
         */}
-        <Field id="email" label="Email" error={errors.email}>
-          <Input
-            id="email"
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            placeholder="you@company.in"
-            value={values.email}
-            onChange={(e) => set("email", e.target.value)}
-            aria-invalid={Boolean(errors.email)}
-          />
-        </Field>
+          <Field id="email" label="Email" error={errors.email}>
+            <Input
+              id="email"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              placeholder="you@company.in"
+              value={values.email}
+              onChange={(e) => set("email", e.target.value)}
+              aria-invalid={Boolean(errors.email)}
+            />
+          </Field>
 
-        <Field
-          id="password"
-          label="Password"
-          error={errors.password}
-          hint="At least 8 characters, with a capital letter, a number and a symbol."
-        >
-          <PasswordInput
+          <Field
             id="password"
-            autoComplete="new-password"
-            value={values.password}
-            onChange={(e) => set("password", e.target.value)}
-            aria-invalid={Boolean(errors.password)}
-          />
-        </Field>
+            label="Password"
+            error={errors.password}
+            hint="At least 8 characters, with a capital letter, a number and a symbol."
+          >
+            <PasswordInput
+              id="password"
+              autoComplete="new-password"
+              value={values.password}
+              onChange={(e) => set("password", e.target.value)}
+              aria-invalid={Boolean(errors.password)}
+            />
+          </Field>
 
-        <Button type="submit" disabled={submitting} className="mt-1">
-          {submitting ? "Creating account…" : "Create account"}
-          {!submitting ? <ArrowRightIcon className="size-4" /> : null}
-        </Button>
-      </form>
+          <Button type="submit" disabled={submitting} className="mt-1">
+            {submitting ? "Creating account…" : "Create account"}
+            {!submitting ? <ArrowRightIcon className="size-4" /> : null}
+          </Button>
+        </form>
+      )}
+
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <span className="bg-border h-px flex-1" />
+          <span className="text-faint text-xs">or</span>
+          <span className="bg-border h-px flex-1" />
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setMethod((m) => (m === "otp" ? "password" : "otp"))}
+          className="border-border hover:bg-secondary focus-visible:ring-ring flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
+        >
+          {method === "otp" ? (
+            <>
+              <MailIcon className="size-4" />
+              Use email and password instead
+            </>
+          ) : (
+            <>
+              <SmartphoneIcon className="size-4" />
+              Register with your mobile instead
+            </>
+          )}
+        </button>
+      </div>
 
       <div className="flex flex-col gap-2">
         <span className="text-muted-foreground text-xs">
