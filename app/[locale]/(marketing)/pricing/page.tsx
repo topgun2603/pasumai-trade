@@ -15,7 +15,7 @@ import {
   FREE_CAPABILITIES,
   STANDARD_TERMS,
 } from "@/lib/domain/subscription";
-import { isLocale } from "@/lib/i18n";
+import { getDictionary, isLocale } from "@/lib/i18n";
 
 export async function generateMetadata({
   params,
@@ -38,6 +38,8 @@ export default async function PricingPage({
 }) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
+
+  const dictionary = getDictionary(locale);
 
   const ladder = STANDARD_TERMS.filter((t) => !t.highlight);
   const lifetime = STANDARD_TERMS.find((t) => t.highlight)!;
@@ -227,7 +229,9 @@ export default async function PricingPage({
       <div className="flex flex-wrap items-center gap-3">
         <Button asChild size="lg">
           <Link href={`/${locale}/signup?as=farmer`}>
-            Register free
+            {/* From the dictionary, like the header's. Written out here, this
+                button stayed English in all six languages. */}
+            {dictionary.nav.registerNew}
             <ArrowRightIcon className="size-4" />
           </Link>
         </Button>

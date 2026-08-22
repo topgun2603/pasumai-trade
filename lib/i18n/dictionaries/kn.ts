@@ -10,7 +10,7 @@ export const kn: Dictionary = {
     forBuyers: "ಖರೀದಿದಾರರಿಗಾಗಿ",
     coverage: "ಸೇವಾ ಪ್ರದೇಶ",
     signIn: "ಸೈನ್ ಇನ್",
-    registerFree: "ಉಚಿತವಾಗಿ ನೋಂದಾಯಿಸಿ",
+    registerNew: "ಹೊಸ ನೋಂದಣಿ",
     menu: "ಮೆನು",
     language: "ಭಾಷೆ",
     theme: "ಬಣ್ಣದ ಶೈಲಿ",
@@ -276,7 +276,7 @@ export const kn: Dictionary = {
     joinTitle: "ಯಾರು ಬೇಕಾದರೂ ನೋಂದಾಯಿಸಬಹುದು.",
     joinBody:
       "ಮಾರುಕಟ್ಟೆ ನೋಡುವುದು ಉಚಿತ. ಬೆಳೆ ಹಾಕಲು, ಚೌಕಾಸಿ ಮಾಡಲು, ಸಾಗಣೆ ಏರ್ಪಡಿಸಲು ಯೋಜನೆ ಬೇಕು.",
-    registerCta: "ಉಚಿತವಾಗಿ ನೋಂದಾಯಿಸಿ",
+    registerCta: "ಹೊಸ ನೋಂದಣಿ",
     seePlans: "ಯೋಜನೆಗಳನ್ನು ನೋಡಿ",
 
     terms: "ನಿಯಮಗಳು",

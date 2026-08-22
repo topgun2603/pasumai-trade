@@ -10,7 +10,7 @@ export const ml: Dictionary = {
     forBuyers: "വാങ്ങുന്നവർക്കായി",
     coverage: "സേവന മേഖല",
     signIn: "സൈൻ ഇൻ",
-    registerFree: "സൗജന്യമായി രജിസ്റ്റർ ചെയ്യുക",
+    registerNew: "പുതിയ രജിസ്ട്രേഷൻ",
     menu: "മെനു",
     language: "ഭാഷ",
     theme: "നിറ ശൈലി",
@@ -276,7 +276,7 @@ export const ml: Dictionary = {
     joinTitle: "ആർക്കും രജിസ്റ്റർ ചെയ്യാം.",
     joinBody:
       "മാർക്കറ്റ് കാണുന്നത് സൗജന്യമാണ്. വിള ഇടാനും വിലപേശാനും വാഹനം ഏർപ്പാടാക്കാനും പ്ലാൻ വേണം.",
-    registerCta: "സൗജന്യമായി രജിസ്റ്റർ ചെയ്യുക",
+    registerCta: "പുതിയ രജിസ്ട്രേഷൻ",
     seePlans: "പ്ലാനുകൾ കാണുക",
 
     terms: "നിബന്ധനകൾ",

@@ -128,11 +128,11 @@ export function SiteHeader({
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <LanguageSwitcher current={locale} label={t.common.changeLanguage} />
           <ThemeToggle label={t.nav.theme} />
-          {/* "Register free" is two words in English and five in Tamil, so the
+          {/* "Register New" is two words in English and more in every other
               button is allowed to size to its text rather than wrap inside a
               fixed-height bar. */}
           <Button asChild className="hidden whitespace-nowrap md:inline-flex">
-            <Link href={`/${locale}/signup?as=farmer`}>{t.nav.registerFree}</Link>
+            <Link href={`/${locale}/signup?as=farmer`}>{t.nav.registerNew}</Link>
           </Button>
           <Button
             variant="outline"
@@ -176,7 +176,7 @@ export function SiteHeader({
                 everyone work out which they are afterwards. */}
             <Button asChild>
               <Link href={`/${locale}/signup?as=farmer`} onClick={() => setOpen(false)}>
-                {t.nav.registerFree}
+                {t.nav.registerNew}
               </Link>
             </Button>
           </div>

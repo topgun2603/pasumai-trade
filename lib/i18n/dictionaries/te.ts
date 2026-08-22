@@ -10,7 +10,7 @@ export const te: Dictionary = {
     forBuyers: "కొనుగోలుదారుల కోసం",
     coverage: "సేవా ప్రాంతం",
     signIn: "సైన్ ఇన్",
-    registerFree: "ఉచితంగా నమోదు చేసుకోండి",
+    registerNew: "కొత్త నమోదు",
     menu: "మెనూ",
     language: "భాష",
     theme: "రంగు థీమ్",
@@ -276,7 +276,7 @@ export const te: Dictionary = {
     joinTitle: "ఎవరైనా నమోదు చేసుకోవచ్చు.",
     joinBody:
       "మార్కెట్ చూడటం ఉచితం. పంట పెట్టడానికి, బేరమాడటానికి, రవాణా ఏర్పాటుకు ప్లాన్ కావాలి.",
-    registerCta: "ఉచితంగా నమోదు చేసుకోండి",
+    registerCta: "కొత్త నమోదు",
     seePlans: "ప్లాన్‌లు చూడండి",
 
     terms: "నిబంధనలు",

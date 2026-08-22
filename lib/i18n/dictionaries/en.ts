@@ -14,7 +14,7 @@ export const en = {
     forBuyers: "For buyers",
     coverage: "Coverage",
     signIn: "Sign in",
-    registerFree: "Register free",
+    registerNew: "Register New",
     menu: "Menu",
     language: "Language",
     theme: "Colour theme",
@@ -282,7 +282,7 @@ export const en = {
     joinTitle: "Anyone can register.",
     joinBody:
       "Browsing the market is free. Posting produce, bargaining and booking transport need a plan.",
-    registerCta: "Register free",
+    registerCta: "Register New",
     seePlans: "See plans",
 
     terms: "Terms",

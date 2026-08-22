@@ -10,7 +10,7 @@ export const hi: Dictionary = {
     forBuyers: "खरीदारों के लिए",
     coverage: "सेवा क्षेत्र",
     signIn: "साइन इन",
-    registerFree: "मुफ़्त रजिस्टर करें",
+    registerNew: "नया पंजीकरण",
     menu: "मेन्यू",
     language: "भाषा",
     theme: "रंग शैली",
@@ -275,7 +275,7 @@ export const hi: Dictionary = {
     joinTitle: "कोई भी पंजीकरण कर सकता है।",
     joinBody:
       "बाज़ार देखना मुफ़्त है। उपज डालने, मोल-भाव करने और वाहन बुक करने के लिए योजना चाहिए।",
-    registerCta: "मुफ़्त पंजीकरण करें",
+    registerCta: "नया पंजीकरण",
     seePlans: "योजनाएँ देखें",
 
     terms: "शर्तें",

@@ -121,7 +121,7 @@ export function Hero({
 
           <StaggerItem className="flex flex-wrap gap-3">
             <Button asChild size="lg">
-              <Link href={`/${locale}/signin`}>{t.nav.registerFree}</Link>
+              <Link href={`/${locale}/signin`}>{t.nav.registerNew}</Link>
             </Button>
             <Button asChild variant="outline" size="lg">
               <Link href={`/${locale}/signin`}>{t.nav.signIn}</Link>
