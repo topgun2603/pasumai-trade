@@ -3,6 +3,7 @@
 import {
   ArrowRightIcon,
   CheckCircle2Icon,
+  MailIcon,
   HardHatIcon,
   ShieldCheckIcon,
   SmartphoneIcon,
@@ -26,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { sendVerificationEmail, signIn } from "@/lib/auth/sign-in";
 import { INDIAN_STATES, districtsOf } from "@/lib/domain/india";
 import {
   validateSignup,
@@ -149,6 +151,7 @@ export function SignUpForm({
   >({});
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState<string | null>(null);
+  const [verificationSent, setVerificationSent] = useState(false);
 
   const door = DOORS[initial];
   const isFarmer = initial === "farmer";
@@ -221,7 +224,31 @@ export function SignUpForm({
       return;
     }
 
+    /*
+      Prove the address, now that there is an account behind it.
+
+      The account was created by the Admin SDK on the server, which can generate
+      a verification link but cannot deliver one. Signing in here hands the
+      browser a Firebase user, and the browser can ask Firebase to send the
+      email itself — no provider to configure and nothing billed per message.
+
+      Failures are shown but do not undo anything. The account exists and works;
+      an unproven address is a thing to chase, not a reason to throw away a
+      registration somebody just completed.
+    */
+    let sent = false;
+    try {
+      const signedIn = await signIn(payload.email, payload.password);
+      if (signedIn.ok) {
+        const posted = await sendVerificationEmail();
+        sent = posted.ok;
+      }
+    } catch {
+      // Same reasoning: the account is real either way.
+    }
+
     setSubmitting(false);
+    setVerificationSent(sent);
     setCreated(data.accountId ?? null);
   }
 
@@ -238,6 +265,33 @@ export function SignUpForm({
               them.
             </p>
           </div>
+        </div>
+
+        {/*
+          Said here rather than in a toast that vanishes. Somebody who does not
+          see this line will not know to look in their inbox, and an address
+          nobody proves is one operations has to chase by telephone.
+        */}
+        <div className="bg-secondary flex items-start gap-3 rounded-lg px-4 py-3.5">
+          <MailIcon className="text-muted-foreground mt-0.5 size-4 shrink-0" />
+          <p className="text-muted-foreground text-sm">
+            {verificationSent ? (
+              <>
+                We have sent a link to{" "}
+                <span className="text-foreground font-medium">
+                  {values.email}
+                </span>
+                . Open it to confirm the address is yours — you can sign in and
+                look around before you do.
+              </>
+            ) : (
+              <>
+                We could not send the confirmation email just now. Nothing is
+                wrong with the account — sign in and ask for it again from your
+                account page.
+              </>
+            )}
+          </p>
         </div>
 
         {/*

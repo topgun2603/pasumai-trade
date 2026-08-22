@@ -27,6 +27,7 @@ import {
   confirmPhoneCode,
   resetPhoneVerifier,
   signIn,
+  signInWithGoogle,
   startPhoneSignIn,
 } from "@/lib/auth/sign-in";
 import { checkMobile, toE164 } from "@/lib/domain/registration";
@@ -213,6 +214,26 @@ export function SignInForm({
       setSubmitting(false);
       setErrors({ password: result.error });
       toast.error(result.error ?? "Could not sign in.");
+      return;
+    }
+
+    if (result.needsProfile) {
+      landNewUser();
+      return;
+    }
+
+    land(result.role);
+  }
+
+  async function withGoogle() {
+    setSubmitting(true);
+    setErrors({});
+
+    const result = await signInWithGoogle();
+
+    if (!result.ok) {
+      setSubmitting(false);
+      toast.error(result.error ?? "Could not sign in with Google.");
       return;
     }
 
@@ -449,6 +470,29 @@ export function SignInForm({
       {/* Where the invisible reCAPTCHA mounts. Firebase will not send an SMS
           without it and it needs a real element in the document, so it lives
           here rather than being conjured on demand. */}
+      {/*
+        A third door, and the only one that proves an email.
+
+        Placed after the two credential forms rather than above them: this is an
+        alternative for somebody who has a Google account, not the recommended
+        route for a farmer with a handset and no email habit.
+      */}
+      <div className="flex items-center gap-3">
+        <span className="bg-border h-px flex-1" />
+        <span className="text-faint text-xs">or</span>
+        <span className="bg-border h-px flex-1" />
+      </div>
+
+      <button
+        type="button"
+        disabled={submitting}
+        onClick={withGoogle}
+        className="border-border hover:bg-secondary focus-visible:ring-ring flex items-center justify-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:opacity-60"
+      >
+        <GoogleMark />
+        Continue with Google
+      </button>
+
       <div id="recaptcha-holder" />
 
       <button
@@ -527,5 +571,35 @@ export function SignInForm({
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Google's mark, drawn rather than fetched.
+ *
+ * Their brand guidelines require the four-colour G exactly as issued, and an
+ * <img> to a Google CDN would be a third-party request on the sign-in page and
+ * a broken button the day that URL moves.
+ */
+function GoogleMark() {
+  return (
+    <svg viewBox="0 0 48 48" aria-hidden className="size-4 shrink-0">
+      <path
+        fill="#4285F4"
+        d="M45.1 24.5c0-1.6-.1-3.2-.4-4.7H24v8.9h11.8a10 10 0 0 1-4.4 6.6v5.5h7.1c4.2-3.8 6.6-9.5 6.6-16.3Z"
+      />
+      <path
+        fill="#34A853"
+        d="M24 46c6 0 11-2 14.5-5.2l-7.1-5.5c-2 1.3-4.5 2.1-7.4 2.1-5.7 0-10.6-3.9-12.3-9.1H4.3v5.7A22 22 0 0 0 24 46Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M11.7 28.3a13.2 13.2 0 0 1 0-8.6v-5.7H4.3a22 22 0 0 0 0 20l7.4-5.7Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M24 9.5c3.2 0 6.1 1.1 8.4 3.3l6.3-6.3C34.9 2.9 30 1 24 1A22 22 0 0 0 4.3 14l7.4 5.7c1.7-5.2 6.6-9.1 12.3-9.1Z"
+      />
+    </svg>
   );
 }

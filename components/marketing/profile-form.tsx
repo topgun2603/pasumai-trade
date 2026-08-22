@@ -69,6 +69,7 @@ const ROLE_LABEL: Record<
 interface Values {
   role: string;
   name: string;
+  mobile: string;
   email: string;
   state: string;
   district: string;
@@ -80,6 +81,14 @@ export function ProfileForm({
   mobile,
   locale,
 }: {
+  /**
+   * The proven handset, or empty.
+   *
+   * An OTP sign-in arrives with one and it is shown rather than asked for. A
+   * Google sign-in proves an email and no handset at all, so the field appears
+   * and what they type is recorded as unverified — see the note in
+   * `app/api/auth/profile/route.ts`.
+   */
   mobile: string;
   locale: Locale;
 }) {
@@ -87,6 +96,7 @@ export function ProfileForm({
   const [values, setValues] = useState<Values>({
     role: "",
     name: "",
+    mobile: "",
     email: "",
     state: "",
     district: "",
@@ -247,16 +257,38 @@ export function ProfileForm({
         />
       </Field>
 
-      {/* Shown, not asked. This is the number the code was sent to. */}
-      <div className="flex flex-col gap-1.5">
-        <Label>Mobile number</Label>
-        <div className="bg-muted text-muted-foreground flex h-9 items-center rounded-md border px-3 text-sm">
-          {mobile}
-          <span className="text-success ml-auto text-xs font-medium">
-            Verified
-          </span>
+      {/*
+        Shown when it is proven, asked for when it is not.
+
+        An OTP sign-in arrives holding the number, so it is displayed rather
+        than asked for — a field they could edit would not be the one they
+        proved. Google proves an email and no handset, so the field appears and
+        what they type is recorded as unverified. Being a field rather than a
+        confirmation is itself the honest signal.
+      */}
+      {mobile ? (
+        <div className="flex flex-col gap-1.5">
+          <Label>Mobile number</Label>
+          <div className="bg-muted text-muted-foreground flex h-9 items-center rounded-md border px-3 text-sm">
+            {mobile}
+            <span className="text-success ml-auto text-xs font-medium">
+              Verified
+            </span>
+          </div>
         </div>
-      </div>
+      ) : (
+        <Field id="mobile" label="Mobile number" error={errors.mobile}>
+          <Input
+            id="mobile"
+            inputMode="numeric"
+            maxLength={10}
+            placeholder="98430 11204"
+            value={values.mobile}
+            onChange={(e) => set("mobile", e.target.value)}
+            aria-invalid={Boolean(errors.mobile)}
+          />
+        </Field>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field id="state" label="State" error={errors.state}>

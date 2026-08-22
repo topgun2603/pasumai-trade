@@ -39,12 +39,16 @@ export default async function RegisterPage({
   if (full) redirect(HOME_FOR_ROLE[full.claims.role]);
 
   const pending = await readPendingSession();
-  if (!pending?.phone) redirect(`/${locale}/signin`);
+  // A session is enough; a handset is not required. Google proves an email and
+  // no number, and the form asks for one in that case.
+  if (!pending) redirect(`/${locale}/signin`);
 
   // `+919843011204` reads as a phone number to nobody. Shown the way it was
   // typed into the box upstairs.
-  const digits = pending.phone.replace(/\D/g, "").slice(-10);
-  const readable = `${digits.slice(0, 5)} ${digits.slice(5)}`;
+  const digits = pending.phone
+    ? pending.phone.replace(/\D/g, "").slice(-10)
+    : "";
+  const readable = digits ? `${digits.slice(0, 5)} ${digits.slice(5)}` : "";
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-8 px-5 py-16">
@@ -53,9 +57,13 @@ export default async function RegisterPage({
           <BrandMark className="size-6" />
         </span>
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Tell us who you are</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Tell us who you are
+          </h1>
           <p className="text-muted-foreground text-sm">
-            Your number is confirmed. This is the last step, and it takes a minute.
+            {digits
+              ? "Your number is confirmed. This is the last step, and it takes a minute."
+              : "Your email is confirmed. This is the last step, and it takes a minute."}
           </p>
         </div>
       </div>

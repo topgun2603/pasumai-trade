@@ -1,10 +1,13 @@
 "use client";
 
 import {
+  GoogleAuthProvider,
   RecaptchaVerifier,
+  sendEmailVerification,
   setPersistence,
   signInWithEmailAndPassword,
   signInWithPhoneNumber,
+  signInWithPopup,
   inMemoryPersistence,
   type ConfirmationResult,
 } from "firebase/auth";
@@ -50,6 +53,18 @@ function readable(code: string): string {
       return "Too many attempts. Wait a few minutes and try again.";
     case "auth/network-request-failed":
       return "Could not reach the server. Check your connection.";
+    case "auth/operation-not-allowed":
+      // The provider is switched off in the Firebase console. Said plainly
+      // because nobody signing in can fix it, and the alternative is a generic
+      // failure that looks like their fault.
+      return "That way of signing in is not switched on for this project yet.";
+    case "auth/popup-closed-by-user":
+    case "auth/cancelled-popup-request":
+      return "The Google window closed before sign-in finished.";
+    case "auth/popup-blocked":
+      return "Your browser blocked the Google window. Allow pop-ups and try again.";
+    case "auth/account-exists-with-different-credential":
+      return "That email already has an account here. Sign in with your password instead.";
     case "auth/invalid-api-key":
     case "auth/configuration-not-found":
       return "Sign-in is not configured on this deployment.";
@@ -124,7 +139,10 @@ async function exchange(idToken: string): Promise<SignInResult> {
     return { ok: false, error: detail ?? "Could not start a session." };
   }
 
-  const body = (await response.json()) as { role?: string; needsProfile?: boolean };
+  const body = (await response.json()) as {
+    role?: string;
+    needsProfile?: boolean;
+  };
   if (body.needsProfile) return { ok: true, needsProfile: true };
   return { ok: true, role: body.role };
 }
@@ -225,7 +243,11 @@ export async function startPhoneSignIn(
   try {
     const auth = firebaseAuth();
     await setPersistence(auth, inMemoryPersistence);
-    const confirmer = await signInWithPhoneNumber(auth, e164, recaptcha(containerId));
+    const confirmer = await signInWithPhoneNumber(
+      auth,
+      e164,
+      recaptcha(containerId),
+    );
     return { ok: true, confirmer };
   } catch (error) {
     // The verifier is single-use once a send has been attempted; keeping it
@@ -257,4 +279,85 @@ export async function confirmPhoneCode(
   }
 
   return exchange(idToken);
+}
+
+/* -------------------------------------------------------------------------
+   Google
+   ------------------------------------------------------------------------- */
+
+/**
+ * Sign in with a Google account.
+ *
+ * A popup rather than a redirect. A redirect loses the page, and this form
+ * holds a chosen door and a half-typed identifier that would be gone on the way
+ * back; the popup also keeps the in-memory Firebase user alive, which the
+ * registration step downstream depends on.
+ *
+ * Google proves an *email*, not a handset. A new account arriving this way has
+ * no phone number, so the profile step asks for one — see the note in
+ * `app/api/auth/profile/route.ts` about the difference between a number that
+ * was proven and one that was typed.
+ */
+export async function signInWithGoogle(): Promise<SignInResult> {
+  let idToken: string;
+
+  try {
+    const auth = firebaseAuth();
+    await setPersistence(auth, inMemoryPersistence);
+
+    const provider = new GoogleAuthProvider();
+    // Always ask which account. Without this, somebody already signed into one
+    // Google account in that browser is silently signed in as them — on a
+    // shared handset that is the wrong person's produce.
+    provider.setCustomParameters({ prompt: "select_account" });
+
+    const credential = await signInWithPopup(auth, provider);
+    idToken = await credential.user.getIdToken();
+  } catch (error) {
+    const code =
+      typeof error === "object" && error !== null && "code" in error
+        ? String((error as { code: unknown }).code)
+        : "";
+    return { ok: false, error: readable(code) };
+  }
+
+  return exchange(idToken);
+}
+
+/* -------------------------------------------------------------------------
+   Proving an email address
+   ------------------------------------------------------------------------- */
+
+/**
+ * Send the verification email Firebase writes and delivers itself.
+ *
+ * No provider to configure and nothing billed per message: this is the one
+ * email the platform can send today. The address is proven by the person
+ * clicking the link, and `emailVerified` on the Firebase user is what records
+ * it — the platform does not keep its own copy to drift.
+ *
+ * Requires a signed-in client, which is why registration signs in immediately
+ * after creating the account rather than sending the person to the sign-in
+ * page: the Admin SDK can *generate* a link but cannot deliver one.
+ */
+export async function sendVerificationEmail(): Promise<{
+  ok: boolean;
+  error?: string;
+}> {
+  const user = firebaseAuth().currentUser;
+  if (!user) return { ok: false, error: "Sign in first." };
+  if (user.emailVerified) return { ok: true };
+
+  try {
+    await sendEmailVerification(user);
+    return { ok: true };
+  } catch (error) {
+    const code =
+      typeof error === "object" && error !== null && "code" in error
+        ? String((error as { code: unknown }).code)
+        : "";
+    // `auth/too-many-requests` is the common one, and it means the email is
+    // already on its way rather than that anything is broken.
+    return { ok: false, error: readable(code) };
+  }
 }

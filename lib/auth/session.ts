@@ -135,6 +135,9 @@ export async function readPendingSession(): Promise<{
   uid: string;
   phone?: string;
   email?: string;
+  /** Google proves this on the way in; a password account does not, until the
+      person clicks the link the browser asked Firebase to send. */
+  emailVerified: boolean;
 } | null> {
   if (!hasAdminCredentials()) return null;
 
@@ -148,6 +151,9 @@ export async function readPendingSession(): Promise<{
       uid: decoded.uid,
       phone: decoded.phone_number as string | undefined,
       email: decoded.email,
+      // Google proves the address itself; a password sign-up does not until
+      // somebody clicks the link Firebase sent them.
+      emailVerified: decoded.email_verified === true,
     };
   } catch {
     return null;

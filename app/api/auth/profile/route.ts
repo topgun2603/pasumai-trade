@@ -8,7 +8,12 @@ import {
   type SignupForm,
 } from "@/lib/domain/signup";
 import { isDistrictOf, stateById } from "@/lib/domain/india";
-import { required, checkPincode, type FieldErrors } from "@/lib/domain/registration";
+import {
+  checkMobile,
+  checkPincode,
+  required,
+  type FieldErrors,
+} from "@/lib/domain/registration";
 import { readPendingSession } from "@/lib/auth/session";
 import { adminAuth, adminDb, hasAdminCredentials } from "@/lib/firebase/admin";
 
@@ -21,9 +26,18 @@ import { adminAuth, adminDb, hasAdminCredentials } from "@/lib/firebase/admin";
  *
  * ## What it will not take from the request
  *
- * The **mobile number** comes from the verified session, never the body. It is
- * the one fact already proven, and accepting a typed one would let somebody
- * register an account against a number they do not hold.
+ * ## The mobile number, and how much it is worth
+ *
+ * An OTP sign-in arrives holding a *proven* handset, and that number is taken
+ * from the token rather than the body — accepting a typed one there would let
+ * somebody register against a number they do not hold.
+ *
+ * A Google sign-in proves an email and no handset at all. Refusing those would
+ * mean the Google door only worked for people who had already signed in by SMS,
+ * which is nobody. So a typed number is accepted when there is nothing better,
+ * and `mobileVerified` records which of the two happened — operations can see
+ * the difference, and a later step can ask for an OTP without guessing whether
+ * one already happened.
  *
  * The **account id** is generated here, the **status** is always `pending`, and
  * the **role** is checked against `canSelfSignup` — so this endpoint cannot
@@ -56,18 +70,15 @@ export async function POST(request: Request) {
       { status: 401 },
     );
   }
-  if (!session.phone) {
-    return Response.json(
-      { error: "This sign-in has no mobile number attached.", code: "noPhone" },
-      { status: 403 },
-    );
-  }
 
   const auth = adminAuth();
   const existing = await auth.getUser(session.uid);
   if (existing.customClaims?.role) {
     return Response.json(
-      { error: "This login already has an account.", code: "alreadyRegistered" },
+      {
+        error: "This login already has an account.",
+        code: "alreadyRegistered",
+      },
       { status: 409 },
     );
   }
@@ -80,15 +91,24 @@ export async function POST(request: Request) {
   }
 
   const role = text(body.role, 20);
+
+  /*
+    `+919843011204` from an OTP token, stored as ten digits like every other
+    mobile here. Empty for a Google sign-in, which proves no handset.
+  */
+  const proven = session.phone
+    ? session.phone.replace(/\D/g, "").slice(-10)
+    : "";
+  const typed = text(body.mobile, 20).replace(/\D/g, "").slice(-10);
   const values = {
     role,
     name: text(body.name),
     contactName: text(body.contactName) || text(body.name),
     email: text(body.email).toLowerCase(),
     password: "",
-    // Proven, not typed. `+919843011204` from the token, stored as ten digits
-    // like every other mobile on the platform.
-    mobile: session.phone.replace(/\D/g, "").slice(-10),
+    // The proven number where there is one; otherwise whatever they typed,
+    // recorded below as unverified.
+    mobile: proven || typed,
     place: text(body.place),
     state: text(body.state, 60),
     district: text(body.district),
@@ -101,8 +121,12 @@ export async function POST(request: Request) {
     handset may not have one.
   */
   const errors: FieldErrors<SignupForm> = {
-    role: canSelfSignup(role) ? undefined : "Choose the kind of account you need.",
+    role: canSelfSignup(role)
+      ? undefined
+      : "Choose the kind of account you need.",
     name: required(values.name, "Name"),
+    // Only asked of somebody who has not already proven one.
+    mobile: proven ? undefined : checkMobile(typed),
     place: required(values.place, "Village or town"),
     state: stateById(values.state) ? undefined : "Choose your state",
     district: !values.district
@@ -116,7 +140,10 @@ export async function POST(request: Request) {
   const failed = Object.entries(errors).filter(([, message]) => message);
   if (failed.length > 0) {
     return Response.json(
-      { error: "Check the highlighted fields.", fields: Object.fromEntries(failed) },
+      {
+        error: "Check the highlighted fields.",
+        fields: Object.fromEntries(failed),
+      },
       { status: 422 },
     );
   }
@@ -126,17 +153,24 @@ export async function POST(request: Request) {
     folder for the same reason the roster endpoint checks its own: a path from a
     browser is otherwise a way to point a new account at somebody else's file.
   */
-  const photo = body.photo && typeof body.photo === "object" ? (body.photo as Record<string, unknown>) : null;
+  const photo =
+    body.photo && typeof body.photo === "object"
+      ? (body.photo as Record<string, unknown>)
+      : null;
   const photoPath = photo && typeof photo.path === "string" ? photo.path : "";
   if (photoPath && !photoPath.startsWith(`profiles/${session.uid}/`)) {
     return Response.json(
-      { error: "That upload does not belong to this sign-in.", code: "foreignUpload" },
+      {
+        error: "That upload does not belong to this sign-in.",
+        code: "foreignUpload",
+      },
       { status: 403 },
     );
   }
 
   const db = adminDb();
-  const collection = COLLECTION_FOR_SIGNUP[role as keyof typeof COLLECTION_FOR_SIGNUP];
+  const collection =
+    COLLECTION_FOR_SIGNUP[role as keyof typeof COLLECTION_FOR_SIGNUP];
   // Generated here, like the signup endpoint's, so an id can never arrive in
   // a request body and attach a new login to an existing account.
   const signupRole = role as Parameters<typeof newAccountId>[0];
@@ -147,8 +181,15 @@ export async function POST(request: Request) {
     ...accountFor(signupRole, accountId, values, now),
     ...(photoPath ? { photoUrl: photoPath } : {}),
     // How they got here, so operations can tell a self-registration from an
-    // account opened any other way.
-    registeredVia: "mobileOtp" as const,
+    // account opened any other way, and by which door.
+    registeredVia: proven ? ("mobileOtp" as const) : ("google" as const),
+    /*
+      Whether anybody has proved this handset. False for a Google sign-up, where
+      the number was typed into a form — the platform should not later treat
+      that as confirmation it never obtained.
+    */
+    mobileVerified: Boolean(proven),
+    emailVerified: Boolean(session.emailVerified),
   };
 
   await db.collection(collection).doc(accountId).set(record);
