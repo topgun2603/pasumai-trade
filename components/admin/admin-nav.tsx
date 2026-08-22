@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  MessageCircleIcon,
   BadgeCheckIcon,
   ArrowLeftRightIcon,
   BanknoteIcon,
@@ -56,6 +57,9 @@ const SECTIONS: Array<{ title?: string; links: NavLink[] }> = [
   {
     title: "Accounts",
     links: [
+      // Above KYC on purpose: somebody typing into the chat is waiting on a
+      // reply now, while a document has been told two working days.
+      { href: "/admin/chat", label: "Chat", icon: MessageCircleIcon },
       { href: "/admin/kyc", label: "KYC review", icon: BadgeCheckIcon },
       { href: "/admin/buyers", label: "Buyers", icon: UserRoundIcon },
       // Its own entry since the two were separated. Without it three real
@@ -68,7 +72,11 @@ const SECTIONS: Array<{ title?: string; links: NavLink[] }> = [
   {
     title: "Transportation",
     links: [
-      { href: "/admin/transport/agencies", label: "Agencies", icon: BuildingIcon },
+      {
+        href: "/admin/transport/agencies",
+        label: "Agencies",
+        icon: BuildingIcon,
+      },
       {
         href: "/admin/transport/drivers",
         label: "Drivers",
@@ -86,7 +94,11 @@ const SECTIONS: Array<{ title?: string; links: NavLink[] }> = [
     title: "Trade",
     links: [
       // Revenue was the one thing this console could not see at all.
-      { href: "/admin/subscriptions", label: "Subscriptions", icon: BanknoteIcon },
+      {
+        href: "/admin/subscriptions",
+        label: "Subscriptions",
+        icon: BanknoteIcon,
+      },
       { href: "/admin/listings", label: "Listings", icon: ClipboardListIcon },
       {
         href: "/admin/controls",
@@ -96,7 +108,6 @@ const SECTIONS: Array<{ title?: string; links: NavLink[] }> = [
     ],
   },
 ];
-
 
 export function AdminNav({ pending }: { pending: PendingCounts }) {
   const pathname = usePathname();

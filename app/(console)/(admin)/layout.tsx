@@ -5,8 +5,15 @@ import { ConsoleTopBar } from "@/components/console/top-bar";
 import { CONSOLES, CONSOLE_KINDS } from "@/lib/domain/console-kinds";
 import { requireConsole } from "@/lib/auth/require";
 import { needsReview } from "@/lib/domain/admin";
+import { readThreads } from "@/lib/firebase/chat-store";
 import { readKycAccounts } from "@/lib/firebase/kyc-read";
-import { readBuyerAccounts, readDrivers, readFarmerAccounts, readVehicles, readWorkers } from "@/lib/firebase/roster-read";
+import {
+  readBuyerAccounts,
+  readDrivers,
+  readFarmerAccounts,
+  readVehicles,
+  readWorkers,
+} from "@/lib/firebase/roster-read";
 import { openListings } from "@/lib/mock/listings";
 
 /**
@@ -16,7 +23,11 @@ import { openListings } from "@/lib/mock/listings";
  * shows the same queue depth from wherever you are standing. Once Firestore
  * lands these become aggregation reads, not a scan.
  */
-export default async function AdminLayout({ children }: { children: ReactNode }) {
+export default async function AdminLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const session = await requireConsole(["admin"]);
   const now = new Date();
 
@@ -36,6 +47,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   */
   const [
     kycAccounts,
+    chatThreads,
     buyers,
     farmers,
     drivers,
@@ -43,6 +55,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     workers,
   ] = await Promise.all([
     readKycAccounts(),
+    readThreads(),
     readBuyerAccounts(),
     readFarmerAccounts(),
     readDrivers(),
@@ -56,14 +69,21 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     0,
   );
 
+  // Nobody has answered these, and the person who wrote them is waiting.
+  const chatWaiting = chatThreads.filter((thread) => !thread.answeredAt).length;
+
   const pending = {
-    "/admin/notifications": kycWaiting,
+    "/admin/notifications": kycWaiting + chatWaiting,
+    "/admin/chat": chatWaiting,
     "/admin/kyc": kycWaiting,
     "/admin/buyers": buyers.filter((a) => needsReview(a.status)).length,
     "/admin/farmers": farmers.filter((a) => needsReview(a.status)).length,
-    "/admin/transport/drivers": drivers.filter((a) => needsReview(a.status)).length,
-    "/admin/transport/vehicles": vehicles.filter((v) => needsReview(v.status)).length,
-    "/admin/transport/manpower": workers.filter((m) => needsReview(m.status)).length,
+    "/admin/transport/drivers": drivers.filter((a) => needsReview(a.status))
+      .length,
+    "/admin/transport/vehicles": vehicles.filter((v) => needsReview(v.status))
+      .length,
+    "/admin/transport/manpower": workers.filter((m) => needsReview(m.status))
+      .length,
     "/admin/listings": openListings(now).filter((l) => l.pendingSync).length,
   };
 

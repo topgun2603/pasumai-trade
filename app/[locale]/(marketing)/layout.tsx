@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { ChatWidget } from "@/components/marketing/chat-widget";
 import { SiteFooter } from "@/components/marketing/site-footer";
 import { LoginStrip } from "@/components/marketing/login-strip";
 import { SiteHeader } from "@/components/marketing/site-header";
@@ -32,6 +33,12 @@ export default async function MarketingLayout({
       </SiteHeader>
       <main className="flex-1">{children}</main>
       <SiteFooter locale={locale} t={t} />
+      {/*
+        On the layout rather than the landing page, so a question can be asked
+        from wherever it occurs to somebody — the pricing page and the coverage
+        map raise as many as the front door does.
+      */}
+      <ChatWidget />
     </div>
   );
 }

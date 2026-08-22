@@ -1,8 +1,14 @@
 import "server-only";
 
+import { cache } from "react";
+
 import type { Geography } from "@/lib/domain/location";
 import type { Produce } from "@/lib/domain/models";
-import { readPolicy, POLICY_DOC_ID, type PlatformPolicy } from "@/lib/domain/policy";
+import {
+  readPolicy,
+  POLICY_DOC_ID,
+  type PlatformPolicy,
+} from "@/lib/domain/policy";
 import type { DocumentRule, Pack, Phrase } from "@/lib/mock/reference";
 
 import { adminDb, hasAdminCredentials } from "./admin";
@@ -54,17 +60,25 @@ export async function readControls(
 
   try {
     const db = adminDb();
-    const [produce, states, districts, places, packs, phrases, rules, settings] =
-      await Promise.all([
-        db.collection("produce").get(),
-        db.collection("states").get(),
-        db.collection("districts").get(),
-        db.collection("places").get(),
-        db.collection("packs").get(),
-        db.collection("phrases").get(),
-        db.collection("documentRules").get(),
-        db.collection("settings").doc(POLICY_DOC_ID).get(),
-      ]);
+    const [
+      produce,
+      states,
+      districts,
+      places,
+      packs,
+      phrases,
+      rules,
+      settings,
+    ] = await Promise.all([
+      db.collection("produce").get(),
+      db.collection("states").get(),
+      db.collection("districts").get(),
+      db.collection("places").get(),
+      db.collection("packs").get(),
+      db.collection("phrases").get(),
+      db.collection("documentRules").get(),
+      db.collection("settings").doc(POLICY_DOC_ID).get(),
+    ]);
 
     // An empty project is not a live read — it would show an empty catalogue
     // and invite someone to "fix" it by re-adding everything by hand.
@@ -170,3 +184,30 @@ export async function readControls(
     return offline;
   }
 }
+
+/**
+ * Just the policy numbers, for callers that need one threshold rather than the
+ * whole reference set.
+ *
+ * `readControls` reads eight collections; the chat endpoint wants two hours out
+ * of one document, and pulling every crop name to find them would be silly.
+ * Cached per request like the rest, so a page reading both pays for one.
+ *
+ * Falls back to the defaults rather than throwing: a chat that cannot reach
+ * Firestore should still answer with the published hours it was shipped with.
+ */
+export const readPlatformPolicy = cache(
+  async function readPlatformPolicy(): Promise<PlatformPolicy> {
+    if (!hasAdminCredentials()) return readPolicy(undefined);
+
+    try {
+      const snapshot = await adminDb()
+        .collection("settings")
+        .doc(POLICY_DOC_ID)
+        .get();
+      return readPolicy(snapshot.exists ? snapshot.data() : undefined);
+    } catch {
+      return readPolicy(undefined);
+    }
+  },
+);

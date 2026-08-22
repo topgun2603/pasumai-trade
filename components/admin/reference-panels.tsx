@@ -107,6 +107,7 @@ const POLICY_LOOK: Record<PolicyField["group"], { icon: LucideIcon; disc: string
   Supply: { icon: PackageIcon, disc: "bg-chart-5/12 text-chart-5" },
   Subscriptions: { icon: BellRingIcon, disc: "bg-chart-3/12 text-chart-3" },
   Distance: { icon: RouteIcon, disc: "bg-chart-2/12 text-chart-2" },
+  Chat: { icon: MessageSquareIcon, disc: "bg-chart-1/12 text-chart-1" },
 };
 
 /**

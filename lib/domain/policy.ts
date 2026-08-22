@@ -83,6 +83,19 @@ export interface PlatformPolicy {
    * is charged on this rather than estimated from it.
    */
   readonly roadFactorPercent: number;
+
+  /**
+   * When the chat is answered by a person, in whole hours, IST.
+   *
+   * Hours rather than a presence signal on purpose. A green dot that means "an
+   * admin tab is open" goes dark when somebody walks to the printer, and it
+   * claims a staffed desk at nine in the morning whether or not anybody has
+   * arrived. Published hours are a promise operations can actually keep, and
+   * the one thing a person at the other end wants to know is when they will
+   * hear back.
+   */
+  readonly chatOpensHour: number;
+  readonly chatClosesHour: number;
 }
 
 export const DEFAULT_POLICY: PlatformPolicy = {
@@ -98,6 +111,8 @@ export const DEFAULT_POLICY: PlatformPolicy = {
   reminderLapsedDays: 1,
   defaultMinOrderValue: 1_500_000,
   roadFactorPercent: 130,
+  chatOpensHour: 9,
+  chatClosesHour: 18,
 };
 
 /** The document every policy read lands on. One row, known id. */
@@ -119,7 +134,8 @@ export interface PolicyField {
     | "Compliance"
     | "Supply"
     | "Distance"
-    | "Subscriptions";
+    | "Subscriptions"
+    | "Chat";
 }
 
 /**
@@ -229,6 +245,24 @@ export const POLICY_FIELDS: readonly PolicyField[] = [
     max: 10_000_000,
     money: true,
     group: "Supply",
+  },
+  {
+    key: "chatOpensHour",
+    label: "Chat answered from",
+    help: "Whole hours, IST. Outside these the chat replies automatically and says when somebody will read it.",
+    suffix: "o'clock",
+    min: 0,
+    max: 23,
+    group: "Chat",
+  },
+  {
+    key: "chatClosesHour",
+    label: "Chat answered until",
+    help: "Whole hours, IST. Must be later than the opening hour — a window that ends before it starts would leave the chat permanently automatic.",
+    suffix: "o'clock",
+    min: 1,
+    max: 24,
+    group: "Chat",
   },
   {
     key: "roadFactorPercent",
