@@ -17,6 +17,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -415,9 +416,8 @@ export function SignUpForm({
           error={errors.password}
           hint="At least 12 characters. Three words you will remember works well."
         >
-          <Input
+          <PasswordInput
             id="password"
-            type="password"
             autoComplete="new-password"
             value={values.password}
             onChange={(e) => set("password", e.target.value)}
