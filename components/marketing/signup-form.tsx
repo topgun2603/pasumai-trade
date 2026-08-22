@@ -13,7 +13,6 @@ import {
   UserRoundIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -146,7 +145,6 @@ export function SignUpForm({
   const [created, setCreated] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
 
-  const router = useRouter();
   const door = DOORS[initial];
   const isFarmer = initial === "farmer";
 
@@ -233,7 +231,10 @@ export function SignUpForm({
       that produced, and sending them to a page that would bounce them back is
       worse than showing the confirmation and letting them sign in.
     */
-    if (sent || signedInOk) router.push(`/${locale}/register?as=${initial}`);
+    // Same reason as the sign-in form: a different root layout, so this is a
+    // document load either way.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    if (sent || signedInOk) window.location.assign("/profile");
   }
 
   if (created) {

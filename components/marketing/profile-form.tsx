@@ -1,7 +1,6 @@
 "use client";
 
 import { ArrowRightIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { PhotoUpload, type UploadedFile } from "@/components/admin/upload-kit";
@@ -15,10 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { refreshSession } from "@/lib/auth/sign-in";
+import { HOME_FOR_ROLE } from "@/lib/auth/claims";
+import { adoptToken } from "@/lib/auth/sign-in";
 import { INDIAN_STATES, districtsOf } from "@/lib/domain/india";
 import { SELF_SIGNUP_ROLES, type SignupRole } from "@/lib/domain/signup";
-import type { Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /**
@@ -79,7 +78,6 @@ interface Values {
 
 export function ProfileForm({
   mobile,
-  locale,
 }: {
   /**
    * The proven handset, or empty.
@@ -90,9 +88,7 @@ export function ProfileForm({
    * `app/api/auth/profile/route.ts`.
    */
   mobile: string;
-  locale: Locale;
 }) {
-  const router = useRouter();
   const [values, setValues] = useState<Values>({
     role: "",
     name: "",
@@ -175,6 +171,7 @@ export function ProfileForm({
         error?: string;
         fields?: Record<string, string>;
         role?: string;
+        token?: string;
       };
 
       if (!response.ok) {
@@ -186,20 +183,32 @@ export function ProfileForm({
       }
 
       /*
-        The cookie in the browser was minted before the role existed, so it
-        still says nothing. Refreshing the token picks up the claims that were
-        just set; without this the console would bounce them straight back.
+        The cookie was minted before the role existed, so it still says nothing.
+        The endpoint hands back a token carrying the claims it just set, and
+        adopting it exchanges for a cookie that finally does.
+
+        A token rather than a refresh of the current user: this page is reached
+        by a full document load, so there may be no Firebase user in memory to
+        refresh.
       */
-      const refreshed = await refreshSession();
-      if (!refreshed.ok) {
-        // The Firebase user is only held in memory, so a reload on this page
-        // loses it. Signing in again now works, because the account exists.
-        router.push(`/${locale}/signin?registered=1`);
+      const adopted = data.token ? await adoptToken(data.token) : { ok: false };
+      if (!adopted.ok) {
+        setProblem("Account created. Sign in to finish.");
+        setSubmitting(false);
         return;
       }
 
-      router.push("/");
-      router.refresh();
+      /*
+        A full navigation, not a push. The console reads the session on the
+        server and a client-side push would render the new console against the
+        cache from before there was an account.
+      */
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      window.location.assign(
+        adopted.role && adopted.role in HOME_FOR_ROLE
+          ? HOME_FOR_ROLE[adopted.role as keyof typeof HOME_FOR_ROLE]
+          : "/",
+      );
     } catch (error) {
       setProblem(
         error instanceof Error

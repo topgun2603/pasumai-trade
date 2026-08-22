@@ -2,6 +2,7 @@
 
 import {
   GoogleAuthProvider,
+  signInWithCustomToken,
   RecaptchaVerifier,
   sendEmailVerification,
   setPersistence,
@@ -358,6 +359,31 @@ export async function sendVerificationEmail(): Promise<{
         : "";
     // `auth/too-many-requests` is the common one, and it means the email is
     // already on its way rather than that anything is broken.
+    return { ok: false, error: readable(code) };
+  }
+}
+
+/**
+ * Adopt the claims the profile step just set, from a token it minted.
+ *
+ * `refreshSession` needs a Firebase user already in memory, and the profile
+ * page is reached by a full document load — crossing from the public site to
+ * the console crosses root layouts, so there may be none. A custom token needs
+ * no prior user: signing in with it produces an ID token carrying the new role
+ * and account id, which the session route exchanges for a cookie that finally
+ * says who they are.
+ */
+export async function adoptToken(customToken: string): Promise<SignInResult> {
+  try {
+    const auth = firebaseAuth();
+    await setPersistence(auth, inMemoryPersistence);
+    const credential = await signInWithCustomToken(auth, customToken);
+    return exchange(await credential.user.getIdToken());
+  } catch (error) {
+    const code =
+      typeof error === "object" && error !== null && "code" in error
+        ? String((error as { code: unknown }).code)
+        : "";
     return { ok: false, error: readable(code) };
   }
 }

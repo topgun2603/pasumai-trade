@@ -202,5 +202,18 @@ export async function POST(request: Request) {
   */
   await auth.setCustomUserClaims(session.uid, { role, accountId });
 
-  return Response.json({ accountId, role, status: "pending" }, { status: 201 });
+  /*
+    A custom token back, so the browser can pick up the claims it was just given.
+
+    The session cookie in the browser was minted before the role existed and
+    still says nothing. The obvious fix is to refresh the Firebase user's token
+    — but this page is reached by a full document load, so there may be no
+    Firebase user in memory at all. Minting a token here works either way: it is
+    issued for the uid that already holds this session, so it grants nothing the
+    caller does not already have, and it turns a fragile refresh into one that
+    cannot fail for reasons of navigation.
+  */
+  const token = await auth.createCustomToken(session.uid, { role, accountId });
+
+  return Response.json({ accountId, role, status: "pending", token }, { status: 201 });
 }

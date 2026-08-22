@@ -1,57 +1,51 @@
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { connection } from "next/server";
 
 import { BrandMark } from "@/components/marketing/brand-mark";
 import { ProfileForm } from "@/components/marketing/profile-form";
-import { readPendingSession } from "@/lib/auth/session";
-import { verifySession } from "@/lib/auth/session";
 import { HOME_FOR_ROLE } from "@/lib/auth/claims";
-import { isLocale } from "@/lib/i18n";
+import { readPendingSession, verifySession } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
-  title: "Create your profile",
+  title: "Your profile",
   robots: { index: false },
 };
 
 /**
- * Where a verified handset becomes an account.
+ * The step between having a login and having an account.
  *
- * Reachable only by somebody holding a session, and only while that session has
- * no role. Both other cases redirect rather than render: arriving with no
- * session at all means the OTP step was skipped, and arriving with a role means
- * the account already exists and this page would offer to create a second.
+ * On the console side of the app rather than the public site, because this is
+ * not marketing — it is the first screen of the platform, and somebody who has
+ * just proved a handset should not be handed back to a page with a Register
+ * Free button on it.
+ *
+ * It sits directly under the console root layout rather than inside a role
+ * group, because every one of those requires claims and the whole point of
+ * this page is that there are none yet.
+ *
+ * Two redirects, and both matter. A session that already has a role is sent to
+ * its console — a signed-in person following a stale link would otherwise be
+ * invited to create a second account. No session at all goes to sign in.
  */
-export default async function RegisterPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
-  const { locale } = await params;
-  if (!isLocale(locale)) notFound();
-
+export default async function ProfilePage() {
   await connection();
 
-  // A finished account first: this is the case worth catching, because a
-  // signed-in person following an old link would otherwise be invited to
-  // register again.
   const full = await verifySession();
   if (full) redirect(HOME_FOR_ROLE[full.claims.role]);
 
   const pending = await readPendingSession();
-  // A session is enough; a handset is not required. Google proves an email and
-  // no number, and the form asks for one in that case.
-  if (!pending) redirect(`/${locale}/signin`);
+  if (!pending) redirect("/en/signin");
 
   // `+919843011204` reads as a phone number to nobody. Shown the way it was
-  // typed into the box upstairs.
+  // typed into the box upstairs, or empty when Google proved an email instead.
   const digits = pending.phone
     ? pending.phone.replace(/\D/g, "").slice(-10)
     : "";
   const readable = digits ? `${digits.slice(0, 5)} ${digits.slice(5)}` : "";
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-8 px-5 py-16">
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-8 px-5 py-12">
       <div className="flex flex-col items-center gap-3 text-center">
         <span className="bg-primary text-primary-foreground flex size-11 items-center justify-center rounded-xl">
           <BrandMark className="size-6" />
@@ -68,7 +62,7 @@ export default async function RegisterPage({
         </div>
       </div>
 
-      <ProfileForm mobile={readable} locale={locale} />
+      <ProfileForm mobile={readable} />
     </div>
   );
 }

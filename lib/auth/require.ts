@@ -46,7 +46,7 @@ export async function requireConsole(roles: readonly Role[]): Promise<Session> {
       handset and saying who you are.
     */
     const pending = await readPendingSession();
-    redirect(pending ? "/en/register" : "/en/signin");
+    redirect(pending ? "/profile" : "/en/signin");
   }
 
   if (!roles.includes(session.claims.role)) {

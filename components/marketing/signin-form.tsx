@@ -153,7 +153,12 @@ export function SignInForm({
    * load would throw the user away and strand them one step from the end.
    */
   function landNewUser() {
-    router.push(`/${locale}/register`);
+    /*
+      A document load, not a router push. `/profile` sits under the console root
+      layout, so crossing to it is an MPA navigation whichever API asks for it.
+    */
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.assign("/profile");
   }
 
   function land(role: string | undefined) {
