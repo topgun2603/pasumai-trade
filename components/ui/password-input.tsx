@@ -10,9 +10,9 @@ import { cn } from "@/lib/utils";
  * A password field you can look at.
  *
  * Typing a passphrase blind on a phone keyboard is how people end up choosing
- * short ones. The platform asks for twelve characters and suggests three words;
- * that is only reasonable if the person can check what they typed before
- * committing to it.
+ * short ones. The platform asks for eight characters with a capital, a number
+ * and a symbol; that is only reasonable if the person can check what they typed
+ * before committing to it.
  *
  * ## Details that matter
  *

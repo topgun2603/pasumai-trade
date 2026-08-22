@@ -356,7 +356,7 @@ export function SignUpForm({
           id="password"
           label="Password"
           error={errors.password}
-          hint="At least 12 characters. Three words you will remember works well."
+          hint="At least 8 characters, with a capital letter, a number and a symbol."
         >
           <PasswordInput
             id="password"

@@ -93,14 +93,6 @@ export interface SignupForm {
   pincode: string;
 }
 
-/**
- * Twelve characters, and nothing else.
- *
- * No composition rules: forcing a symbol and a digit reliably produces
- * `Password1!` and a sticky note. Length is the property that actually resists
- * guessing, and it is the one a person can satisfy with three words they will
- * remember.
- */
 const MIN_PASSWORD = 8;
 
 /**
