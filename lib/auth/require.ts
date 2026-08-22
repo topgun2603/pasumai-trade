@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { hasAdminCredentials } from "@/lib/firebase/admin";
 
 import { HOME_FOR_ROLE, type Role } from "./claims";
-import { verifySession, type Session } from "./session";
+import { readPendingSession, verifySession, type Session } from "./session";
 
 /**
  * The gate on a console layout.
@@ -32,7 +32,21 @@ export async function requireConsole(roles: readonly Role[]): Promise<Session> {
 
   const session = await verifySession();
   if (!session) {
-    redirect("/en/signin");
+    /*
+      A cookie with no claims means the profile step is unfinished.
+
+      `verifySession` returns null for a session without a role, so a genuine
+      signed-out visitor and somebody halfway through registering look identical
+      to it. Told apart here, because sending an unfinished registration back to
+      sign in loops them: they authenticate, arrive with no claims, and bounce
+      again.
+
+      This is also what makes the profile mandatory. Every console page goes
+      through this guard, so there is nothing reachable between proving a
+      handset and saying who you are.
+    */
+    const pending = await readPendingSession();
+    redirect(pending ? "/en/register" : "/en/signin");
   }
 
   if (!roles.includes(session.claims.role)) {
