@@ -101,14 +101,64 @@ export interface SignupForm {
  * guessing, and it is the one a person can satisfy with three words they will
  * remember.
  */
-const MIN_PASSWORD = 12;
+const MIN_PASSWORD = 8;
+
+/**
+ * Eight characters, with an upper case letter, a digit and a symbol.
+ *
+ * This replaces a twelve-character minimum with no composition rules, which was
+ * argued for on the grounds that length resists guessing and that demanding a
+ * symbol reliably produces `Password1!`. That argument still holds and the rule
+ * is the one asked for, so it is written to be as useful as a rule of this
+ * shape can be: the message names every part that is missing at once rather
+ * than refusing once per rule, because being told about one requirement at a
+ * time is how people end up at `Password1!`.
+ */
+const NEEDS = [
+  { test: /[A-Z]/, want: "a capital letter" },
+  { test: /[0-9]/, want: "a number" },
+  { test: /[^A-Za-z0-9]/, want: "a symbol" },
+] as const;
 
 export function checkPassword(value: string): string | undefined {
   if (value === "") return "Password is required";
-  if (value.length < MIN_PASSWORD) {
-    return `Use at least ${MIN_PASSWORD} characters — three words you will remember beats a short one with symbols in it`;
-  }
-  return undefined;
+
+  const missing: string[] = [];
+  if (value.length < MIN_PASSWORD) missing.push(`${MIN_PASSWORD} characters`);
+  for (const { test, want } of NEEDS) if (!test.test(value)) missing.push(want);
+
+  if (missing.length === 0) return undefined;
+
+  // "8 characters, a capital letter and a number" rather than three refusals
+  // in a row.
+  const list =
+    missing.length === 1
+      ? missing[0]
+      : `${missing.slice(0, -1).join(", ")} and ${missing.at(-1)}`;
+  return `Needs ${list}`;
+}
+
+/**
+ * What it takes to open a login, and nothing else.
+ *
+ * Name, mobile and address used to be asked here, before the person had an
+ * account or any reason to trust the form. They are asked once the login
+ * exists, in the profile step every console is gated on — see
+ * `lib/auth/require.ts`. A registration abandoned halfway now leaves a login
+ * somebody can come back to rather than nothing at all.
+ */
+export interface SignupCredentials {
+  email: string;
+  password: string;
+}
+
+export function validateCredentials(
+  values: SignupCredentials,
+): FieldErrors<SignupCredentials> {
+  return {
+    email: checkEmail(values.email),
+    password: checkPassword(values.password),
+  };
 }
 
 export function validateSignup(values: SignupForm): FieldErrors<SignupForm> {

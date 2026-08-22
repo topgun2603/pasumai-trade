@@ -4,6 +4,7 @@ import { ROLES } from "@/lib/auth/claims";
 import { checkMobile, toE164 } from "./registration";
 import {
   accountFor,
+  checkPassword,
   canSelfSignup,
   COLLECTION_FOR_SIGNUP,
   newAccountId,
@@ -21,7 +22,7 @@ function form(over: Partial<SignupForm> = {}): SignupForm {
     name: "Kongu Fresh",
     contactName: "R. Selvam",
     email: "selvam@kongufresh.in",
-    password: "tomato river lantern",
+    password: "Tomato river 9!",
     mobile: "9843011204",
     place: "Tiruppur",
     state: "tamil-nadu",
@@ -60,12 +61,33 @@ describe("validation", () => {
     expect(Object.values(validateSignup(form())).filter(Boolean)).toEqual([]);
   });
 
-  it("rejects a short password however complex", () => {
-    expect(validateSignup(form({ password: "Aa1!Aa1!" })).password).toBeDefined();
+  /*
+    The policy changed from "twelve characters, no composition rules" to "eight
+    with a capital, a number and a symbol". These pin the new one, including the
+    case the old policy was written to allow and this one refuses.
+  */
+  it("wants eight characters, a capital, a number and a symbol", () => {
+    expect(checkPassword("Aa1!Aa1!")).toBeUndefined();
+    expect(checkPassword("Aa1!Aa1")).toBeDefined();
+    expect(checkPassword("aa1!aa1!")).toBeDefined();
+    expect(checkPassword("Aaaa!aaa")).toBeDefined();
+    expect(checkPassword("Aa11aa11")).toBeDefined();
   });
 
-  it("accepts a long passphrase with no symbols", () => {
-    expect(validateSignup(form({ password: "correct horse battery" })).password).toBeUndefined();
+  it("names everything missing at once, not one refusal at a time", () => {
+    // Being told about one requirement per attempt is how people arrive at
+    // `Password1!`, so all of it is said in one go.
+    const said = checkPassword("short")!;
+    expect(said).toContain("8 characters");
+    expect(said).toContain("capital");
+    expect(said).toContain("number");
+    expect(said).toContain("symbol");
+  });
+
+  it("refuses the long passphrase the old policy was built around", () => {
+    // Kept as a test rather than deleted: this is the case the change gives up,
+    // and it should be visible that it was given up on purpose.
+    expect(checkPassword("correct horse battery")).toBeDefined();
   });
 
   it("rejects a landline and a mobile with the wrong leading digit", () => {

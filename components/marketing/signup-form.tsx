@@ -13,6 +13,7 @@ import {
   UserRoundIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -20,17 +21,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { sendVerificationEmail, signIn } from "@/lib/auth/sign-in";
-import { INDIAN_STATES, districtsOf } from "@/lib/domain/india";
 import {
-  validateSignup,
+  validateCredentials,
   type SignupForm,
   type SignupRole,
 } from "@/lib/domain/signup";
@@ -150,9 +143,10 @@ export function SignUpForm({
     Partial<Record<keyof SignupForm, string>>
   >({});
   const [submitting, setSubmitting] = useState(false);
-  const [created, setCreated] = useState<string | null>(null);
+  const [created, setCreated] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
 
+  const router = useRouter();
   const door = DOORS[initial];
   const isFarmer = initial === "farmer";
 
@@ -161,33 +155,12 @@ export function SignUpForm({
     setErrors((e) => ({ ...e, [key]: undefined }));
   }
 
-  /**
-   * Changing the state clears the district.
-   *
-   * Without this, choosing Tamil Nadu, picking Erode and then switching to
-   * Punjab leaves "Erode" selected under a state that has no such district —
-   * the server would refuse it, but only after the form had looked correct.
-   */
-  function setState(stateId: string) {
-    setValues((v) => ({ ...v, state: stateId, district: "" }));
-    setErrors((e) => ({ ...e, state: undefined, district: undefined }));
-  }
-
-  // Empty until a state is chosen, which is what makes the second dropdown
-  // wait rather than offering all 727 districts at once.
-  const districts = districtsOf(values.state);
-
   async function submit(event: React.FormEvent) {
     event.preventDefault();
 
-    // A farmer registering alone is one person, so the contact name is the
-    // name. Asking twice for the same answer is how forms get abandoned.
-    const payload: SignupForm = {
-      ...values,
-      contactName: isFarmer ? values.name : values.contactName,
-    };
+    const payload = { email: values.email, password: values.password };
 
-    const found = validateSignup(payload);
+    const found = validateCredentials(payload);
     setErrors(found);
     if (Object.values(found).some(Boolean)) return;
 
@@ -237,8 +210,10 @@ export function SignUpForm({
       registration somebody just completed.
     */
     let sent = false;
+    let signedInOk = false;
     try {
       const signedIn = await signIn(payload.email, payload.password);
+      signedInOk = signedIn.ok;
       if (signedIn.ok) {
         const posted = await sendVerificationEmail();
         sent = posted.ok;
@@ -249,7 +224,16 @@ export function SignUpForm({
 
     setSubmitting(false);
     setVerificationSent(sent);
-    setCreated(data.accountId ?? null);
+    setCreated(true);
+
+    /*
+      Straight to the profile step, where the account is actually created.
+
+      Only if the sign-in above worked: the profile endpoint needs the session
+      that produced, and sending them to a page that would bounce them back is
+      worse than showing the confirmation and letting them sign in.
+    */
+    if (sent || signedInOk) router.push(`/${locale}/register?as=${initial}`);
   }
 
   if (created) {
@@ -346,111 +330,15 @@ export function SignUpForm({
       </div>
 
       <form onSubmit={submit} noValidate className="flex flex-col gap-4">
-        <Field id="name" label={door.nameLabel} error={errors.name}>
-          <Input
-            id="name"
-            value={values.name}
-            onChange={(e) => set("name", e.target.value)}
-            aria-invalid={Boolean(errors.name)}
-            autoComplete={isFarmer ? "name" : "organization"}
-          />
-        </Field>
+        {/*
+          Only what it takes to open a login.
 
-        {!isFarmer ? (
-          <Field
-            id="contactName"
-            label="Contact person"
-            error={errors.contactName}
-          >
-            <Input
-              id="contactName"
-              value={values.contactName}
-              onChange={(e) => set("contactName", e.target.value)}
-              aria-invalid={Boolean(errors.contactName)}
-              autoComplete="name"
-            />
-          </Field>
-        ) : null}
-
-        <Field id="mobile" label="Mobile number" error={errors.mobile}>
-          <Input
-            id="mobile"
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            placeholder="98430 11204"
-            value={values.mobile}
-            onChange={(e) => set("mobile", e.target.value)}
-            aria-invalid={Boolean(errors.mobile)}
-          />
-        </Field>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field id="state" label="State" error={errors.state}>
-            <Select value={values.state} onValueChange={setState}>
-              <SelectTrigger id="state" aria-invalid={Boolean(errors.state)}>
-                <SelectValue placeholder="Choose" />
-              </SelectTrigger>
-              <SelectContent>
-                {INDIAN_STATES.map((state) => (
-                  <SelectItem key={state.id} value={state.id}>
-                    {state.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-
-          <Field id="district" label="District" error={errors.district}>
-            <Select
-              value={values.district}
-              onValueChange={(v) => set("district", v)}
-              // Nothing to choose from until a state is picked, and a dropdown
-              // that opens empty is worse than one that says why it cannot.
-              disabled={districts.length === 0}
-            >
-              <SelectTrigger
-                id="district"
-                aria-invalid={Boolean(errors.district)}
-              >
-                <SelectValue
-                  placeholder={values.state ? "Choose" : "Pick a state first"}
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {districts.map((name) => (
-                  <SelectItem key={name} value={name}>
-                    {name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field id="place" label={door.placeLabel} error={errors.place}>
-            <Input
-              id="place"
-              value={values.place}
-              onChange={(e) => set("place", e.target.value)}
-              aria-invalid={Boolean(errors.place)}
-            />
-          </Field>
-
-          <Field id="pincode" label="PIN code" error={errors.pincode}>
-            <Input
-              id="pincode"
-              inputMode="numeric"
-              maxLength={6}
-              placeholder="641001"
-              value={values.pincode}
-              onChange={(e) => set("pincode", e.target.value)}
-              aria-invalid={Boolean(errors.pincode)}
-            />
-          </Field>
-        </div>
-
+          Name, mobile and address used to be here — seven fields before the
+          person had an account or any reason to trust the form. They are asked
+          at the profile step now, which every console is gated on, so a
+          registration abandoned halfway leaves a login they can come back to
+          rather than nothing at all.
+        */}
         <Field id="email" label="Email" error={errors.email}>
           <Input
             id="email"
