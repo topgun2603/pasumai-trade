@@ -25,11 +25,9 @@ import {
   worstExpiry,
   type ComplianceDocument,
 } from "@/lib/domain/admin";
-import { isWaiting } from "@/lib/domain/enquiry";
 import { CHECK_LABELS } from "@/lib/domain/kyc";
 import { relativeTime } from "@/lib/format";
 import { readCompliance, readWaitingPickups } from "@/lib/firebase/compliance-read";
-import { readEnquiries } from "@/lib/firebase/enquiries";
 import { readKycAccounts } from "@/lib/firebase/kyc-read";
 
 export const metadata: Metadata = { title: "Overview · Admin" };
@@ -62,10 +60,9 @@ export default async function AdminOverviewPage() {
   const now = new Date();
   const t = now.getTime();
 
-  const [{ subjects, live }, pickups, enquiries, kycAccounts] = await Promise.all([
+  const [{ subjects, live }, pickups, kycAccounts] = await Promise.all([
     readCompliance(),
     readWaitingPickups(),
-    readEnquiries(),
     readKycAccounts(),
   ]);
 
@@ -76,16 +73,6 @@ export default async function AdminOverviewPage() {
     the mock set and nothing on the live platform ever writes.
   */
   const awaitingReview = [
-    ...enquiries
-      .filter((enquiry) => isWaiting(enquiry.status))
-      .map((enquiry) => ({
-        id: `enquiry-${enquiry.id}`,
-        name: enquiry.name,
-        kind: "Enquiry",
-        href: "/admin/enquiries",
-        at: enquiry.createdAt,
-        status: "pending",
-      })),
     ...kycAccounts.flatMap((account) =>
       account.checks
         .filter((check) => check.state === "review")
@@ -130,7 +117,7 @@ export default async function AdminOverviewPage() {
     <>
       <AdminPageHeader
         title="Overview"
-        description="What needs a decision today. Enquiries and documents waiting on a person, certificates lapsing, and produce with no vehicle coming for it."
+        description="What needs a decision today. Documents waiting on a person, certificates lapsing, and produce with no vehicle coming for it."
       />
 
       {live ? null : (
@@ -146,7 +133,7 @@ export default async function AdminOverviewPage() {
           value={awaitingReview.length}
           icon={ClockIcon}
           tone="warning"
-          hint="Enquiries to call and documents to check"
+          hint="Documents waiting to be checked"
         />
         <StatTile
           label="Documents expired"

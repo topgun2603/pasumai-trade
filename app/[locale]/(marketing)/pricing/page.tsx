@@ -189,8 +189,8 @@ export default async function PricingPage({
         </div>
         <p className="text-muted-foreground max-w-2xl text-sm">
           A franchise runs outlets, sources across a district and onboards farmers, so it is
-          priced as a partnership rather than a subscription. The first year covers the work of
-          coming on — connecting outlets, training staff, covering a district — which happens once.
+          priced as a relationship rather than a subscription. The first year covers the work of
+          coming on — connecting outlets, training staff, covering a district — which happens at requests.
         </p>
         <div className="flex flex-wrap items-end gap-8 pt-1">
           <div className="flex flex-col">

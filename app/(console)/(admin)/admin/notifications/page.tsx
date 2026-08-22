@@ -4,10 +4,8 @@ import { connection } from "next/server";
 import { OpsFeed, type FeedRow } from "@/components/admin/ops-feed";
 import { PageHeader } from "@/components/page-header";
 import { requireConsole } from "@/lib/auth/require";
-import { isWaiting } from "@/lib/domain/enquiry";
 import { CHECK_LABELS } from "@/lib/domain/kyc";
 import { inAttentionOrder, isOverdue, type OpsItem } from "@/lib/domain/ops-feed";
-import { readEnquiries } from "@/lib/firebase/enquiries";
 import { readKycAccounts } from "@/lib/firebase/kyc-read";
 
 export const metadata: Metadata = { title: "Notifications · Admin" };
@@ -28,21 +26,10 @@ export default async function AdminNotificationsPage() {
   await connection();
   await requireConsole(["admin"]);
 
-  const [enquiries, kyc] = await Promise.all([readEnquiries(), readKycAccounts()]);
+  const kyc = await readKycAccounts();
   const now = new Date().getTime();
 
   const items: OpsItem[] = [
-    ...enquiries.filter((enquiry) => isWaiting(enquiry.status)).map(
-      (enquiry): OpsItem => ({
-        id: `enquiry:${enquiry.id}`,
-        kind: "enquiry",
-        title: enquiry.name,
-        detail: `${enquiry.interest === "farmer" ? "Wants to sell" : "Wants to buy"} · ${enquiry.district} · ${enquiry.mobile}`,
-        since: enquiry.createdAt.getTime(),
-        href: "/admin/enquiries",
-      }),
-    ),
-
     ...kyc.flatMap((account) =>
       account.checks.flatMap((check): OpsItem[] => {
         // Submitted and waiting on us.

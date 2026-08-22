@@ -8,8 +8,8 @@
  * A farmer's notification is addressed to a person — `accounts/{id}/
  * notifications`, and an admin has no account id to hang one off. More to the
  * point, a console's question is not "what happened" but **"what is still
- * mine"**, and those are different lists: an enquiry somebody already called is
- * an event that happened and is not work; an enquiry from three weeks ago that
+ * mine"**, and those are different lists: a document approved this morning is
+ * an event that happened and is not work; a submission from three weeks ago that
  * nobody touched is not an event any more and is the most urgent thing on the
  * platform.
  *
@@ -19,7 +19,7 @@
  * stop showing it.
  */
 
-export type OpsKind = "enquiry" | "kyc" | "reupload";
+export type OpsKind = "kyc" | "reupload";
 
 export interface OpsItem {
   readonly id: string;
@@ -41,7 +41,6 @@ export interface OpsItem {
  * row in the queue.
  */
 export const OVERDUE_HOURS: Record<OpsKind, number> = {
-  enquiry: 24,
   kyc: 48,
   reupload: 72,
 };
@@ -68,7 +67,7 @@ export function inAttentionOrder(items: readonly OpsItem[], now: number): OpsIte
 
 /** How many of each kind, for the tabs and the rail. */
 export function countByKind(items: readonly OpsItem[]): Record<OpsKind, number> {
-  const counts: Record<OpsKind, number> = { enquiry: 0, kyc: 0, reupload: 0 };
+  const counts: Record<OpsKind, number> = { kyc: 0, reupload: 0 };
   for (const item of items) counts[item.kind] += 1;
   return counts;
 }

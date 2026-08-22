@@ -9,7 +9,6 @@ import {
   BellIcon,
   ClipboardListIcon,
   GaugeIcon,
-  InboxIcon,
   HardHatIcon,
   ShieldCheckIcon,
   SlidersHorizontalIcon,
@@ -57,9 +56,6 @@ const SECTIONS: Array<{ title?: string; links: NavLink[] }> = [
   {
     title: "Accounts",
     links: [
-      // Above KYC review on purpose: an enquiry is where an account begins, and
-      // nobody reaches the KYC queue without first being called back.
-      { href: "/admin/enquiries", label: "Enquiries", icon: InboxIcon },
       { href: "/admin/kyc", label: "KYC review", icon: BadgeCheckIcon },
       { href: "/admin/buyers", label: "Buyers", icon: UserRoundIcon },
       // Its own entry since the two were separated. Without it three real

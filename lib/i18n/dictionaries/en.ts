@@ -215,7 +215,7 @@ export const en = {
 
   faq: {
     title: "Questions we are asked",
-    body: "Something not covered here? Send an enquiry below and operations will call you back.",
+    body: "The ones that come up most. If yours is not here, ask us — every account can reach operations.",
     q1: "What does it cost a farmer?",
     a1: "Nothing to list, and nothing deducted for transport. The price you accept is the price that settles, adjusted only by the grade recorded in front of you at collection and by the actual weight loaded.",
     q2: "How quickly are farmers paid?",
@@ -230,31 +230,6 @@ export const en = {
     a6: "English, Tamil, Telugu, Kannada, Malayalam and Hindi. Crop names are held per language and per district because they vary regionally — what is one crop in Erode may be called something else in Thanjavur.",
   },
 
-  apply: {
-    title: "Register free",
-    body: "Register yourself and sign in straight away. You can look around while operations checks your documents — buyers need GST, PAN and an FSSAI licence. Nothing is bought or sold until that check is done. Farmers are onboarded by a franchise, who collects bank details in person.",
-    haveAccount: "Already have an account?",
-    signInHere: "Sign in here",
-    iWantTo: "I want to",
-    buyProduce: "Buy produce in bulk",
-    sellProduce: "Sell produce I grow",
-    yourName: "Your name",
-    mobile: "Mobile",
-    businessName: "Business name",
-    district: "District",
-    optional: "optional",
-    whatBuy: "What do you buy?",
-    whatGrow: "What do you grow?",
-    send: "Send enquiry",
-    sending: "Sending…",
-    note: "We will call to arrange document checks. Accounts are opened by operations, never automatically.",
-    successTitle: "Enquiry received",
-    successBody:
-      "Operations will call you on the number you gave to arrange document checks.",
-    failedTitle: "We could not send that",
-    failedBody:
-      "Please try again, or telephone us on the number in the footer.",
-  },
 
   signin: {
     franchiseBlurb: "Contracted franchises. Same console and same capabilities as an independent buyer.",

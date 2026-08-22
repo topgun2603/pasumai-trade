@@ -5,7 +5,6 @@ import { ConsoleTopBar } from "@/components/console/top-bar";
 import { CONSOLES, CONSOLE_KINDS } from "@/lib/domain/console-kinds";
 import { requireConsole } from "@/lib/auth/require";
 import { needsReview } from "@/lib/domain/admin";
-import { countWaiting } from "@/lib/firebase/enquiries";
 import { readKycAccounts } from "@/lib/firebase/kyc-read";
 import { readBuyerAccounts, readDrivers, readFarmerAccounts, readVehicles, readWorkers } from "@/lib/firebase/roster-read";
 import { openListings } from "@/lib/mock/listings";
@@ -36,7 +35,6 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     seconds the console took to answer.
   */
   const [
-    enquiriesWaiting,
     kycAccounts,
     buyers,
     farmers,
@@ -44,7 +42,6 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     vehicles,
     workers,
   ] = await Promise.all([
-    countWaiting(),
     readKycAccounts(),
     readBuyerAccounts(),
     readFarmerAccounts(),
@@ -60,14 +57,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   );
 
   const pending = {
-    /*
-      The one real count in here. An enquiry is a person who was told they
-      would be called and has not been, so this number is somebody waiting by a
-      phone rather than a row in a table — which is why it is read from the
-      database while the rest are still derived from samples.
-    */
-    "/admin/notifications": enquiriesWaiting + kycWaiting,
-    "/admin/enquiries": enquiriesWaiting,
+    "/admin/notifications": kycWaiting,
     "/admin/kyc": kycWaiting,
     "/admin/buyers": buyers.filter((a) => needsReview(a.status)).length,
     "/admin/farmers": farmers.filter((a) => needsReview(a.status)).length,

@@ -13,7 +13,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { EnquiryForm } from "@/components/marketing/enquiry-form";
 import { BargainDemo } from "@/components/marketing/bargain-demo";
 import { Hero } from "@/components/marketing/hero";
 import { Journey } from "@/components/marketing/journey";
@@ -441,29 +440,6 @@ export default async function LandingPage({
         </div>
       </section>
 
-      {/* Apply */}
-      <section id="apply" className="scroll-mt-20">
-        <div className="mx-auto grid w-full max-w-6xl gap-10 px-5 py-16 lg:grid-cols-[0.85fr_1.15fr]">
-          <Reveal className="flex flex-col gap-3">
-            <h2 className="font-heading text-3xl leading-[1.1] font-semibold tracking-tight text-balance sm:text-4xl">
-              {t.apply.title}
-            </h2>
-            <p className="text-muted-foreground">{t.apply.body}</p>
-            <p className="text-muted-foreground text-sm">
-              {t.apply.haveAccount}{" "}
-              <Link href={`/${locale}/signin`} className="text-primary hover:underline">
-                {t.apply.signInHere}
-              </Link>
-            </p>
-          </Reveal>
-
-          <Reveal delay={0.1}>
-            <div className="bg-card rounded-xl border p-6">
-              <EnquiryForm t={t} locale={locale} />
-            </div>
-          </Reveal>
-        </div>
-      </section>
       {/*
         Last in the tree and fixed, so it layers over the page without needing
         a z-index argument with anything above it. The footer is the only thing

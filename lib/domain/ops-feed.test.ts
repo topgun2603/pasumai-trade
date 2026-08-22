@@ -24,27 +24,27 @@ function item(id: string, kind: OpsItem["kind"], hoursAgo: number): OpsItem {
 
 describe("how long is too long", () => {
   it("gives each kind of work its own patience", () => {
-    // Somebody expecting a telephone call counts in hours; a KYC submission was
-    // told two working days, and flagging it sooner would cry wolf on the whole
-    // queue.
-    expect(OVERDUE_HOURS.enquiry).toBeLessThan(OVERDUE_HOURS.kyc);
+    // A first submission was told two working days. A re-upload is somebody who
+    // has already been turned away once and is waiting a second time, so it is
+    // given longer before it shouts — chasing both at the same age would cry
+    // wolf on the whole queue.
     expect(OVERDUE_HOURS.kyc).toBeLessThan(OVERDUE_HOURS.reupload);
   });
 
-  it("flags an enquiry after a day but a check of the same age not at all", () => {
-    expect(isOverdue(item("a", "enquiry", 25), NOW)).toBe(true);
-    expect(isOverdue(item("b", "kyc", 25), NOW)).toBe(false);
+  it("flags a check once it is past its own patience, not before", () => {
+    expect(isOverdue(item("a", "kyc", OVERDUE_HOURS.kyc + 1), NOW)).toBe(true);
+    expect(isOverdue(item("b", "kyc", OVERDUE_HOURS.kyc - 1), NOW)).toBe(false);
   });
 
   it("is not overdue the moment it arrives", () => {
-    expect(isOverdue(item("a", "enquiry", 0), NOW)).toBe(false);
+    expect(isOverdue(item("a", "kyc", 0), NOW)).toBe(false);
   });
 });
 
 describe("what to look at first", () => {
   it("puts overdue work above everything, however new", () => {
     const fresh = item("fresh", "kyc", 1);
-    const late = item("late", "enquiry", 40);
+    const late = item("late", "kyc", 80);
     expect(inAttentionOrder([fresh, late], NOW).map((i) => i.id)).toEqual(["late", "fresh"]);
   });
 
@@ -57,8 +57,8 @@ describe("what to look at first", () => {
   });
 
   it("orders overdue work oldest first too", () => {
-    const veryLate = item("very", "enquiry", 100);
-    const late = item("late", "enquiry", 30);
+    const veryLate = item("very", "kyc", 200);
+    const late = item("late", "kyc", 80);
     expect(inAttentionOrder([late, veryLate], NOW).map((i) => i.id)).toEqual(["very", "late"]);
   });
 
@@ -70,15 +70,15 @@ describe("what to look at first", () => {
 describe("counting", () => {
   it("reports zero for a kind with no work rather than omitting it", () => {
     // The tabs read these directly; a missing key would render "undefined".
-    expect(countByKind([item("a", "kyc", 1)])).toEqual({ enquiry: 0, kyc: 1, reupload: 0 });
+    expect(countByKind([item("a", "kyc", 1)])).toEqual({ kyc: 1, reupload: 0 });
   });
 
   it("counts each kind separately", () => {
     const counts = countByKind([
-      item("a", "enquiry", 1),
-      item("b", "enquiry", 2),
+      item("a", "kyc", 1),
+      item("b", "kyc", 2),
       item("c", "reupload", 3),
     ]);
-    expect(counts).toEqual({ enquiry: 2, kyc: 0, reupload: 1 });
+    expect(counts).toEqual({ kyc: 2, reupload: 1 });
   });
 });
