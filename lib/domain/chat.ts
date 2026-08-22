@@ -1,4 +1,6 @@
+import { checkMobile, required } from "@/lib/domain/registration";
 import type { PlatformPolicy } from "@/lib/domain/policy";
+import { isLocale, type Locale } from "@/lib/i18n/config";
 
 /**
  * The chat a visitor can open without an account.
@@ -32,15 +34,33 @@ export type ChatAuthor = "visitor" | "operations" | "system";
 export interface ChatMessage {
   readonly id: string;
   readonly author: ChatAuthor;
+  /** English, always. What the operator sent or the visitor typed. */
   readonly body: string;
+  /**
+   * Set when the operator picked a standard reply rather than typing.
+   *
+   * The sentence is not stored per language — the id is, and the reader's
+   * language decides which of the six they see. So a thread renders in
+   * whatever language it is read in, and fixing a clumsy sentence fixes every
+   * conversation it was ever sent in.
+   */
+  readonly replyId?: string;
   readonly at: Date;
 }
 
 export interface ChatThread {
   readonly id: string;
-  /** Whatever they told us, if anything. Never trusted, only displayed. */
-  readonly name?: string;
-  readonly mobile?: string;
+  /** Asked for before the first message, so operations can always call back. */
+  readonly name: string;
+  readonly mobile: string;
+  /**
+   * The language the site was in when they opened the chat.
+   *
+   * Kept on the thread rather than read per request, because operations may
+   * answer hours later and the standard reply has to go out in the language the
+   * person was actually reading.
+   */
+  readonly locale: Locale;
   /** Set when a signed-in person opens a thread, absent for a visitor. */
   readonly accountId?: string;
   readonly startedAt: Date;
@@ -150,4 +170,39 @@ export function guardThread(thread: Pick<ChatThread, "messages" | "lastAt">, now
   if (fromVisitor && now.getTime() - fromVisitor.at.getTime() < MIN_GAP_MS) {
     throw new ChatError("Give that a moment to send.", "tooFast");
   }
+}
+
+export interface VisitorDetails {
+  readonly name: string;
+  readonly mobile: string;
+  readonly locale: Locale;
+}
+
+/**
+ * Who is writing, before they write.
+ *
+ * Required rather than optional, and asked once. A chat that can be answered
+ * only inside the window is a chat that goes cold the moment somebody closes
+ * the tab — the number is what lets operations finish the conversation by
+ * telephone, which for a farmer on a patchy connection is often the only way it
+ * finishes at all.
+ */
+export function checkDetails(raw: {
+  name?: unknown;
+  mobile?: unknown;
+  locale?: unknown;
+}): { values: VisitorDetails; errors: Record<string, string> } {
+  const name = typeof raw.name === "string" ? raw.name.trim().slice(0, 80) : "";
+  const mobile = typeof raw.mobile === "string" ? raw.mobile.trim().slice(0, 20) : "";
+  const locale = typeof raw.locale === "string" && isLocale(raw.locale) ? raw.locale : "en";
+
+  const errors: Record<string, string> = {};
+  const nameProblem = required(name, "Name");
+  if (nameProblem) errors.name = nameProblem;
+  // The same check the registration forms use, so a number accepted here is a
+  // number that will still be accepted when they come to open an account.
+  const mobileProblem = checkMobile(mobile);
+  if (mobileProblem) errors.mobile = mobileProblem;
+
+  return { values: { name, mobile, locale }, errors };
 }

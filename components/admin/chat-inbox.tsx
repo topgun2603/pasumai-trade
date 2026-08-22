@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { STANDARD_REPLIES } from "@/lib/domain/chat-replies";
 import { cn } from "@/lib/utils";
 
 /**
@@ -55,14 +56,22 @@ export function ChatInbox({ threads }: { threads: readonly InboxThread[] }) {
     );
   }
 
-  async function send() {
+  /**
+   * Send either a typed message or a standard reply.
+   *
+   * A standard reply goes as an id rather than as its text: the visitor reads
+   * it in their own language, which typed text cannot do. That is the whole
+   * reason to prefer one where it fits.
+   */
+  async function send(replyId?: string) {
     const body = draft.trim();
-    if (!body || !current) return;
+    if (!current) return;
+    if (!replyId && !body) return;
 
     const response = await fetch(`/api/chat/${current.id}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ message: body }),
+      body: JSON.stringify(replyId ? { replyId } : { message: body }),
     });
 
     if (!response.ok) {
@@ -161,6 +170,27 @@ export function ChatInbox({ threads }: { threads: readonly InboxThread[] }) {
             ))}
           </div>
 
+          {/*
+            Ten answers that cover most of what gets asked, and the only ones
+            that arrive in the reader's language — a Tamil visitor sees the
+            Tamil version of whichever is picked, without anybody translating
+            anything.
+          */}
+          <div className="flex flex-wrap gap-1.5 border-t px-3 pt-3">
+            {STANDARD_REPLIES.map((reply) => (
+              <button
+                key={reply.id}
+                type="button"
+                disabled={pending}
+                onClick={() => void send(reply.id)}
+                title={reply.text.en}
+                className="border-border hover:bg-accent rounded-full border px-2.5 py-1 text-xs transition-colors disabled:opacity-50"
+              >
+                {reply.label}
+              </button>
+            ))}
+          </div>
+
           <div className="flex items-end gap-2 border-t p-3">
             <textarea
               value={draft}
@@ -178,7 +208,7 @@ export function ChatInbox({ threads }: { threads: readonly InboxThread[] }) {
               className="border-input bg-background focus-visible:ring-ring min-h-16 flex-1 resize-none rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
             />
             <Button
-              onClick={send}
+              onClick={() => void send()}
               disabled={pending || !draft.trim()}
               size="icon"
               aria-label="Send"

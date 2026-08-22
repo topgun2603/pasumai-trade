@@ -8,7 +8,9 @@ import {
   type ChatAuthor,
   type ChatMessage,
   type ChatThread,
+  type VisitorDetails,
 } from "@/lib/domain/chat";
+import { isLocale } from "@/lib/i18n/config";
 
 import { adminDb, hasAdminCredentials } from "./admin";
 
@@ -44,6 +46,7 @@ function shapeMessage(raw: unknown): ChatMessage[] {
       id: typeof m.id === "string" ? m.id : randomUUID(),
       author: author as ChatAuthor,
       body: m.body,
+      ...(typeof m.replyId === "string" && m.replyId ? { replyId: m.replyId } : {}),
       at: toDate(m.at),
     },
   ];
@@ -54,8 +57,11 @@ function shapeThread(id: string, data: Record<string, unknown>): ChatThread {
 
   return {
     id,
-    name: str(data.name),
-    mobile: str(data.mobile),
+    // Required from the first message onward. A thread written before that rule
+    // existed reads as blank rather than crashing the inbox.
+    name: str(data.name) ?? "",
+    mobile: str(data.mobile) ?? "",
+    locale: typeof data.locale === "string" && isLocale(data.locale) ? data.locale : "en",
     accountId: str(data.accountId),
     startedAt: toDate(data.startedAt),
     lastAt: toDate(data.lastAt),
@@ -114,7 +120,7 @@ export async function appendMessage(
   author: ChatAuthor,
   body: string,
   now: Date,
-  meta?: { name?: string; mobile?: string; accountId?: string },
+  meta?: { details?: VisitorDetails; accountId?: string; replyId?: string },
 ): Promise<Appended> {
   if (!hasAdminCredentials()) {
     throw new ChatError(
@@ -124,7 +130,13 @@ export async function appendMessage(
   }
 
   const db = adminDb();
-  const message = { id: randomUUID(), author, body, at: now };
+  const message = {
+    id: randomUUID(),
+    author,
+    body,
+    at: now,
+    ...(meta?.replyId ? { replyId: meta.replyId } : {}),
+  };
 
   const existing = threadId ? await readThread(threadId) : null;
 
@@ -132,13 +144,18 @@ export async function appendMessage(
     // A visitor may not choose their own thread id: it is what identifies the
     // conversation, and one taken from a cookie a person can edit would let
     // them read somebody else's.
+    if (!meta?.details) {
+      throw new ChatError("Tell us your name and number first.", "detailsNeeded");
+    }
+
     const reference = db.collection(COLLECTION).doc();
     await reference.set({
       startedAt: now,
       lastAt: now,
       messages: [message],
-      ...(meta?.name ? { name: meta.name } : {}),
-      ...(meta?.mobile ? { mobile: meta.mobile } : {}),
+      name: meta.details.name,
+      mobile: meta.details.mobile,
+      locale: meta.details.locale,
       ...(meta?.accountId ? { accountId: meta.accountId } : {}),
     });
 

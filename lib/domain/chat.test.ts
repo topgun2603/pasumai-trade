@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   automaticReply,
+  checkDetails,
   cleanMessage,
   ChatError,
   guardThread,
@@ -72,8 +73,12 @@ describe("what it says back", () => {
   });
 
   it("greets differently depending on whether anybody is reading", () => {
-    expect(openingMessage(policy, utc("2026-08-22T05:00:00Z"))).toMatch(/reading now/);
-    expect(openingMessage(policy, utc("2026-08-22T20:00:00Z"))).toContain("9 am");
+    expect(openingMessage(policy, utc("2026-08-22T05:00:00Z"))).toMatch(
+      /reading now/,
+    );
+    expect(openingMessage(policy, utc("2026-08-22T20:00:00Z"))).toContain(
+      "9 am",
+    );
   });
 });
 
@@ -89,7 +94,11 @@ describe("what it will accept", () => {
     expect(cleanMessage("x".repeat(5000))).toHaveLength(1000);
   });
 
-  const message = (author: "visitor" | "operations", agoMs: number, now: Date) => ({
+  const message = (
+    author: "visitor" | "operations",
+    agoMs: number,
+    now: Date,
+  ) => ({
     id: `m${agoMs}`,
     author,
     body: "hello",
@@ -99,14 +108,20 @@ describe("what it will accept", () => {
   it("lets a normal reply through", () => {
     const now = utc("2026-08-22T05:00:00Z");
     expect(() =>
-      guardThread({ messages: [message("visitor", 60_000, now)], lastAt: now }, now),
+      guardThread(
+        { messages: [message("visitor", 60_000, now)], lastAt: now },
+        now,
+      ),
     ).not.toThrow();
   });
 
   it("refuses a second message sent faster than a person types", () => {
     const now = utc("2026-08-22T05:00:00Z");
     expect(() =>
-      guardThread({ messages: [message("visitor", MIN_GAP_MS - 1, now)], lastAt: now }, now),
+      guardThread(
+        { messages: [message("visitor", MIN_GAP_MS - 1, now)], lastAt: now },
+        now,
+      ),
     ).toThrow(/moment/);
   });
 
@@ -120,7 +135,10 @@ describe("what it will accept", () => {
     expect(() =>
       guardThread(
         {
-          messages: [message("visitor", 60_000, now), message("operations", 10, now)],
+          messages: [
+            message("visitor", 60_000, now),
+            message("operations", 10, now),
+          ],
           lastAt: now,
         },
         now,
@@ -133,6 +151,38 @@ describe("what it will accept", () => {
     const many = Array.from({ length: MAX_MESSAGES_PER_THREAD }, (_, i) =>
       message("visitor", 60_000 + i, now),
     );
-    expect(() => guardThread({ messages: many, lastAt: now }, now)).toThrow(/full/);
+    expect(() => guardThread({ messages: many, lastAt: now }, now)).toThrow(
+      /full/,
+    );
+  });
+});
+
+describe("who is writing", () => {
+  it("insists on both a name and a number", () => {
+    const { errors } = checkDetails({});
+    expect(errors.name).toBeDefined();
+    expect(errors.mobile).toBeDefined();
+  });
+
+  it("uses the same mobile rule the registration forms use", () => {
+    // A number accepted here must still be accepted when they come to open an
+    // account, or the chat teaches somebody a format the platform then refuses.
+    expect(
+      checkDetails({ name: "Selvam", mobile: "123" }).errors.mobile,
+    ).toBeDefined();
+    expect(
+      checkDetails({ name: "Selvam", mobile: "9843011204" }).errors,
+    ).toEqual({});
+  });
+
+  it("falls back to English for a language it does not have", () => {
+    expect(
+      checkDetails({ name: "A", mobile: "9843011204", locale: "fr" }).values
+        .locale,
+    ).toBe("en");
+    expect(
+      checkDetails({ name: "A", mobile: "9843011204", locale: "ta" }).values
+        .locale,
+    ).toBe("ta");
   });
 });

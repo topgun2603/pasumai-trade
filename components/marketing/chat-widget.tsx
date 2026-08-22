@@ -4,6 +4,9 @@ import { MessageCircleIcon, SendIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import type { Locale } from "@/lib/i18n/config";
 import { cn } from "@/lib/utils";
 
 /**
@@ -35,11 +38,21 @@ interface Message {
 /** Only while the window is open, and slow enough not to be a load generator. */
 const POLL_MS = 5000;
 
-export function ChatWidget() {
+export function ChatWidget({ locale }: { locale: Locale }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [greeting, setGreeting] = useState("");
   const [draft, setDraft] = useState("");
+  /*
+    Asked once, before the first message, and never again — the server keeps
+    them on the thread. Required because a chat answered only while somebody is
+    still on the page is a chat that goes cold the moment they close the tab,
+    and the number is what lets operations finish the conversation by telephone.
+  */
+  const [name, setName] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [known, setKnown] = useState(false);
+  const [fields, setFields] = useState<Record<string, string>>({});
   const [sending, setSending] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const foot = useRef<HTMLDivElement>(null);
@@ -59,12 +72,14 @@ export function ChatWidget() {
         const response = await fetch("/api/chat", { cache: "no-store" });
         if (!response.ok || !alive) return;
         const data = (await response.json()) as {
-          thread: { messages: Message[] } | null;
+          thread: { messages: Message[]; name?: string } | null;
           greeting: string;
         };
         if (!alive) return;
         setMessages(data.thread?.messages ?? []);
         setGreeting(data.greeting);
+        // A thread already exists, so they have told us who they are.
+        if (data.thread) setKnown(true);
       } catch {
         // A failed poll is not worth saying anything about; the next one is
         // five seconds away and the conversation on screen is still correct.
@@ -96,19 +111,25 @@ export function ChatWidget() {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ message: body }),
+        // Name, number and language ride along; the server keeps them on the
+        // first message and ignores them after that.
+        body: JSON.stringify({ message: body, name, mobile, locale }),
       });
 
       const data = (await response.json().catch(() => ({}))) as {
         thread?: { messages: Message[] };
         error?: string;
+        fields?: Record<string, string>;
       };
 
       if (!response.ok) {
+        setFields(data.fields ?? {});
         setProblem(data.error ?? "Could not send that.");
         return;
       }
 
+      setFields({});
+      setKnown(true);
       setMessages(data.thread?.messages ?? []);
       setDraft("");
     } catch {
@@ -142,7 +163,12 @@ export function ChatWidget() {
           <span className="text-sm font-medium">Pasumai Trade</span>
           <span className="text-muted-foreground text-xs">We answer here</span>
         </div>
-        <Button variant="ghost" size="icon-sm" aria-label="Close chat" onClick={() => setOpen(false)}>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Close chat"
+          onClick={() => setOpen(false)}
+        >
           <XIcon className="size-4" />
         </Button>
       </div>
@@ -152,7 +178,11 @@ export function ChatWidget() {
           <Bubble author="system" body={greeting} />
         ) : null}
         {messages.map((message) => (
-          <Bubble key={message.id} author={message.author} body={message.body} />
+          <Bubble
+            key={message.id}
+            author={message.author}
+            body={message.body}
+          />
         ))}
         <div ref={foot} />
       </div>
@@ -162,6 +192,42 @@ export function ChatWidget() {
           {problem}
         </p>
       ) : null}
+
+      {known ? null : (
+        <div className="grid gap-2 border-t px-3 pt-3 sm:grid-cols-2">
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="chat-name" className="text-xs">
+              Your name
+            </Label>
+            <Input
+              id="chat-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              aria-invalid={Boolean(fields.name)}
+              className="h-8 text-sm"
+            />
+            {fields.name ? (
+              <p className="text-destructive text-xs">{fields.name}</p>
+            ) : null}
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="chat-mobile" className="text-xs">
+              Mobile
+            </Label>
+            <Input
+              id="chat-mobile"
+              inputMode="numeric"
+              value={mobile}
+              onChange={(e) => setMobile(e.target.value)}
+              aria-invalid={Boolean(fields.mobile)}
+              className="h-8 text-sm"
+            />
+            {fields.mobile ? (
+              <p className="text-destructive text-xs">{fields.mobile}</p>
+            ) : null}
+          </div>
+        </div>
+      )}
 
       <form onSubmit={send} className="flex items-end gap-2 border-t p-3">
         <textarea
@@ -181,7 +247,12 @@ export function ChatWidget() {
           aria-label="Your message"
           className="border-input bg-background focus-visible:ring-ring min-h-16 flex-1 resize-none rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
         />
-        <Button type="submit" size="icon" disabled={sending || !draft.trim()} aria-label="Send">
+        <Button
+          type="submit"
+          size="icon"
+          disabled={sending || !draft.trim()}
+          aria-label="Send"
+        >
           <SendIcon className="size-4" />
         </Button>
       </form>

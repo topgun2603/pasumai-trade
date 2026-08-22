@@ -4,10 +4,12 @@ import { verifySession } from "@/lib/auth/session";
 import {
   automaticReply,
   ChatError,
+  checkDetails,
   cleanMessage,
   openingMessage,
   type ChatThread,
 } from "@/lib/domain/chat";
+import { replyText } from "@/lib/domain/chat-replies";
 import { appendMessage, readThread } from "@/lib/firebase/chat-store";
 import { readPlatformPolicy } from "@/lib/firebase/controls-read";
 
@@ -32,14 +34,21 @@ import { readPlatformPolicy } from "@/lib/firebase/controls-read";
 const COOKIE = "pasumai_chat";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
 
-/** What the browser is allowed to know about a thread. */
+/**
+ * What the browser is allowed to know about a thread.
+ *
+ * Standard replies are rendered into the thread's language here rather than
+ * shipped as an id the widget has to resolve — the widget would then need all
+ * six translations in its bundle to display one of them.
+ */
 function forVisitor(thread: ChatThread) {
   return {
     id: thread.id,
+    name: thread.name,
     messages: thread.messages.map((m) => ({
       id: m.id,
       author: m.author,
-      body: m.body,
+      body: replyText(m.replyId, thread.locale, m.body),
       at: m.at.toISOString(),
     })),
   };
@@ -87,18 +96,32 @@ export async function POST(request: Request) {
 
   const now = new Date();
   const existingId = store.get(COOKIE)?.value;
+  let details: ReturnType<typeof checkDetails>["values"] | undefined;
+
+  /*
+    Name and number are required to *start* a thread and ignored afterwards.
+    They are already on it, and taking them from every message would let
+    somebody rewrite whose conversation it is halfway through.
+  */
+  const existing = existingId ? await readThread(existingId) : null;
+  if (!existing) {
+    const checked = checkDetails(body);
+    if (Object.keys(checked.errors).length > 0) {
+      return Response.json(
+        {
+          error: "We need a name and a number to answer you.",
+          fields: checked.errors,
+        },
+        { status: 422 },
+      );
+    }
+    details = checked.values;
+  }
 
   let result;
   try {
-    result = await appendMessage(existingId, "visitor", text, now, {
-      name:
-        typeof body.name === "string"
-          ? body.name.trim().slice(0, 80)
-          : undefined,
-      mobile:
-        typeof body.mobile === "string"
-          ? body.mobile.trim().slice(0, 20)
-          : undefined,
+    result = await appendMessage(existing?.id, "visitor", text, now, {
+      details,
       accountId: session?.claims.accountId,
     });
   } catch (error) {

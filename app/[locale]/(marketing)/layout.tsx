@@ -38,7 +38,7 @@ export default async function MarketingLayout({
         from wherever it occurs to somebody — the pricing page and the coverage
         map raise as many as the front door does.
       */}
-      <ChatWidget />
+      <ChatWidget locale={locale} />
     </div>
   );
 }
