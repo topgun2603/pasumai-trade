@@ -307,6 +307,56 @@ export const en = {
     writeToUs: "Write to us",
   },
 
+  /*
+    The farmer console.
+
+    The only console with a dictionary, and the only one that needs one: a
+    grower reads this on a handset in the language they think in, while a buyer
+    or an agency is a business operating in English. See lib/i18n/console.ts for
+    how the language reaches a surface that has no locale in its path.
+  */
+  farm: {
+    nav: {
+      today: "Today",
+      produce: "My produce",
+      bargains: "Bargains",
+      notifications: "Notifications",
+      account: "Account",
+      sales: "Sales",
+      prices: "Prices",
+      verification: "Verification",
+      subscription: "Subscription",
+      theme: "Theme",
+      language: "Language",
+      role: "Farmer",
+    },
+    today: {
+      title: "Today",
+      produceListed: "Produce listed",
+      nothingListed: "Nothing on offer yet",
+      waitingOnYou: "Waiting on you",
+      buyerSpokeLast: "A buyer has spoken last",
+      nothingToReply: "Nothing to reply to",
+      agreed: "Agreed",
+      priceSettled: "Price settled, binding",
+    },
+    page: {
+      greeting: "Vanakkam",
+      postProduce: "Post produce",
+      yourProduce: "Your produce",
+      seeAll: "See all",
+      nothingListedYet: "Nothing listed yet. Post what you have ready and buyers will bargain for it.",
+      signOut: "Sign out",
+      signingOut: "Signing out…",
+    },
+    listing: {
+      noOffers: "No offers yet",
+      offerReceived: "Offer received",
+      photo: "photo",
+      photos: "photos",
+      bargains: "Bargains",
+    },
+  },
   common: {
     backToTop: "Back to top",
     required: "required",

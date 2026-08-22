@@ -30,6 +30,9 @@ import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Separator } from "@/components/ui/separator";
 import type { Notification } from "@/lib/domain/notification";
 import { BrandMark } from "@/components/marketing/brand-mark";
+import { LanguageSwitcher } from "@/components/marketing/language-switcher";
+import type { Dictionary } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/config";
 import { cn } from "@/lib/utils";
 
 /**
@@ -41,15 +44,25 @@ import { cn } from "@/lib/utils";
  * the targets are large. Four destinations, not six: anything that does not
  * earn its place on a phone does not belong here at all.
  */
+/*
+  Keys, not words. The rail is the one part of a console a farmer reads on every
+  screen, so it is the part most worth being in their own language — the label
+  is looked up per render from whichever dictionary the cookie chose.
+*/
 const LINKS = [
-  { href: "/farm", label: "Today", icon: GaugeIcon, exact: true },
-  { href: "/farm/listings", label: "My produce", icon: SproutIcon },
-  { href: "/farm/bargains", label: "Bargains", icon: HandshakeIcon },
-  { href: "/farm/notifications", label: "Notifications", icon: BellIcon },
-  { href: "/farm/account", label: "Account", icon: UserRoundIcon },
-];
+  { href: "/farm", key: "today", icon: GaugeIcon, exact: true },
+  { href: "/farm/listings", key: "produce", icon: SproutIcon },
+  { href: "/farm/bargains", key: "bargains", icon: HandshakeIcon },
+  { href: "/farm/notifications", key: "notifications", icon: BellIcon },
+  { href: "/farm/account", key: "account", icon: UserRoundIcon },
+] satisfies ReadonlyArray<{
+  href: string;
+  key: keyof Dictionary["farm"]["nav"];
+  icon: typeof GaugeIcon;
+  exact?: boolean;
+}>;
 
-function ThemeToggle() {
+function ThemeToggle({ label }: { label: string }) {
   const { setTheme } = useTheme();
 
   return (
@@ -58,7 +71,7 @@ function ThemeToggle() {
         <Button variant="outline" size="sm" className="w-full justify-start">
           <SunIcon className="size-4 scale-100 rotate-0 transition-transform dark:scale-0 dark:-rotate-90" />
           <MoonIcon className="absolute size-4 scale-0 rotate-90 transition-transform dark:scale-100 dark:rotate-0" />
-          <span className="ml-6">Theme</span>
+          <span className="ml-6">{label}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
@@ -88,6 +101,8 @@ export function FarmNav({
   session,
   pending,
   notifications,
+  locale,
+  t,
 }: {
   farmer: { name: string; id: string; village: string };
   role: "farmer";
@@ -96,6 +111,9 @@ export function FarmNav({
   pending: Record<string, number>;
   /** The bell in the rail header, read once for the whole console. */
   notifications: { rows: Notification[]; unread: number; capped: boolean };
+  /** Chosen by the cookie, resolved on the server. See lib/i18n/console.ts. */
+  locale: Locale;
+  t: Dictionary;
 }) {
   const pathname = usePathname();
 
@@ -110,14 +128,14 @@ export function FarmNav({
             <span className="truncate text-sm font-semibold">
               Pasumai Trade
             </span>
-            <span className="text-faint text-xs">Farmer</span>
+            <span className="text-faint text-xs">{t.farm.nav.role}</span>
           </span>
-          {/* Read in Tamil, like the rest of this surface. */}
+          {/* In whatever language this console is being read in. */}
           <NotificationBell
             notifications={notifications.rows}
             unread={notifications.unread}
             capped={notifications.capped}
-            locale="ta"
+            locale={locale}
             href="/farm/notifications"
           />
         </div>
@@ -125,7 +143,7 @@ export function FarmNav({
         <Separator />
 
         <ul className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2">
-          {LINKS.map(({ href, label, icon: Icon, exact }) => {
+          {LINKS.map(({ href, key, icon: Icon, exact }) => {
             const active = isActive(pathname, href, exact);
             const waiting = pending[href] ?? 0;
 
@@ -143,7 +161,7 @@ export function FarmNav({
                   )}
                 >
                   <Icon className="size-4 shrink-0" />
-                  {label}
+                  {t.farm.nav[key]}
                   {waiting > 0 ? (
                     <Badge
                       variant="outline"
@@ -170,7 +188,7 @@ export function FarmNav({
               )}
             >
               <ReceiptIcon className="size-4 shrink-0" />
-              Sales
+              {t.farm.nav.sales}
             </Link>
           </li>
           <li>
@@ -187,7 +205,7 @@ export function FarmNav({
               )}
             >
               <ChartColumnIcon className="size-4 shrink-0" />
-              Prices
+              {t.farm.nav.prices}
             </Link>
           </li>
           <li>
@@ -205,7 +223,7 @@ export function FarmNav({
               )}
             >
               <BadgeCheckIcon className="size-4 shrink-0" />
-              Verification
+              {t.farm.nav.verification}
             </Link>
           </li>
           <li>
@@ -222,13 +240,19 @@ export function FarmNav({
               )}
             >
               <CreditCardIcon className="size-4 shrink-0" />
-              Subscription
+              {t.farm.nav.subscription}
             </Link>
           </li>
         </ul>
 
         <div className="border-sidebar-border flex shrink-0 flex-col gap-3 border-t p-3">
-          <ThemeToggle />
+          {/*
+            The way out of a language you cannot read, on the surface most
+            likely to be read in one. It only sets the cookie here — there is
+            no locale in a console path to rewrite.
+          */}
+          <LanguageSwitcher current={locale} label={t.farm.nav.language} />
+          <ThemeToggle label={t.farm.nav.theme} />
           <Separator />
           <div className="flex flex-col leading-tight">
             <span className="truncate text-sm font-medium">{farmer.name}</span>
@@ -237,7 +261,15 @@ export function FarmNav({
             </span>
           </div>
           <Separator />
-          <SessionFooter email={session.email} role={role} />
+          <SessionFooter
+            email={session.email}
+            role={role}
+            labels={{
+              signOut: t.farm.page.signOut,
+              signingOut: t.farm.page.signingOut,
+              role: t.farm.nav.role,
+            }}
+          />
         </div>
       </nav>
 
@@ -247,7 +279,7 @@ export function FarmNav({
         its tap targets under the system gesture area.
       */}
       <nav className="bg-sidebar border-sidebar-border fixed inset-x-0 bottom-0 z-40 flex border-t pb-[env(safe-area-inset-bottom)] md:hidden">
-        {LINKS.map(({ href, label, icon: Icon, exact }) => {
+        {LINKS.map(({ href, key, icon: Icon, exact }) => {
           const active = isActive(pathname, href, exact);
           const waiting = pending[href] ?? 0;
 
@@ -263,7 +295,7 @@ export function FarmNav({
               )}
             >
               <Icon className="size-5" />
-              {label}
+              {t.farm.nav[key]}
               {waiting > 0 ? (
                 <span className="bg-warning text-warning-foreground absolute top-1.5 right-1/2 mr-2 flex size-4 items-center justify-center rounded-full text-[10px]">
                   {waiting}

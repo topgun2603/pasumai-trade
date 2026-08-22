@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Carousel } from "@/components/ui/carousel";
 import { formatMoney } from "@/lib/domain/money";
 import { mediaItems } from "@/lib/media";
+import type { Dictionary } from "@/lib/i18n";
 import type { FarmListing } from "@/lib/firebase/listings-read";
 
 /**
@@ -19,7 +20,15 @@ import type { FarmListing } from "@/lib/firebase/listings-read";
  * that split reflected, or they cannot tell whether the platform understood
  * what they posted.
  */
-export function ListingCard({ listing }: { listing: FarmListing }) {
+export function ListingCard({
+  listing,
+  t,
+}: {
+  listing: FarmListing;
+  /** The farm dictionary's listing block. Passed rather than read, so this
+      stays a plain component the other consoles could reuse. */
+  t: Dictionary["farm"]["listing"];
+}) {
   return (
     <li className="border-border bg-card flex gap-4 rounded-lg border p-3">
       <Carousel
@@ -41,7 +50,7 @@ export function ListingCard({ listing }: { listing: FarmListing }) {
                 : "border-success/40 text-success"
             }
           >
-            {listing.status === "awaitingOffer" ? "No offers yet" : "Offer received"}
+            {listing.status === "awaitingOffer" ? t.noOffers : t.offerReceived}
           </Badge>
         </div>
 
@@ -58,7 +67,8 @@ export function ListingCard({ listing }: { listing: FarmListing }) {
                 </span>
                 {g.askingRate ? (
                   <span className="text-primary tabular-nums">
-                    {formatMoney({ minorUnits: g.askingRate, currency: "INR" })}/{listing.unit}
+                    {formatMoney({ minorUnits: g.askingRate, currency: "INR" })}
+                    /{listing.unit}
                   </span>
                 ) : null}
               </span>
@@ -77,14 +87,16 @@ export function ListingCard({ listing }: { listing: FarmListing }) {
 
         <div className="mt-auto flex items-center justify-between gap-2 pt-1">
           <span className="text-faint text-xs">
-            {listing.photoCount || listing.imageUrls.length} photo
-            {(listing.photoCount || listing.imageUrls.length) === 1 ? "" : "s"}
+            {listing.photoCount || listing.imageUrls.length}{" "}
+            {(listing.photoCount || listing.imageUrls.length) === 1
+              ? t.photo
+              : t.photos}
             {listing.videoUrl ? " · video" : ""}
           </span>
           <Button asChild size="sm" variant="outline">
             <Link href="/farm/bargains">
               <HandshakeIcon className="size-3.5" />
-              Bargains
+              {t.bargains}
             </Link>
           </Button>
         </div>

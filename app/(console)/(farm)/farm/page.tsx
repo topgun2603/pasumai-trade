@@ -8,6 +8,7 @@ import { ListingCard } from "@/components/farm/listing-card";
 import { StatTile } from "@/components/franchise/stat-tile";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { consoleDictionary } from "@/lib/i18n/console";
 import { requireFarmer } from "@/lib/auth/farm";
 import { formatMoney } from "@/lib/domain/money";
 import { lastProposalBy } from "@/lib/domain/negotiation";
@@ -15,6 +16,12 @@ import { isReady } from "@/lib/domain/readiness";
 import { farmTotals, readFarmerListings } from "@/lib/firebase/listings-read";
 import { negotiations } from "@/lib/mock/negotiations";
 
+/*
+  Not translated. A browser tab title is read by the person who chose the
+  language *and* by anybody looking over their shoulder at a shared handset;
+  the console's own heading below is the one that matters, and metadata is
+  static here while the language is a per-request cookie.
+*/
 export const metadata: Metadata = { title: "Today · Farmer" };
 
 /**
@@ -28,7 +35,11 @@ export const metadata: Metadata = { title: "Today · Farmer" };
 export default async function FarmTodayPage() {
   await connection();
 
-  const { farmer, flags, journey } = await requireFarmer();
+  const [{ farmer, flags, journey }, { t }] = await Promise.all([
+    requireFarmer(),
+    // The cookie the layout already read; `cache` means this costs nothing.
+    consoleDictionary(),
+  ]);
   const now = new Date();
   const clock = now.getTime();
 
@@ -49,14 +60,14 @@ export default async function FarmTodayPage() {
   return (
     <>
       <PageHeader
-        title={`Vanakkam, ${farmer.name.split(" ").at(-1) ?? farmer.name}`}
+        title={`${t.farm.page.greeting}, ${farmer.name.split(" ").at(-1) ?? farmer.name}`}
         description={`${farmer.village}, ${farmer.district}`}
         aside={
           ready ? (
             <Button asChild size="sm">
               <Link href="/farm/listings">
                 <SproutIcon className="size-4" />
-                Post produce
+                {t.farm.page.postProduce}
               </Link>
             </Button>
           ) : null
@@ -78,31 +89,31 @@ export default async function FarmTodayPage() {
           <>
             <div className="grid gap-4 sm:grid-cols-3">
               <StatTile
-                label="Produce listed"
+                label={t.farm.today.produceListed}
                 value={totals.open}
                 icon={SproutIcon}
                 hint={
                   totals.quantity > 0
                     ? `${totals.quantity} ${totals.unit} on offer`
-                    : "Nothing on offer yet"
+                    : t.farm.today.nothingListed
                 }
               />
               <StatTile
-                label="Waiting on you"
+                label={t.farm.today.waitingOnYou}
                 value={yourTurn.length}
                 icon={HandshakeIcon}
                 hint={
                   yourTurn.length
-                    ? "A buyer has spoken last"
-                    : "Nothing to reply to"
+                    ? t.farm.today.buyerSpokeLast
+                    : t.farm.today.nothingToReply
                 }
                 tone="warning"
               />
               <StatTile
-                label="Agreed"
+                label={t.farm.today.agreed}
                 value={agreed.length}
                 icon={PackageCheckIcon}
-                hint="Price settled, binding"
+                hint={t.farm.today.priceSettled}
                 tone="success"
               />
             </div>
@@ -163,12 +174,14 @@ export default async function FarmTodayPage() {
 
             <section className="flex flex-col gap-3">
               <div className="flex items-center justify-between gap-3">
-                <h2 className="text-sm font-medium">Your produce</h2>
+                <h2 className="text-sm font-medium">
+                  {t.farm.page.yourProduce}
+                </h2>
                 <Link
                   href="/farm/listings"
                   className="text-primary text-sm hover:underline"
                 >
-                  See all
+                  {t.farm.page.seeAll}
                 </Link>
               </div>
 
@@ -180,13 +193,13 @@ export default async function FarmTodayPage() {
                     bargain for it.
                   </p>
                   <Button asChild size="sm" variant="outline">
-                    <Link href="/farm/listings">Post produce</Link>
+                    <Link href="/farm/listings">{t.farm.page.postProduce}</Link>
                   </Button>
                 </div>
               ) : (
                 <ul className="flex flex-col gap-3">
                   {mine.slice(0, 3).map((listing) => (
-                    <ListingCard key={listing.id} listing={listing} />
+                    <ListingCard key={listing.id} listing={listing} t={t.farm.listing} />
                   ))}
                 </ul>
               )}

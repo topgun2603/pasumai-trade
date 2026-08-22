@@ -18,9 +18,18 @@ import { signOut } from "@/lib/auth/sign-in";
 export function SessionFooter({
   email,
   role,
+  labels,
 }: {
   email?: string;
   role: Role;
+  /**
+   * Optional, and English when absent.
+   *
+   * Only the farm console has a dictionary; the other four are staff surfaces
+   * operated in English. Making this required would force four callers to pass
+   * translations that do not exist yet.
+   */
+  labels?: { signOut: string; signingOut: string; role?: string };
 }) {
   const [pending, setPending] = useState(false);
 
@@ -46,7 +55,9 @@ export function SessionFooter({
         <span className="truncate text-sm font-medium" title={email}>
           {email ?? "Signed in"}
         </span>
-        <span className="text-muted-foreground text-xs">{ROLE_LABELS[role]}</span>
+        <span className="text-muted-foreground text-xs">
+          {labels?.role ?? ROLE_LABELS[role]}
+        </span>
       </div>
       <Button
         variant="outline"
@@ -56,7 +67,9 @@ export function SessionFooter({
         className="w-full justify-start"
       >
         <LogOutIcon className="size-4" />
-        {pending ? "Signing out…" : "Sign out"}
+        {pending
+          ? (labels?.signingOut ?? "Signing out…")
+          : (labels?.signOut ?? "Sign out")}
       </Button>
     </div>
   );

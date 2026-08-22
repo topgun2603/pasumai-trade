@@ -36,11 +36,18 @@ function railSource(file: string): string {
   return readFileSync(join(process.cwd(), "components", file), "utf8");
 }
 
-/** The named array literal from a rail file, as text. */
+/**
+ * The named array literal from a rail file, as text.
+ *
+ * Ends at the closing bracket at column zero, whatever follows it — a rail may
+ * close with `];` or with `] satisfies ReadonlyArray<…>;`, and the farm rail
+ * changed from one to the other the day its labels became dictionary keys. What
+ * matters is the entries, not how the array declares its type.
+ */
 function arrayBlock(source: string, name: string): string {
   const start = source.indexOf(`const ${name}`);
   if (start === -1) throw new Error(`${name} is no longer declared where this test expects it`);
-  const end = source.indexOf("\n];", start);
+  const end = source.indexOf("\n]", start);
   if (end === -1) throw new Error(`${name} does not end where this test expects it`);
   return source.slice(start, end);
 }

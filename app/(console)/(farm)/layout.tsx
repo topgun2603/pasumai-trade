@@ -4,6 +4,7 @@ import { ConsoleTour } from "@/components/console/tour";
 import { FarmNav } from "@/components/farm/farm-nav";
 import { requireFarmer } from "@/lib/auth/farm";
 import { tourFor } from "@/lib/domain/tour";
+import { consoleDictionary } from "@/lib/i18n/console";
 import { isCapped, readNotifications } from "@/lib/firebase/notifications-read";
 import { readSeenTours } from "@/lib/firebase/tour-read";
 import { negotiations } from "@/lib/mock/negotiations";
@@ -39,9 +40,12 @@ export default async function FarmLayout({
   // farmer sees a number on the rail without opening anything. Read here rather
   // than per page: the rail is on every screen, and a count that only appears
   // on the notifications page is a count nobody sees.
-  const [feed, seenTours] = await Promise.all([
+  const [feed, seenTours, { locale, t }] = await Promise.all([
     readNotifications(farmer.id),
     readSeenTours(farmer.id),
+    // Reads a cookie rather than the database, so it costs nothing and a
+    // farmer who has just switched sees it on this render.
+    consoleDictionary(),
   ]);
 
   const definition = tourFor("farmer");
@@ -62,6 +66,8 @@ export default async function FarmLayout({
           unread: feed.unread,
           capped: isCapped(feed),
         }}
+        locale={locale}
+        t={t}
       />
       <div className="flex min-w-0 flex-1 flex-col pb-20 md:pb-0">
         {children}
