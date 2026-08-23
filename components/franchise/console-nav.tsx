@@ -95,7 +95,7 @@ export function ConsoleNav({
     ...(session.role === "franchise" || session.role === "admin"
       ? [
           {
-            label: "Franchise",
+            label: "Your district",
             links: FRANCHISE_LINKS.map(({ href, label }) => ({ href, label })),
           },
         ]
@@ -114,13 +114,31 @@ export function ConsoleNav({
   ];
 
   /*
-    Operations see the franchise links too, because they field the call when a
-    franchise cannot work a screen and need to be looking at the same rail.
+    Sectioned for a franchise, flat for a buyer. Bug 2.
+
+    The two consoles were the same list of the same links in the same order,
+    so the only thing telling a franchise which one they were in was a caption
+    above the rail — and the report's complaint was exactly that: no
+    role-specific navigation, terminology or modules, just one console wearing
+    two names.
+
+    A franchise does two jobs, and now the rail says so. Buying is the work
+    they share with every buyer; Franchise is the district — dispatch and the
+    growers on it — which no buyer has. A buyer sees one ungrouped list,
+    because a heading over a list with nothing to distinguish it from is
+    decoration.
+
+    Operations see the franchise sections too: they field the call when a
+    franchise cannot work a screen, and need to be looking at the same rail.
   */
-  const links =
-    session.role === "franchise" || session.role === "admin"
-      ? [...BUYING_LINKS, ...FRANCHISE_LINKS]
-      : BUYING_LINKS;
+  const sectioned = session.role === "franchise" || session.role === "admin";
+
+  const sections: Array<{ title?: string; links: typeof BUYING_LINKS }> = sectioned
+    ? [
+        { title: "Buying", links: BUYING_LINKS },
+        { title: "Your district", links: FRANCHISE_LINKS },
+      ]
+    : [{ links: BUYING_LINKS }];
 
   return (
     <>
@@ -172,37 +190,46 @@ export function ConsoleNav({
 
         <Separator />
 
-        <ul className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2">
-          {links.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || pathname.startsWith(`${href}/`);
-            const waiting = pending[href] ?? 0;
-            return (
-              <li key={href}>
-                <Link
-                  href={href}
-                  data-tour={href}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "focus-visible:ring-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
-                    active
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-                  )}
-                >
-                  <Icon className="size-4 shrink-0" />
-                  {label}
-                  {waiting > 0 ? (
-                    // Capped, because past a point the number stops being a
-                    // figure anybody acts on and starts being a smudge.
-                    <span className="bg-primary text-primary-foreground ml-auto min-w-5 rounded-full px-1.5 py-0.5 text-center text-[11px] leading-none font-medium tabular-nums">
-                      {waiting > 49 ? "50+" : waiting}
-                    </span>
-                  ) : null}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-2">
+          {sections.map((section, at) => (
+            <ul key={section.title ?? at} className="flex flex-col gap-0.5">
+              {section.title ? (
+                <li className="text-faint px-2.5 pt-1 pb-1 text-xs font-medium tracking-wide uppercase">
+                  {section.title}
+                </li>
+              ) : null}
+              {section.links.map(({ href, label, icon: Icon }) => {
+                const active = pathname === href || pathname.startsWith(`${href}/`);
+                const waiting = pending[href] ?? 0;
+                return (
+                  <li key={href}>
+                    <Link
+                      href={href}
+                      data-tour={href}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "focus-visible:ring-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
+                        active
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                          : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                      )}
+                    >
+                      <Icon className="size-4 shrink-0" />
+                      {label}
+                      {waiting > 0 ? (
+                        // Capped, because past a point the number stops being a
+                        // figure anybody acts on and starts being a smudge.
+                        <span className="bg-primary text-primary-foreground ml-auto min-w-5 rounded-full px-1.5 py-0.5 text-center text-[11px] leading-none font-medium tabular-nums">
+                          {waiting > 49 ? "50+" : waiting}
+                        </span>
+                      ) : null}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          ))}
+        </div>
 
         {session.role === "franchise" ? (
           /*

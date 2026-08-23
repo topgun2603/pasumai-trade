@@ -7,7 +7,10 @@ import {
   totalQuantity,
   type GradeQuantity,
 } from "@/lib/domain/listing-draft";
+import { formatMoney, money } from "@/lib/domain/money";
+import { formatQuantity } from "@/lib/domain/quantity";
 import { adminDb, adminStorage } from "@/lib/firebase/admin";
+import { record } from "@/lib/firebase/audit-write";
 import { CATALOGUE } from "@/lib/mock/catalogue";
 
 /**
@@ -30,6 +33,31 @@ const READY_HOURS: Record<string, number> = {
   "3days": 72,
   week: 168,
 };
+
+/** "500 kg", for a history row. Tolerant, because this reads stored data. */
+function describeQuantity(quantity: unknown, unit: unknown): string {
+  if (typeof quantity !== "number") return "—";
+  return formatQuantity(quantity, typeof unit === "string" ? unit : "");
+}
+
+/**
+ * The asking rates as one line, so two of them can be compared.
+ *
+ * A per-grade diff would be more precise and much harder to read back; what a
+ * dispute needs is "A ₹25, B ₹20" against "A ₹22, B ₹20", which shows both the
+ * change and what was left alone.
+ */
+function ratesOf(grades: unknown): string {
+  if (!Array.isArray(grades)) return "—";
+  const parts = grades
+    .filter((g): g is { grade: string; askingRate?: number | null } => Boolean(g))
+    .map((g) =>
+      typeof g.askingRate === "number"
+        ? `${String(g.grade).toUpperCase()} ${formatMoney(money(g.askingRate))}`
+        : `${String(g.grade).toUpperCase()} —`,
+    );
+  return parts.length > 0 ? parts.join(", ") : "—";
+}
 
 /** Same two shapes the POST route takes: a bare number, or quantity plus rate. */
 function readGrades(value: unknown): GradeQuantity[] {
@@ -198,6 +226,53 @@ export async function PATCH(request: Request, context: RouteContext<"/api/listin
   }
 
   await ref.set(update, { merge: true });
+
+  /*
+    Bug 13: the history of what changed, written where the change happens.
+
+    Quantity and price are the two the report names, because they are the two
+    a dispute is ever about — "it said 500 this morning" needs an answer from
+    a record neither side wrote. Recorded after the write, so a log entry can
+    never claim a change that did not land, and `record` never throws: a
+    bookkeeping failure must not fail the edit it was describing.
+  */
+  const actor = {
+    accountId: farmerId,
+    role: gate.session.claims.role,
+    name: typeof data.farmerName === "string" ? data.farmerName : farmerId,
+  };
+  const subject = { kind: "listings", id };
+  const at = new Date();
+
+  if (update.quantity !== undefined && update.quantity !== data.quantity) {
+    await record({
+      action: "listing.quantityChanged",
+      actor,
+      subject,
+      from: describeQuantity(data.quantity, data.unit),
+      to: describeQuantity(update.quantity, update.unit ?? data.unit),
+      at,
+    });
+  }
+
+  if (update.grades !== undefined) {
+    const before = ratesOf(data.grades);
+    const after = ratesOf(update.grades);
+    if (before !== after) {
+      await record({
+        action: "listing.priceChanged",
+        actor,
+        subject,
+        from: before,
+        to: after,
+        at,
+      });
+    }
+  }
+
+  if (update.status === "withdrawn") {
+    await record({ action: "listing.withdrawn", actor, subject, at });
+  }
 
   // Photographs the farmer took out. Removed after the write, so a failure
   // here leaves an unreferenced object rather than a listing pointing at a

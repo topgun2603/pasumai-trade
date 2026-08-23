@@ -1,4 +1,9 @@
-import { BadgeCheckIcon, CreditCardIcon, LandmarkIcon } from "lucide-react";
+import {
+  BadgeCheckIcon,
+  CreditCardIcon,
+  HistoryIcon,
+  LandmarkIcon,
+} from "lucide-react";
 import type { Metadata } from "next";
 import { connection } from "next/server";
 
@@ -73,6 +78,12 @@ export default async function BuyingAccountPage() {
       summary: "Bargaining and ordering need an active plan",
       state: standing === "none" ? "None" : SUBSCRIPTION_LABELS[standing],
       tone: standing === "active" || standing === "trialing" ? "done" : "action",
+    },
+    {
+      href: "/account/history",
+      icon: HistoryIcon,
+      label: "History",
+      summary: "Every change to your orders and your account",
     },
   ];
 

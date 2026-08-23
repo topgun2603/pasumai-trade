@@ -1,6 +1,7 @@
 import {
   BadgeCheckIcon,
   CreditCardIcon,
+  HistoryIcon,
   LandmarkIcon,
   ShieldCheckIcon,
 } from "lucide-react";
@@ -48,6 +49,12 @@ export default async function FarmAccountPage() {
       icon: CreditCardIcon,
       label: "Subscription",
       summary: "Listing produce needs an active plan",
+    },
+    {
+      href: "/farm/account/history",
+      icon: HistoryIcon,
+      label: "History",
+      summary: "Every change to your listings and your account",
     },
   ];
 

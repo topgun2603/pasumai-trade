@@ -225,6 +225,27 @@ service cloud.firestore {
       allow read: if isAdmin();
     }
 
+    match /audit/{entryId} {
+      /*
+        The history of who changed what.
+
+        Append-only, and append-only from the server alone: `allow write: if
+        false` at the bottom of this file already denies every client, and
+        there is deliberately no exception here. An audit log a client can
+        write is a log an attacker can forge; one it can edit is a log that
+        proves nothing.
+
+        Readable by operations, and by the account the entry is about or was
+        made by — a farmer must be able to see that somebody else changed the
+        quantity on their listing, which is the whole point of keeping it.
+      */
+      allow read: if isAdmin()
+        || (signedIn() && (
+             resource.data.actorId == claims().get('accountId', '')
+             || resource.data.subjectId == claims().get('accountId', '')
+           ));
+    }
+
     /* --------------------------------------------------------------------
        Everything else, and the write ban
        -------------------------------------------------------------------- */

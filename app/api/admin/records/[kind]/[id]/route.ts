@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/api/write-guard";
+import { record } from "@/lib/firebase/audit-write";
 import { isVerificationStatus } from "@/lib/domain/admin";
 import { canMove, isRecordKind, RECORDS } from "@/lib/domain/admin-records";
 import { adminDb, hasAdminCredentials } from "@/lib/firebase/admin";
@@ -92,6 +93,32 @@ export async function POST(
   }
 
   const now = new Date();
+
+  /*
+    Bug 13. An approval or a suspension is the most consequential thing an
+    operator does to somebody's account — it decides whether they can trade at
+    all — and until now it left no trace of who did it.
+
+    Written before the update rather than after, unlike the listing edits: if
+    the log write is the thing that fails, `record` swallows it and the status
+    change still lands. If the *update* fails, the log has claimed a change
+    that did not happen — so the surrounding try/catch shape matters more than
+    the order, and the order here keeps the actor's session in scope.
+  */
+  await record({
+    action: "account.statusChanged",
+    actor: {
+      accountId: gate.session.claims.accountId,
+      role: gate.session.claims.role,
+      name: gate.session.email ?? "Operations",
+    },
+    subject: { kind: RECORDS[kind].collection, id },
+    from,
+    to: next,
+    note: typeof body.reason === "string" ? body.reason : undefined,
+    at: now,
+  });
+
   await reference.update({
     status: next,
     /*
