@@ -83,6 +83,14 @@ export interface SignupForm {
   contactName: string;
   email: string;
   password: string;
+  /**
+   * Never sent anywhere. See `checkPasswordConfirmation`.
+   *
+   * Optional because this shape is also what the profile endpoint fills in,
+   * where there is no password to confirm — and where the check stays quiet
+   * of its own accord, since it says nothing while the password is empty.
+   */
+  confirmPassword?: string;
   mobile: string;
   /** Village for a farmer, town otherwise. Free text: the finest level of
       Indian geography nobody maintains a list of. */
@@ -131,6 +139,29 @@ export function checkPassword(value: string): string | undefined {
 }
 
 /**
+ * The second box, checked against the first.
+ *
+ * Purely a form concern, and deliberately not part of `SignupCredentials`:
+ * the server has nothing to compare a confirmation against, and posting a
+ * second copy of a password buys nothing but another place for it to be
+ * logged. The typo it catches is caught in the browser or not at all — which
+ * is enough, because the whole job is stopping somebody from creating an
+ * account whose password is not the one they think they chose.
+ *
+ * Silent while the password itself is empty. That field is already saying so,
+ * and two refusals for one untouched form reads as a broken page.
+ */
+export function checkPasswordConfirmation(
+  password: string,
+  confirmation: string,
+): string | undefined {
+  if (password === "") return undefined;
+  if (confirmation === "") return "Type the password again";
+  if (confirmation !== password) return "Both passwords must match";
+  return undefined;
+}
+
+/**
  * What it takes to open a login, and nothing else.
  *
  * Name, mobile and address used to be asked here, before the person had an
@@ -162,6 +193,10 @@ export function validateSignup(values: SignupForm): FieldErrors<SignupForm> {
     contactName: required(values.contactName, "Contact name"),
     email: checkEmail(values.email),
     password: checkPassword(values.password),
+    confirmPassword: checkPasswordConfirmation(
+      values.password,
+      values.confirmPassword ?? "",
+    ),
     mobile: checkMobile(values.mobile),
     place: required(values.place, "Village or town"),
     state: stateById(values.state) ? undefined : "Choose your state",

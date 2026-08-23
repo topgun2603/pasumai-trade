@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label";
 import { HOME_FOR_ROLE } from "@/lib/auth/claims";
 import { sendVerificationEmail, signIn } from "@/lib/auth/sign-in";
 import {
+  checkPasswordConfirmation,
   validateCredentials,
   type SignupForm,
   type SignupRole,
@@ -134,6 +135,7 @@ export function SignUpForm({
     contactName: "",
     email: "",
     password: "",
+    confirmPassword: "",
     mobile: "",
     place: "",
     state: "",
@@ -166,9 +168,18 @@ export function SignUpForm({
   async function submit(event: React.FormEvent) {
     event.preventDefault();
 
+    // The confirmation is not in the payload and never should be: the server
+    // has nothing to check it against, and it would be a second copy of a
+    // password travelling for no reason.
     const payload = { email: values.email, password: values.password };
 
-    const found = validateCredentials(payload);
+    const found = {
+      ...validateCredentials(payload),
+      confirmPassword: checkPasswordConfirmation(
+        values.password,
+        values.confirmPassword ?? "",
+      ),
+    };
     setErrors(found);
     if (Object.values(found).some(Boolean)) return;
 
@@ -412,6 +423,25 @@ export function SignUpForm({
               value={values.password}
               onChange={(e) => set("password", e.target.value)}
               aria-invalid={Boolean(errors.password)}
+            />
+          </Field>
+
+          {/*
+            Typed twice, because this one cannot be recovered by reading it
+            back — the field is masked, and the first thing a wrong password
+            does is lock somebody out of the account they just made.
+          */}
+          <Field
+            id="confirmPassword"
+            label="Confirm password"
+            error={errors.confirmPassword}
+          >
+            <PasswordInput
+              id="confirmPassword"
+              autoComplete="new-password"
+              value={values.confirmPassword ?? ""}
+              onChange={(e) => set("confirmPassword", e.target.value)}
+              aria-invalid={Boolean(errors.confirmPassword)}
             />
           </Field>
 

@@ -10,6 +10,8 @@ import {
   newAccountId,
   SELF_SIGNUP_ROLES,
   validateSignup,
+  checkPasswordConfirmation,
+  validateCredentials,
   type SignupForm,
   type SignupRole,
 } from "./signup";
@@ -23,6 +25,7 @@ function form(over: Partial<SignupForm> = {}): SignupForm {
     contactName: "R. Selvam",
     email: "selvam@kongufresh.in",
     password: "Tomato river 9!",
+    confirmPassword: "Tomato river 9!",
     mobile: "9843011204",
     place: "Tiruppur",
     state: "tamil-nadu",
@@ -232,5 +235,50 @@ describe("mobile numbers for Firebase", () => {
       expect(checkMobile(n)).toBeUndefined();
       expect(toE164(n)).toBe(`+91${n}`);
     }
+  });
+});
+
+describe("confirming a password", () => {
+  /*
+    Bug 3. The field was missing entirely, so a typo in a masked box created
+    an account whose password was not the one the person thought they chose —
+    and the first they knew of it was being locked out of it.
+  */
+  it("accepts two that match", () => {
+    expect(checkPasswordConfirmation("Str0ng!pass", "Str0ng!pass")).toBeUndefined();
+  });
+
+  it("refuses two that differ", () => {
+    expect(checkPasswordConfirmation("Str0ng!pass", "Str0ng!pasa")).toBe(
+      "Both passwords must match",
+    );
+  });
+
+  it("notices a trailing space rather than trimming it away", () => {
+    // Trimming would accept a password the browser will not send back.
+    expect(checkPasswordConfirmation("Str0ng!pass", "Str0ng!pass ")).toBe(
+      "Both passwords must match",
+    );
+  });
+
+  it("asks for the second one when it is empty", () => {
+    expect(checkPasswordConfirmation("Str0ng!pass", "")).toBe("Type the password again");
+  });
+
+  it("says nothing at all while the password is empty", () => {
+    // The password field is already refusing. Two messages for one untouched
+    // form reads as a broken page rather than as guidance.
+    expect(checkPasswordConfirmation("", "")).toBeUndefined();
+    expect(checkPasswordConfirmation("", "anything")).toBeUndefined();
+  });
+
+  it("is not part of the credentials that reach the server", () => {
+    // A confirmation the server receives is a second copy of a password
+    // travelling for no reason: there is nothing there to compare it against.
+    const credentials = validateCredentials({
+      email: "a@b.in",
+      password: "Str0ng!pass",
+    });
+    expect(Object.keys(credentials)).toEqual(["email", "password"]);
   });
 });
