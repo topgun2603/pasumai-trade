@@ -1,6 +1,18 @@
 "use client";
 
-import { BadgeCheckIcon, BanknoteIcon, BellIcon, CheckCheckIcon, FileQuestionIcon, HandshakeIcon, MessageSquareIcon, PackageIcon, SproutIcon, TruckIcon, UploadIcon } from "lucide-react";
+import {
+  BadgeCheckIcon,
+  BanknoteIcon,
+  BellIcon,
+  CheckCheckIcon,
+  FileQuestionIcon,
+  HandshakeIcon,
+  MessageSquareIcon,
+  PackageIcon,
+  SproutIcon,
+  TruckIcon,
+  UploadIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -20,6 +32,7 @@ import {
   type NotificationKind,
 } from "@/lib/domain/notification";
 import { relativeTime } from "@/lib/format";
+import { isLocale, LOCALE_META } from "@/lib/i18n/config";
 import { cn } from "@/lib/utils";
 
 /**
@@ -111,7 +124,9 @@ export function NotificationList({
     setBusy(false);
 
     if (!response?.ok) {
-      const detail = (await response?.json().catch(() => ({}))) as { error?: string };
+      const detail = (await response?.json().catch(() => ({}))) as {
+        error?: string;
+      };
       toast.error(detail?.error ?? "Could not mark those read.");
       return;
     }
@@ -135,25 +150,31 @@ export function NotificationList({
       {!compact ? (
         <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
           <div className="flex flex-wrap gap-1">
-            {(["all", ...(Object.keys(NOTIFICATION_GROUPS) as NotificationGroup[])] as const).map(
-              (id) => {
-                const inGroup =
-                  id === "all"
-                    ? notifications
-                    : notifications.filter((n) =>
-                        (NOTIFICATION_GROUPS[id] as readonly string[]).includes(n.kind),
-                      );
-                const fresh = unreadCount(inGroup);
+            {(
+              [
+                "all",
+                ...(Object.keys(NOTIFICATION_GROUPS) as NotificationGroup[]),
+              ] as const
+            ).map((id) => {
+              const inGroup =
+                id === "all"
+                  ? notifications
+                  : notifications.filter((n) =>
+                      (NOTIFICATION_GROUPS[id] as readonly string[]).includes(
+                        n.kind,
+                      ),
+                    );
+              const fresh = unreadCount(inGroup);
 
-                return (
-                  <Button
-                    key={id}
-                    size="sm"
-                    variant={group === id ? "secondary" : "ghost"}
-                    onClick={() => setGroup(id)}
-                  >
-                    {GROUP_LABELS[id]}
-                    {/*
+              return (
+                <Button
+                  key={id}
+                  size="sm"
+                  variant={group === id ? "secondary" : "ghost"}
+                  onClick={() => setGroup(id)}
+                >
+                  {GROUP_LABELS[id]}
+                  {/*
                       The unread count where there is one, the total where there
                       is not. A section counting everything it holds disagrees
                       with the rail beside it — which counts only what is
@@ -162,33 +183,37 @@ export function NotificationList({
                       showing, so an empty-looking section can be told from a
                       section that is merely all read.
                     */}
-                    <Badge
-                      variant="outline"
-                      // Colour is the only thing separating "1 unread" from "1,
-                      // all read", and colour alone is not a distinction
-                      // everybody can see. The label says which it is.
-                      aria-label={
-                        fresh > 0
-                          ? `${fresh} unread`
-                          : `${inGroup.length}, all read`
-                      }
-                      className={cn(
-                        "tabular ml-1",
-                        fresh > 0
-                          ? "border-primary/40 bg-primary/10 text-primary"
-                          : "text-muted-foreground",
-                      )}
-                    >
-                      {fresh > 0 ? fresh : inGroup.length}
-                    </Badge>
-                  </Button>
-                );
-              },
-            )}
+                  <Badge
+                    variant="outline"
+                    // Colour is the only thing separating "1 unread" from "1,
+                    // all read", and colour alone is not a distinction
+                    // everybody can see. The label says which it is.
+                    aria-label={
+                      fresh > 0
+                        ? `${fresh} unread`
+                        : `${inGroup.length}, all read`
+                    }
+                    className={cn(
+                      "tabular ml-1",
+                      fresh > 0
+                        ? "border-primary/40 bg-primary/10 text-primary"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    {fresh > 0 ? fresh : inGroup.length}
+                  </Badge>
+                </Button>
+              );
+            })}
           </div>
 
           {unread > 0 ? (
-            <Button size="sm" variant="outline" disabled={busy} onClick={() => mark({ all: true })}>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              onClick={() => mark({ all: true })}
+            >
               <CheckCheckIcon className="size-3.5" />
               Mark all read
             </Button>
@@ -214,7 +239,9 @@ export function NotificationList({
                 }}
                 className={cn(
                   "hover:bg-muted/60 flex gap-3 border-b border-l-2 px-4 py-3 transition-colors",
-                  fresh ? "border-l-primary bg-primary/[0.03]" : "border-l-transparent",
+                  fresh
+                    ? "border-l-primary bg-primary/[0.03]"
+                    : "border-l-transparent",
                 )}
               >
                 <Icon
@@ -225,8 +252,19 @@ export function NotificationList({
                 />
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span
-                    lang={locale === "ta" ? "ta-IN" : "en-IN"}
-                    className={cn("text-sm", fresh ? "font-medium" : "text-muted-foreground")}
+                    /*
+                      The real tag, not a guess between two.
+
+                      This read `locale === "ta" ? "ta-IN" : "en-IN"`, which told
+                      the browser that Telugu, Kannada, Malayalam and Hindi were
+                      all English — wrong for a screen reader reading it aloud,
+                      and for the font a browser picks to draw it.
+                    */
+                    lang={isLocale(locale) ? LOCALE_META[locale].tag : "en-IN"}
+                    className={cn(
+                      "text-sm",
+                      fresh ? "font-medium" : "text-muted-foreground",
+                    )}
                   >
                     {describe(notification, locale)}
                   </span>

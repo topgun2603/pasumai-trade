@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import { NotificationList } from "@/components/notifications/notification-list";
+import { consoleLocale } from "@/lib/i18n/console";
 import { PushToggle } from "@/components/notifications/push-toggle";
 import { PageHeader } from "@/components/page-header";
 import { requireFarmer } from "@/lib/auth/farm";
@@ -25,7 +26,11 @@ export const metadata: Metadata = { title: "Notifications · Farmer" };
 export default async function FarmNotificationsPage() {
   await connection();
 
-  const { farmer } = await requireFarmer();
+  const [{ farmer }, locale] = await Promise.all([
+    requireFarmer(),
+    // The same cookie the layout read; `cache` makes this free.
+    consoleLocale(),
+  ]);
   const feed = await readNotifications(farmer.id);
 
   return (
@@ -37,7 +42,8 @@ export default async function FarmNotificationsPage() {
           <p className="text-faint flex items-center gap-3 text-xs">
             <span>
               {feed.unread}
-              {isCapped(feed) ? "+" : ""} unread · {feed.notifications.length} shown
+              {isCapped(feed) ? "+" : ""} unread · {feed.notifications.length}{" "}
+              shown
             </span>
             {/* Asked for, never volunteered: a permission prompt nobody invited
                 is the one people dismiss, and a dismissed prompt cannot be
@@ -58,7 +64,10 @@ export default async function FarmNotificationsPage() {
               </p>
             </div>
           ) : (
-            <NotificationList notifications={feed.notifications} locale="ta" />
+            <NotificationList
+              notifications={feed.notifications}
+              locale={locale}
+            />
           )}
         </div>
       </div>
