@@ -97,7 +97,7 @@ export default async function RenewPage({
             <Link href="/en/signin">Sign in</Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href="/subscription">Your subscription</Link>
+            <Link href="/account/subscription">Your subscription</Link>
           </Button>
         </div>
       </div>

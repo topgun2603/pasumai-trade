@@ -302,18 +302,27 @@ export const hi: Dictionary = {
 
   farm: {
     nav: {
-      today: "आज",
+      home: "होम",
+      overview: "अवलोकन",
       produce: "मेरी उपज",
       bargains: "मोलभाव",
       notifications: "सूचनाएँ",
       account: "खाता",
-      sales: "बिक्री",
+      logistics: "परिवहन",
       prices: "दाम",
       verification: "जाँच",
       subscription: "सदस्यता",
       theme: "रूप",
       language: "भाषा",
       role: "किसान",
+    },
+    home: {
+      greeting: "पसुमै ट्रेड में आपका स्वागत है",
+      blurb: "आप जो उगाते हैं उसे सीधे व्यापारियों को बेचें — कीमत आप और खरीदार आपस में तय करें।",
+      produce: "जो तैयार है उसे सूचीबद्ध करें। तस्वीरें, श्रेणियाँ और मात्रा।",
+      bargains: "खरीदार दाम कहेगा, आप जवाबी दाम कह सकते हैं। जब तक आप हाँ न कहें, कुछ भी पक्का नहीं।",
+      logistics: "दाम तय होने के बाद, लॉरी और उठान हमारी ज़िम्मेदारी है।",
+      continueLabel: "आगे बढ़ें",
     },
     today: {
       title: "आज",

@@ -68,7 +68,7 @@ export default async function FarmListingsPage() {
     : blocking?.id === "verify"
       ? "Verify to post"
       : "Subscribe to post";
-  const lockHref = blocking?.href ?? "/farm/verification";
+  const lockHref = blocking?.href ?? "/farm/account/verification";
 
   // The whole catalogue, in a shape the dialog can use offline. Small enough to
   // send whole — a farmer on a village connection should not wait on a second

@@ -2,13 +2,14 @@
 
 import {
   ArrowLeftRightIcon,
-  BadgeCheckIcon,
   BellIcon,
-  CreditCardIcon,
+  GaugeIcon,
   HandshakeIcon,
+  HouseIcon,
   PackageIcon,
   StoreIcon,
   TruckIcon,
+  UserRoundIcon,
   UsersIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -27,12 +28,29 @@ import { cn } from "@/lib/utils";
  * it — a franchise buys produce exactly as an independent buyer does.
  */
 const BUYING_LINKS = [
-  { href: "/listings", label: "Produce", icon: StoreIcon },
+  // Bug 14: in the rail, and not the landing page. See the note in farm-nav.
+  { href: "/home", label: "Home", icon: HouseIcon },
+  { href: "/overview", label: "Overview", icon: GaugeIcon, exact: true },
+  // Bug 21: "Produce" is what a farmer calls their crop. What a buyer opens is
+  // a marketplace.
+  { href: "/listings", label: "Marketplace", icon: StoreIcon },
   { href: "/bargains", label: "Bargains", icon: HandshakeIcon },
   { href: "/notifications", label: "Notifications", icon: BellIcon },
+  /*
+    Orders stays here, against the letter of Bug 21.
+
+    The report puts it under Profile with Subscription and Verification. Those
+    are things a buyer sets up once; an order is the work itself, opened every
+    day, and burying today's deliveries two clicks deep inside an account area
+    would be the navigation complaint in a new place.
+  */
   { href: "/orders", label: "Orders", icon: PackageIcon },
-  { href: "/verification", label: "Verification", icon: BadgeCheckIcon },
-  { href: "/subscription", label: "Subscription", icon: CreditCardIcon },
+  /*
+    Bug 17: Verification and Subscription have left the rail. They live under
+    Account now, which is where the rest of what the platform holds about
+    somebody already is — and it sits last, per Bug 16.
+  */
+  { href: "/account", label: "Account", icon: UserRoundIcon },
 ];
 
 /**

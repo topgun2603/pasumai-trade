@@ -182,7 +182,7 @@ export function BargainConsole({
             description: detail ?? "Bargaining needs an active plan.",
             action: {
               label: "See plans",
-              onClick: () => router.push("/subscription"),
+              onClick: () => router.push("/account/subscription"),
             },
           });
           return false;

@@ -205,7 +205,7 @@ export function PostProduceDialog({ crops }: { crops: CropOption[] }) {
     if (!response.ok) {
       if (response.status === 402 || response.status === 403) {
         toast.error(data.error ?? "This needs a plan.", {
-          action: { label: "Open", onClick: () => router.push("/farm/subscription") },
+          action: { label: "Open", onClick: () => router.push("/farm/account/subscription") },
         });
         return;
       }

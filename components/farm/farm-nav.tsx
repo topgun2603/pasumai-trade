@@ -1,12 +1,11 @@
 "use client";
 
 import {
-  BadgeCheckIcon,
   BellIcon,
   ChartColumnIcon,
-  CreditCardIcon,
   GaugeIcon,
   HandshakeIcon,
+  HouseIcon,
   ReceiptIcon,
   MoonIcon,
   SproutIcon,
@@ -50,16 +49,60 @@ import { cn } from "@/lib/utils";
   is looked up per render from whichever dictionary the cookie chose.
 */
 const LINKS = [
-  { href: "/farm", key: "today", icon: GaugeIcon, exact: true },
-  { href: "/farm/listings", key: "produce", icon: SproutIcon },
-  { href: "/farm/bargains", key: "bargains", icon: HandshakeIcon },
-  { href: "/farm/notifications", key: "notifications", icon: BellIcon },
-  { href: "/farm/account", key: "account", icon: UserRoundIcon },
+  /*
+    Home is a welcome page, not the landing page.
+
+    Bug 14 asked for it as the default after every sign-in with a continue
+    control into Overview. It is in the rail, and reachable, and it is not what
+    a farmer lands on: putting a tap between somebody and their own listings
+    every single morning is a cost paid daily for a page read once.
+  */
+  { href: "/farm/home", key: "home", icon: HouseIcon, bar: false },
+  // Was "Today". Bug 15: it is the role's summary, and Overview is what the
+  // rest of the platform calls that.
+  { href: "/farm", key: "overview", icon: GaugeIcon, exact: true, bar: true },
+  { href: "/farm/listings", key: "produce", icon: SproutIcon, bar: true },
+  { href: "/farm/bargains", key: "bargains", icon: HandshakeIcon, bar: true },
+  {
+    href: "/farm/notifications",
+    key: "notifications",
+    icon: BellIcon,
+    bar: true,
+  },
+  // Last, and stays last. Bug 16 wants the account at the bottom of every
+  // sidebar; on the bottom bar it is the fifth thumb position.
+  { href: "/farm/account", key: "account", icon: UserRoundIcon, bar: true },
 ] satisfies ReadonlyArray<{
   href: string;
   key: keyof Dictionary["farm"]["nav"];
   icon: typeof GaugeIcon;
   exact?: boolean;
+  /**
+   * Whether it earns a place on the bottom bar.
+   *
+   * The bar has five thumb-sized targets and no more — anything that does not
+   * earn one does not belong on a phone's primary navigation at all. Home is
+   * the first thing to fail that test.
+   */
+  bar: boolean;
+}>;
+
+/**
+ * The rail's second group: everything that is not a daily destination.
+ *
+ * Written out four times over with the same forty characters of class names
+ * before this. Verification and Subscription have left it entirely — Bug 17
+ * puts them under Account, where the rest of what the platform holds about
+ * somebody already lives.
+ */
+const SECONDARY = [
+  // Bug 16: the same business function is called Logistics everywhere else.
+  { href: "/farm/sales", key: "logistics", icon: ReceiptIcon },
+  { href: "/farm/analytics", key: "prices", icon: ChartColumnIcon },
+] satisfies ReadonlyArray<{
+  href: string;
+  key: keyof Dictionary["farm"]["nav"];
+  icon: typeof GaugeIcon;
 }>;
 
 function ThemeToggle({ label }: { label: string }) {
@@ -174,75 +217,24 @@ export function FarmNav({
               </li>
             );
           })}
-          <li>
-            <Link
-              href="/farm/sales"
-              aria-current={
-                isActive(pathname, "/farm/sales") ? "page" : undefined
-              }
-              className={cn(
-                "focus-visible:ring-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
-                isActive(pathname, "/farm/sales")
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-              )}
-            >
-              <ReceiptIcon className="size-4 shrink-0" />
-              {t.farm.nav.sales}
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/farm/analytics"
-              aria-current={
-                isActive(pathname, "/farm/analytics") ? "page" : undefined
-              }
-              className={cn(
-                "focus-visible:ring-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
-                isActive(pathname, "/farm/analytics")
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-              )}
-            >
-              <ChartColumnIcon className="size-4 shrink-0" />
-              {t.farm.nav.prices}
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/farm/verification"
-              data-tour="/farm/verification"
-              aria-current={
-                isActive(pathname, "/farm/verification") ? "page" : undefined
-              }
-              className={cn(
-                "focus-visible:ring-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
-                isActive(pathname, "/farm/verification")
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-              )}
-            >
-              <BadgeCheckIcon className="size-4 shrink-0" />
-              {t.farm.nav.verification}
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/farm/subscription"
-              aria-current={
-                isActive(pathname, "/farm/subscription") ? "page" : undefined
-              }
-              className={cn(
-                "focus-visible:ring-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
-                isActive(pathname, "/farm/subscription")
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-              )}
-            >
-              <CreditCardIcon className="size-4 shrink-0" />
-              {t.farm.nav.subscription}
-            </Link>
-          </li>
+          {SECONDARY.map(({ href, key, icon: Icon }) => (
+            <li key={href}>
+              <Link
+                href={href}
+                data-tour={href}
+                aria-current={isActive(pathname, href) ? "page" : undefined}
+                className={cn(
+                  "focus-visible:ring-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
+                  isActive(pathname, href)
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                )}
+              >
+                <Icon className="size-4 shrink-0" />
+                {t.farm.nav[key]}
+              </Link>
+            </li>
+          ))}
         </ul>
 
         <div className="border-sidebar-border flex shrink-0 flex-col gap-3 border-t p-3">
@@ -279,31 +271,34 @@ export function FarmNav({
         its tap targets under the system gesture area.
       */}
       <nav className="bg-sidebar border-sidebar-border fixed inset-x-0 bottom-0 z-40 flex border-t pb-[env(safe-area-inset-bottom)] md:hidden">
-        {LINKS.map(({ href, key, icon: Icon, exact }) => {
-          const active = isActive(pathname, href, exact);
-          const waiting = pending[href] ?? 0;
+        {/* Five targets, not six. Home is in the rail and not here — see `bar`. */}
+        {LINKS.filter((link) => link.bar).map(
+          ({ href, key, icon: Icon, exact }) => {
+            const active = isActive(pathname, href, exact);
+            const waiting = pending[href] ?? 0;
 
-          return (
-            <Link
-              key={href}
-              href={href}
-              data-tour={href}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] transition-colors",
-                active ? "text-primary font-medium" : "text-muted-foreground",
-              )}
-            >
-              <Icon className="size-5" />
-              {t.farm.nav[key]}
-              {waiting > 0 ? (
-                <span className="bg-warning text-warning-foreground absolute top-1.5 right-1/2 mr-2 flex size-4 items-center justify-center rounded-full text-[10px]">
-                  {waiting}
-                </span>
-              ) : null}
-            </Link>
-          );
-        })}
+            return (
+              <Link
+                key={href}
+                href={href}
+                data-tour={href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] transition-colors",
+                  active ? "text-primary font-medium" : "text-muted-foreground",
+                )}
+              >
+                <Icon className="size-5" />
+                {t.farm.nav[key]}
+                {waiting > 0 ? (
+                  <span className="bg-warning text-warning-foreground absolute top-1.5 right-1/2 mr-2 flex size-4 items-center justify-center rounded-full text-[10px]">
+                    {waiting}
+                  </span>
+                ) : null}
+              </Link>
+            );
+          },
+        )}
       </nav>
     </>
   );

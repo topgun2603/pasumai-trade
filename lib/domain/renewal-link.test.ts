@@ -69,9 +69,9 @@ describe("the renewal link", () => {
   });
 
   it("sends each role to its own console", () => {
-    expect(renewalDestination("farmers")).toBe("/farm/subscription");
-    expect(renewalDestination("buyers")).toBe("/subscription");
-    expect(renewalDestination("agencies")).toBe("/subscription");
+    expect(renewalDestination("farmers")).toBe("/farm/account/subscription");
+    expect(renewalDestination("buyers")).toBe("/account/subscription");
+    expect(renewalDestination("agencies")).toBe("/account/subscription");
   });
 
   it("carries no session, only an account id", () => {

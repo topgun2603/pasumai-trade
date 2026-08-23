@@ -107,7 +107,9 @@ describe("console tours", () => {
     // testing anything and this is the assertion that says so.
     expect(gates.get("/agency/pickups")).toBe("transport");
     expect(gates.get("/agency/workers")).toBe("manpower");
-    expect(gates.get("/agency/verification")).toBeNull();
+    // Ungated: every agency has a profile, whatever service they supply.
+    // Verification used to be the example here and has moved underneath it.
+    expect(gates.get("/agency/profile")).toBeNull();
   });
 
   it("gives every role but operations a tour", () => {

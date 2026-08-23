@@ -134,7 +134,7 @@ export function farmerJourney(flags: AccountFlags): JourneyStep[] {
               ? "Your account is on hold. Operations will have been in touch."
               : "Aadhaar and the bank account you want to be paid into.",
       state: verifyState,
-      href: "/farm/verification",
+      href: "/farm/account/verification",
     },
     {
       id: "subscribe",
@@ -146,7 +146,7 @@ export function farmerJourney(flags: AccountFlags): JourneyStep[] {
             ? "Available once your verification is submitted."
             : "₹99 a month. Looking stays free either way.",
       state: subscribeState,
-      href: "/farm/subscription",
+      href: "/farm/account/subscription",
     },
     {
       id: "trade",

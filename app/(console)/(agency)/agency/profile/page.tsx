@@ -1,7 +1,9 @@
+import { BadgeCheckIcon, CreditCardIcon, LandmarkIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import { DocumentList, StatusBadge } from "@/components/admin/badges";
+import { AccountHub } from "@/components/account/account-hub";
 import { ProfilePhoto } from "@/components/account/profile-photo";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +46,36 @@ export default async function AgencyProfilePage() {
       />
 
       <div className="flex max-w-3xl flex-col gap-6 p-6">
+        {/*
+          Bug 25 and 17: verification and subscription were rail items beside
+          the operational screens. They are here, with the agency record, and
+          each says where it stands.
+        */}
+        <AccountHub
+          rows={[
+            {
+              href: "/agency/profile/verification",
+              icon: BadgeCheckIcon,
+              label: "Verification",
+              summary: "Documents for the agency, its vehicles and its crew",
+              state: agency.status === "verified" ? "Verified" : "Not yet",
+              tone: agency.status === "verified" ? "done" : "action",
+            },
+            {
+              href: "/agency/profile/bank",
+              icon: LandmarkIcon,
+              label: "Bank details",
+              summary: "Where payment for a run is sent",
+            },
+            {
+              href: "/agency/profile/subscription",
+              icon: CreditCardIcon,
+              label: "Subscription",
+              summary: "Taking work needs an active plan",
+            },
+          ]}
+        />
+
         {/* The one thing on this page they can change themselves. */}
         <div className="bg-card rounded-lg border p-4">
           <ProfilePhoto name={agency.name} photoUrl={agency.photoUrl} />

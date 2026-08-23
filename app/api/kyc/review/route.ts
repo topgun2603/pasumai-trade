@@ -20,11 +20,11 @@ import { sendPushes } from "@/lib/firebase/push-send";
 
 /** Where each role reads its own verification. */
 const VERIFICATION_HREF: Record<string, string> = {
-  farmer: "/farm/verification",
-  buyer: "/verification",
-  franchise: "/verification",
-  transport: "/agency/verification",
-  manpower: "/agency/verification",
+  farmer: "/farm/account/verification",
+  buyer: "/account/verification",
+  franchise: "/account/verification",
+  transport: "/agency/profile/verification",
+  manpower: "/agency/profile/verification",
 };
 import { readChecks, serialiseChecks } from "@/lib/firebase/kyc-read";
 
@@ -169,7 +169,7 @@ export async function POST(request: Request) {
       // The operator's own words travel with it. "We need something more about
       // Identity" is not a question anybody can answer.
       subject: { counterparty: CHECK_LABELS[kind], note: reason || undefined },
-      href: VERIFICATION_HREF[role] ?? "/verification",
+      href: VERIFICATION_HREF[role] ?? "/account/verification",
     },
   ];
 

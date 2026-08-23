@@ -1,8 +1,14 @@
-import { ShieldCheckIcon } from "lucide-react";
+import {
+  BadgeCheckIcon,
+  CreditCardIcon,
+  LandmarkIcon,
+  ShieldCheckIcon,
+} from "lucide-react";
 import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import { DocumentList, StatusBadge } from "@/components/admin/badges";
+import { AccountHub, type AccountRow } from "@/components/account/account-hub";
 import { ProfilePhoto } from "@/components/account/profile-photo";
 import { PageHeader } from "@/components/page-header";
 import { requireFarmer } from "@/lib/auth/farm";
@@ -14,6 +20,36 @@ export default async function FarmAccountPage() {
 
   const { farmer, email } = await requireFarmer();
   const now = new Date().getTime();
+
+  /*
+    The three things that decide whether a farmer can actually sell, each
+    saying where it stands. Read off the farmer record rather than from three
+    further round trips: the status and the bank tail are already here.
+  */
+  const hubRows: AccountRow[] = [
+    {
+      href: "/farm/account/verification",
+      icon: BadgeCheckIcon,
+      label: "Verification",
+      summary: "Your documents, checked once",
+      state: farmer.status === "verified" ? "Verified" : "Not yet",
+      tone: farmer.status === "verified" ? "done" : "action",
+    },
+    {
+      href: "/farm/account/bank",
+      icon: LandmarkIcon,
+      label: "Bank details",
+      summary: "Where your money is sent",
+      state: farmer.bankAccountTail ? "On file" : "Not provided",
+      tone: farmer.bankAccountTail ? "done" : "action",
+    },
+    {
+      href: "/farm/account/subscription",
+      icon: CreditCardIcon,
+      label: "Subscription",
+      summary: "Listing produce needs an active plan",
+    },
+  ];
 
   const rows: Array<[string, React.ReactNode]> = [
     ["Name", farmer.name],
@@ -45,6 +81,15 @@ export default async function FarmAccountPage() {
         <div className="bg-card rounded-lg border p-4">
           <ProfilePhoto name={farmer.name} photoUrl={farmer.photoUrl} />
         </div>
+
+        {/*
+          Bug 17: Verification and Subscription used to be rail items of their
+          own, so "am I set up to sell" meant visiting three screens and
+          remembering what each said. They are here now, each carrying its own
+          state, because the reason somebody opens this page is to find out
+          what is missing.
+        */}
+        <AccountHub rows={hubRows} />
 
         <dl className="border-border divide-border bg-card divide-y rounded-lg border">
           {rows.map(([label, value]) => (

@@ -113,7 +113,7 @@ export default async function FarmBargainsPage({
                   : "You can read every bargain. Replying and accepting need a plan."}
             </span>
             <Button asChild size="sm" variant="outline">
-              <Link href={blocking?.href ?? "/farm/verification"}>
+              <Link href={blocking?.href ?? "/farm/account/verification"}>
                 {blocking?.id === "verify" ? "Verify" : "See plans"}
               </Link>
             </Button>

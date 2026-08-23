@@ -80,9 +80,12 @@ const FARMER: Tour = {
       body: "When a buyer replies, when a load is agreed, when a lorry is coming. Check the bell if you have been away.",
     },
     {
-      target: "/farm/verification",
+      // Points at Account, not at the verification page itself. Verification
+      // moved underneath it, and a tour step has to highlight something on the
+      // rail or it highlights nothing — which is what `tour.test.ts` caught.
+      target: "/farm/account",
       title: "Send your papers once",
-      body: "You can look around now, but selling needs your documents checked first. It is done once and takes a day or two.",
+      body: "Your documents, bank details and plan are all here. Selling needs the documents checked first — done once, and it takes a day or two.",
     },
   ],
 };
@@ -104,14 +107,14 @@ const BUYER_STEPS: readonly TourStep[] = [
     body: "Every agreed load, and where it has got to. Collection is arranged from here once a price is settled.",
   },
   {
-    target: "/verification",
-    title: "GST, PAN and FSSAI",
-    body: "Upload them once. Nothing can be bought until operations have checked them, so this is worth doing first.",
-  },
-  {
-    target: "/subscription",
-    title: "Your plan",
-    body: "What you are on, when it renews, and what it covers. We remind you well before it lapses.",
+    /*
+      One step, not two. Documents and the plan both moved under Account, and
+      two consecutive steps pointing a spotlight at the same rail item is a
+      tour that looks broken.
+    */
+    target: "/account",
+    title: "Papers and your plan",
+    body: "GST, PAN and FSSAI go here once. Your subscription lives here too. Nothing can be bought until both are sorted.",
   },
 ];
 
@@ -175,7 +178,7 @@ const TRANSPORT: Tour = {
       body: "Licences and when they expire. A load cannot go to a driver whose licence has run out.",
     },
     {
-      target: "/agency/verification",
+      target: "/agency/profile",
       title: "Your agency papers",
       body: "Checked once by operations. No load reaches you until they are through.",
     },
@@ -205,14 +208,11 @@ const MANPOWER: Tour = {
       body: "Everyone you can send out, and what they are trained on. Keep it current — work is matched against it.",
     },
     {
+      // One step. Details, papers and the plan all live under Profile now, and
+      // two spotlights on the same rail item read as a broken tour.
       target: "/agency/profile",
-      title: "Your agency details",
-      body: "Where you are based and what you cover. This is what decides which work you are offered.",
-    },
-    {
-      target: "/agency/verification",
-      title: "Your agency papers",
-      body: "Checked once by operations. No work reaches you until they are through.",
+      title: "Your agency",
+      body: "Where you are based, what you cover, and your papers. All of it decides which work reaches you.",
     },
   ],
 };

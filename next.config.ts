@@ -14,6 +14,46 @@ const nextConfig: NextConfig = {
    * a package with a mixed CJS/ESM dependency tree needs.
    */
   serverExternalPackages: ["firebase-admin"],
+
+  /**
+   * Where the account pages used to live.
+   *
+   * Verification and Subscription moved under each console's Profile area, and
+   * the farm console is an installed PWA — people have home-screen shortcuts
+   * and bookmarks to the old addresses. Without these, the day this ships is
+   * the day those shortcuts start returning a 404, and nobody would report it
+   * as a deployment problem because the app itself works.
+   *
+   * Permanent, because the pages are not coming back. Kept as a list rather
+   * than dropped after a release: a shortcut on somebody's phone outlives any
+   * grace period we might pick.
+   */
+  async redirects() {
+    return [
+      { source: "/verification", destination: "/account/verification", permanent: true },
+      { source: "/subscription", destination: "/account/subscription", permanent: true },
+      {
+        source: "/farm/verification",
+        destination: "/farm/account/verification",
+        permanent: true,
+      },
+      {
+        source: "/farm/subscription",
+        destination: "/farm/account/subscription",
+        permanent: true,
+      },
+      {
+        source: "/agency/verification",
+        destination: "/agency/profile/verification",
+        permanent: true,
+      },
+      {
+        source: "/agency/subscription",
+        destination: "/agency/profile/subscription",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

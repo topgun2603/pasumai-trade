@@ -1,11 +1,10 @@
 "use client";
 
 import {
-  BadgeCheckIcon,
   BuildingIcon,
-  CreditCardIcon,
   GaugeIcon,
   HardHatIcon,
+  HouseIcon,
   PackageIcon,
   MoonIcon,
   ShieldCheckIcon,
@@ -46,24 +45,36 @@ const LINKS: Array<{
   service?: AgencyService;
   exact?: boolean;
 }> = [
+  // Bug 14: reachable from the rail, and not where sign-in lands.
+  { href: "/agency/home", label: "Home", icon: HouseIcon },
   { href: "/agency", label: "Overview", icon: GaugeIcon, exact: true },
   {
-    // First after the overview: this is the screen an owner keeps open, and a
-    // load nobody sees is a load nobody takes.
+    /*
+      First after the overview: this is the screen an owner keeps open, and a
+      load nobody sees is a load nobody takes.
+
+      Bug 25 renames it. "Loads going" described what the platform was doing;
+      "Book Transport" describes what the agency does on the page, which is
+      the thing a label is for.
+    */
     href: "/agency/pickups",
-    label: "Loads going",
+    label: "Book Transport",
     icon: PackageIcon,
     service: "transport",
   },
   {
+    // Bug 25: a manpower agency is not managing a list of workers here, it is
+    // taking work.
     href: "/agency/workers",
-    label: "Workers",
+    label: "Book Orders",
     icon: HardHatIcon,
     service: "manpower",
   },
   {
+    // Bug 25: "Fleet" is a word the platform used; the business calls it
+    // transport, and so does every other role's console now.
     href: "/agency/fleet",
-    label: "Fleet",
+    label: "Transport",
     icon: TruckIcon,
     service: "transport",
   },
@@ -73,9 +84,12 @@ const LINKS: Array<{
     icon: ShieldCheckIcon,
     service: "transport",
   },
-  { href: "/agency/profile", label: "Agency", icon: BuildingIcon },
-  { href: "/agency/verification", label: "Verification", icon: BadgeCheckIcon },
-  { href: "/agency/subscription", label: "Subscription", icon: CreditCardIcon },
+  /*
+    Bug 25 and Bug 17: verification, subscription and the agency record itself
+    stop being three rail items and become one Profile area holding all three.
+    Last in the rail, per Bug 16.
+  */
+  { href: "/agency/profile", label: "Profile", icon: BuildingIcon },
 ];
 
 function ThemeToggle() {

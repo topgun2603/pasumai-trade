@@ -149,7 +149,7 @@ describe("the farmer journey", () => {
   it("asks for verification first", () => {
     const step = nextStep(farmerJourney(flags()));
     expect(step?.id).toBe("verify");
-    expect(step?.href).toBe("/farm/verification");
+    expect(step?.href).toBe("/farm/account/verification");
   });
 
   it("shows a submitted verification as waiting, not as the next thing to do", () => {

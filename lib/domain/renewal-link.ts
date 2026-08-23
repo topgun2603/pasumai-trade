@@ -118,5 +118,5 @@ export function readRenewalToken(
 
 /** Where a valid token lands. Farmers have their own console. */
 export function renewalDestination(collection: string): string {
-  return collection === "farmers" ? "/farm/subscription" : "/subscription";
+  return collection === "farmers" ? "/farm/account/subscription" : "/account/subscription";
 }

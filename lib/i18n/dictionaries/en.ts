@@ -317,18 +317,27 @@ export const en = {
   */
   farm: {
     nav: {
-      today: "Today",
+      home: "Home",
+      overview: "Overview",
       produce: "My produce",
       bargains: "Bargains",
       notifications: "Notifications",
       account: "Account",
-      sales: "Sales",
+      logistics: "Logistics",
       prices: "Prices",
       verification: "Verification",
       subscription: "Subscription",
       theme: "Theme",
       language: "Language",
       role: "Farmer",
+    },
+    home: {
+      greeting: "Welcome to Pasumai Trade",
+      blurb: "Sell what you grow direct to businesses, at a price the two of you agree between yourselves.",
+      produce: "List what is ready. Photographs, grades and how much of each.",
+      bargains: "Buyers make an offer, you counter. Nothing is binding until you say so.",
+      logistics: "Once a price is agreed, the lorry and the collection are ours to arrange.",
+      continueLabel: "Continue",
     },
     today: {
       title: "Today",
