@@ -67,6 +67,32 @@ export function orderQuantity(order: BuyerOrder): number {
   return order.lines.reduce((total, line) => total + line.quantity, 0);
 }
 
+/**
+ * How much an order is for, said in units that exist.
+ *
+ * `orderQuantity` adds the line quantities together, which is only a number
+ * when every line shares a unit. An order for 500 kg of onion and 3 crates of
+ * tomato summed to 503, and 503 of nothing was printed on the orders table as
+ * the total — part of Bug 7, and the part that is wrong rather than merely
+ * inconsistent.
+ *
+ * Grouped by unit instead, in the order the lines appear, so a single-unit
+ * order still reads as one figure and a mixed one is honest about being two.
+ */
+export function orderQuantities(
+  order: BuyerOrder,
+): { unit: QuantityUnit; quantity: number }[] {
+  const totals: { unit: QuantityUnit; quantity: number }[] = [];
+
+  for (const line of order.lines) {
+    const seen = totals.find((t) => t.unit === line.unit);
+    if (seen) seen.quantity += line.quantity;
+    else totals.push({ unit: line.unit, quantity: line.quantity });
+  }
+
+  return totals;
+}
+
 /** Orders sitting on an operations action rather than waiting on someone else. */
 export function needsAllocation(order: BuyerOrder): boolean {
   return order.status === "paid";

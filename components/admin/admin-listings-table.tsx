@@ -8,6 +8,7 @@ import {
   type FilterTab,
 } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
+import { formatQuantity } from "@/lib/domain/quantity";
 import { unitLabel } from "@/lib/domain/enums";
 import { formatMoney } from "@/lib/domain/money";
 import {
@@ -17,7 +18,7 @@ import {
   produceName,
   type Listing,
 } from "@/lib/domain/models";
-import { formatQuantity, relativeTime, shortDate } from "@/lib/format";
+import { relativeTime, shortDate } from "@/lib/format";
 
 /**
  * Listings across the whole platform, seen by operations rather than a buyer.
@@ -83,7 +84,7 @@ export function AdminListingsTable({
       sortValue: (l) => l.quantity,
       cell: (l) => (
         <span className="tabular">
-          <span className="text-sm">{formatQuantity(l.quantity)}</span>
+          <span className="text-sm">{formatQuantity(l.quantity, l.unit)}</span>
           <span className="text-faint ml-1 text-xs">{unitLabel(l.unit)}</span>
         </span>
       ),
@@ -216,7 +217,7 @@ export function AdminListingsTable({
             <dt className="text-faint text-xs">Quantity</dt>
             <dd className="truncate">{l.farmer.name}</dd>
             <dd className="tabular">
-              {formatQuantity(l.quantity)} {unitLabel(l.unit)}
+              {formatQuantity(l.quantity, l.unit)}
             </dd>
           </dl>
 

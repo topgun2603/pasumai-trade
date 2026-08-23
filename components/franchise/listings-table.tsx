@@ -19,6 +19,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { formatQuantity } from "@/lib/domain/quantity";
 import { unitLabel } from "@/lib/domain/enums";
 import { formatMoney } from "@/lib/domain/money";
 import {
@@ -29,7 +30,7 @@ import {
   remainingFrom,
   type Listing,
 } from "@/lib/domain/models";
-import { countdown, formatQuantity, relativeTime, shortDate } from "@/lib/format";
+import { countdown, relativeTime, shortDate } from "@/lib/format";
 
 const HOUR = 3_600_000;
 
@@ -152,7 +153,7 @@ export function ListingsTable({
       sortValue: (l) => l.quantity,
       cell: (l) => (
         <span className="tabular">
-          <span className="text-sm font-medium">{formatQuantity(l.quantity)}</span>
+          <span className="text-sm font-medium">{formatQuantity(l.quantity, l.unit)}</span>
           <span className="text-faint ml-1 text-xs">{unitLabel(l.unit)}</span>
         </span>
       ),
@@ -280,7 +281,7 @@ export function ListingsTable({
               <dt className="text-faint text-xs">Quantity</dt>
               <dd className="truncate">{l.farmer.name}</dd>
               <dd className="tabular">
-                {formatQuantity(l.quantity)} {unitLabel(l.unit)}
+                {formatQuantity(l.quantity, l.unit)}
               </dd>
             </dl>
 

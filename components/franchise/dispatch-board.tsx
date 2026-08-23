@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatQuantity, formatQuantities } from "@/lib/domain/quantity";
 import { VEHICLE_TYPE_LABELS, type DriverAccount, type Vehicle } from "@/lib/domain/admin";
 import { formatMoney } from "@/lib/domain/money";
 import {
@@ -27,8 +28,8 @@ import {
   driverDispatchable,
   vehicleDispatchable,
 } from "@/lib/domain/order-state";
-import { orderQuantity, orderTotal, type BuyerOrder } from "@/lib/domain/orders";
-import { formatQuantity, relativeTime } from "@/lib/format";
+import { orderQuantities, orderTotal, type BuyerOrder } from "@/lib/domain/orders";
+import { relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /**
@@ -194,7 +195,7 @@ export function DispatchBoard({
                         from {order.distanceKm} km
                       </span>
                       <span className="text-faint tabular text-sm">
-                        {formatQuantity(orderQuantity(order))} across{" "}
+                        {formatQuantities(orderQuantities(order))} across{" "}
                         {order.lines.length} line
                         {order.lines.length === 1 ? "" : "s"} ·{" "}
                         {formatMoney(orderTotal(order))}
@@ -243,7 +244,7 @@ export function DispatchBoard({
                                 </span>
                                 <span className="text-faint text-xs">
                                   {check.allowed
-                                    ? `${VEHICLE_TYPE_LABELS[vehicle.type]} · ${formatQuantity(vehicle.capacityKg)} kg`
+                                    ? `${VEHICLE_TYPE_LABELS[vehicle.type]} · ${formatQuantity(vehicle.capacityKg, "kg")}`
                                     : check.refusal.message}
                                 </span>
                               </span>

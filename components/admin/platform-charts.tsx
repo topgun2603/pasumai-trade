@@ -17,6 +17,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { Badge } from "@/components/ui/badge";
+import { formatQuantity } from "@/lib/domain/quantity";
 import { formatMoney, money } from "@/lib/domain/money";
 import type {
   AccountMix,
@@ -145,7 +146,7 @@ export function SupplyByCrop({ data }: { data: CropSupply[] }) {
       <ul className="flex flex-wrap gap-1.5">
         {data.map((crop) => (
           <li key={crop.produceName} className="text-muted-foreground text-xs">
-            {crop.produceName} {crop.quantity} {crop.unit}
+            {crop.produceName} {formatQuantity(crop.quantity, crop.unit)}
             {crop.mixedUnits ? (
               <span className="text-warning"> · other units not counted</span>
             ) : null}

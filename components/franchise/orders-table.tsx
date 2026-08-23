@@ -4,20 +4,15 @@ import { MapPinIcon, TruckIcon } from "lucide-react";
 
 import { DataTable, type Column, type FilterTab } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
+import { formatQuantity, formatQuantities } from "@/lib/domain/quantity";
 import { GRADE_LABELS, unitLabel } from "@/lib/domain/enums";
 import { formatMoney, money } from "@/lib/domain/money";
 import {
   BUYER_ORDER_LABELS,
   type BuyerOrderStatus,
 } from "@/lib/domain/order-state";
-import {
-  isOpen,
-  lineTotal,
-  orderQuantity,
-  orderTotal,
-  type BuyerOrder,
-} from "@/lib/domain/orders";
-import { countdown, formatQuantity, relativeTime } from "@/lib/format";
+import { isOpen, lineTotal, orderQuantities, orderQuantity, orderTotal, type BuyerOrder } from "@/lib/domain/orders";
+import { countdown, relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const STATUS_STYLE: Record<BuyerOrderStatus, string> = {
@@ -81,6 +76,8 @@ export function OrdersTable({
       key: "contents",
       header: "Contents",
       className: "min-w-44",
+      // A rough magnitude is enough to sort by; the displayed total is
+      // grouped by unit, because adding kilos to crates is not a number.
       sortValue: (o) => orderQuantity(o),
       cell: (o) => (
         <span className="flex items-center gap-1.5">
@@ -91,7 +88,7 @@ export function OrdersTable({
           ))}
           <span className="text-muted-foreground tabular text-sm">
             {o.lines.length} line{o.lines.length === 1 ? "" : "s"} ·{" "}
-            {formatQuantity(orderQuantity(o))}
+            {formatQuantities(orderQuantities(o))}
           </span>
         </span>
       ),
@@ -159,7 +156,7 @@ export function OrdersTable({
               </span>
               <span className="text-muted-foreground tabular flex items-center gap-4">
                 <span>
-                  {formatQuantity(line.quantity)} {unitLabel(line.unit)}
+                  {formatQuantity(line.quantity, line.unit)}
                 </span>
                 <span>
                   {formatMoney(money(line.unitPrice))}/{unitLabel(line.unit)}
@@ -213,7 +210,7 @@ export function OrdersTable({
               </span>
             ))}
             <span className="text-muted-foreground tabular text-sm">
-              {formatQuantity(orderQuantity(o))}
+              {formatQuantities(orderQuantities(o))}
             </span>
           </span>
 

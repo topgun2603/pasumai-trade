@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Carousel } from "@/components/ui/carousel";
+import { formatQuantity } from "@/lib/domain/quantity";
 import { formatMoney } from "@/lib/domain/money";
 import { mediaItems } from "@/lib/media";
 import type { Dictionary } from "@/lib/i18n";
@@ -63,7 +64,7 @@ export function ListingCard({
               >
                 <span className="font-medium">{g.grade.toUpperCase()}</span>
                 <span className="tabular-nums">
-                  {g.quantity} {listing.unit}
+                  {formatQuantity(g.quantity, listing.unit)}
                 </span>
                 {g.askingRate ? (
                   <span className="text-primary tabular-nums">
@@ -74,12 +75,12 @@ export function ListingCard({
               </span>
             ))}
             <span className="text-muted-foreground px-1 text-xs tabular-nums">
-              = {listing.quantity} {listing.unit}
+              = {formatQuantity(listing.quantity, listing.unit)}
             </span>
           </div>
         ) : (
           <span className="text-muted-foreground text-sm tabular-nums">
-            {listing.quantity} {listing.unit}
+            {formatQuantity(listing.quantity, listing.unit)}
             {/* Posted before grades were split out. Said, not hidden. */}
             <span className="text-faint ml-2 text-xs">grade not stated</span>
           </span>

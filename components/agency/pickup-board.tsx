@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatQuantity } from "@/lib/domain/quantity";
 import { VEHICLE_TYPE_LABELS, type VehicleType } from "@/lib/domain/admin";
 import { countdown } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -110,7 +111,7 @@ export function PickupBoard({ jobs, now }: { jobs: OfferedJob[]; now: number }) 
               <div className="flex flex-col gap-1">
                 <span className="flex items-center gap-2 font-medium">
                   <PackageIcon className="text-muted-foreground size-4" />
-                  {job.quantity} {job.unit} of {job.produceName}
+                  {formatQuantity(job.quantity, job.unit)} of {job.produceName}
                 </span>
                 <span className="text-muted-foreground flex flex-wrap items-center gap-2 text-xs">
                   <EntityTag kind="farmer" name={job.farmerName} compact />

@@ -8,6 +8,7 @@ import { ListingCard } from "@/components/farm/listing-card";
 import { StatTile } from "@/components/franchise/stat-tile";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { formatQuantity } from "@/lib/domain/quantity";
 import { consoleDictionary } from "@/lib/i18n/console";
 import { requireFarmer } from "@/lib/auth/farm";
 import { formatMoney } from "@/lib/domain/money";
@@ -94,7 +95,7 @@ export default async function FarmTodayPage() {
                 icon={SproutIcon}
                 hint={
                   totals.quantity > 0
-                    ? `${totals.quantity} ${totals.unit} on offer`
+                    ? `${formatQuantity(totals.quantity, totals.unit)} on offer`
                     : t.farm.today.nothingListed
                 }
               />

@@ -25,6 +25,7 @@ import {
   worstExpiry,
   type ComplianceDocument,
 } from "@/lib/domain/admin";
+import { formatQuantity } from "@/lib/domain/quantity";
 import { CHECK_LABELS } from "@/lib/domain/kyc";
 import { relativeTime } from "@/lib/format";
 import { readCompliance, readWaitingPickups } from "@/lib/firebase/compliance-read";
@@ -202,7 +203,7 @@ export default async function AdminOverviewPage() {
                 <li key={pickup.id} className="flex items-center justify-between gap-3 px-4 py-3">
                   <span className="flex min-w-0 flex-col leading-tight">
                     <span className="truncate text-sm font-medium">
-                      {pickup.produceName} · {pickup.quantity} {pickup.unit}
+                      {pickup.produceName} · {formatQuantity(pickup.quantity, pickup.unit)}
                     </span>
                     <span className="text-faint text-xs">
                       {pickup.farmerName} · {pickup.district} · asked{" "}

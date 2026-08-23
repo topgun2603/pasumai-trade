@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatQuantity } from "@/lib/domain/quantity";
 import { GRADES } from "@/lib/domain/enums";
 import {
   cropsIn,
@@ -82,7 +83,7 @@ export function SalesAnalytics({ sales }: { sales: Sale[] }) {
       sortValue: (s) => s.quantity,
       cell: (s) => (
         <span className="tabular-nums">
-          {s.quantity} {s.unit}
+          {formatQuantity(s.quantity, s.unit)}
           {/* Said, not hidden: a two-grade bargain records one quantity, so
               this half is a division rather than a weighing. */}
           {s.apportioned ? <span className="text-faint ml-1 text-xs">split</span> : null}
@@ -142,7 +143,7 @@ export function SalesAnalytics({ sales }: { sales: Sale[] }) {
           </Select>
         </div>
         <span className="text-muted-foreground text-sm tabular-nums">
-          {totals.lots} bargain{totals.lots === 1 ? "" : "s"} · {totals.quantity} {totals.unit}
+          {totals.lots} bargain{totals.lots === 1 ? "" : "s"} · {formatQuantity(totals.quantity, totals.unit)}
         </span>
       </div>
 
@@ -160,7 +161,7 @@ export function SalesAnalytics({ sales }: { sales: Sale[] }) {
                   ? `${formatMoney({ minorUnits: row.rate, currency: "INR" })}/${totals.unit}`
                   : "—"
               }
-              hint={row ? `${row.quantity} ${totals.unit} sold` : "Nothing sold at this grade"}
+              hint={row ? `${formatQuantity(row.quantity, totals.unit)} sold` : "Nothing sold at this grade"}
               movement={movement?.changePercent}
             />
           );

@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Carousel } from "@/components/ui/carousel";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { LotSplit } from "@/components/negotiation/lot-split";
+import { formatQuantity } from "@/lib/domain/quantity";
 import type { LotBook } from "@/lib/domain/lot-book";
 import { mediaItems } from "@/lib/media";
 import {
@@ -153,7 +154,7 @@ export function ListingsBrowser({
       sortValue: (l) => l.quantity,
       cell: (l) => (
         <span className="tabular-nums">
-          {l.quantity} {l.unit}
+          {formatQuantity(l.quantity, l.unit)}
         </span>
       ),
     },
@@ -285,7 +286,7 @@ export function ListingsBrowser({
       <div className="flex items-baseline justify-between gap-2">
         <span className="font-medium">{l.produceName}</span>
         <span className="text-muted-foreground text-sm tabular-nums">
-          {l.quantity} {l.unit}
+          {formatQuantity(l.quantity, l.unit)}
         </span>
       </div>
 
@@ -323,7 +324,7 @@ export function ListingsBrowser({
           deleting ? (
             <>
               <span className="text-foreground font-medium">{deleting.produceName}</span>,{" "}
-              {deleting.quantity} {deleting.unit}
+              {formatQuantity(deleting.quantity, deleting.unit)}
               {deleting.imageUrls.length > 0
                 ? ` and ${deleting.imageUrls.length} photo${
                     deleting.imageUrls.length === 1 ? "" : "s"

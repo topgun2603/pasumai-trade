@@ -7,6 +7,7 @@ import { ListingsBrowser } from "@/components/farm/listings-browser";
 import { PostProduceDialog } from "@/components/farm/post-produce-dialog";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { formatQuantity } from "@/lib/domain/quantity";
 import { requireFarmer } from "@/lib/auth/farm";
 import { acrossLots, lotBooks } from "@/lib/domain/lot-book";
 import { produceName } from "@/lib/domain/models";
@@ -153,7 +154,7 @@ export default async function FarmListingsPage() {
               <span key={g.grade} className="text-muted-foreground text-sm">
                 Grade {g.grade.toUpperCase()}{" "}
                 <span className="text-foreground font-medium tabular-nums">
-                  {g.quantity} {totals.unit}
+                  {formatQuantity(g.quantity, totals.unit)}
                 </span>
               </span>
             ))}

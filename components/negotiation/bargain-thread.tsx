@@ -28,6 +28,10 @@ import { EntityTag } from "@/components/entity-tag";
 import { LotSplit } from "@/components/negotiation/lot-split";
 import type { GradeQuantity } from "@/lib/domain/listing-draft";
 import type { LotBook } from "@/lib/domain/lot-book";
+import {
+  formatQuantity,
+  remaining as remainingOf,
+} from "@/lib/domain/quantity";
 import { formatMoney, formatRate, money } from "@/lib/domain/money";
 import type { GradeBand } from "@/lib/domain/models";
 import {
@@ -359,6 +363,23 @@ export function BargainThread({
   const proposeCheck = canPropose(negotiation, viewer, proposed, remaining);
 
   const distance = gap(negotiation);
+
+  /*
+    The two standing positions, whoever spoke last. Read from the thread rather
+    than passed in: the thread *is* the record of what each side has said, and
+    a second source for it is a second thing to keep in step.
+  */
+  const farmerAsk = lastProposalBy(negotiation, "farmer");
+  const buyerBid = lastProposalBy(negotiation, "buyer");
+
+  // Every grade anybody has priced or that has stock left — the union, so a
+  // grade the buyer has bid on but the farmer has not priced still appears.
+  const contextGrades = GRADES.filter(
+    (grade) =>
+      rateFor(farmerAsk?.bands ?? [], grade) !== undefined ||
+      rateFor(buyerBid?.bands ?? [], grade) !== undefined ||
+      (remaining?.some((r) => r.grade === grade) ?? false),
+  );
   const gapGrades = GRADES.filter((g) => distance[g] !== undefined);
   const unitLabel = QUANTITY_UNITS[negotiation.unit].en;
 
@@ -388,8 +409,18 @@ export function BargainThread({
       <header className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
         <div className="flex flex-col leading-tight">
           <span className="font-medium">
-            {negotiation.produceName} · {negotiation.quantity}{" "}
-            {QUANTITY_UNITS[negotiation.unit].en}
+            {negotiation.produceName} ·{" "}
+            {/*
+              Available against listed, not listed alone.
+
+              Bug 8: the header said "400 kg" while another buyer had taken
+              half of it, so the figure a farmer was bargaining over was the
+              one that had stopped being true. `remaining` renders the pair
+              only once some has gone.
+            */}
+            {book
+              ? remainingOf(book.remaining, book.posted, negotiation.unit, viewerLocale)
+              : formatQuantity(negotiation.quantity, negotiation.unit, viewerLocale)}
           </span>
           <span className="text-faint flex flex-wrap items-center gap-2 text-xs">
             <EntityTag
@@ -438,6 +469,54 @@ export function BargainThread({
         <div className="bg-muted/30 border-b px-4 py-2">
           <LotSplit book={book} unit={unitLabel} you={viewer === "buyer"} compact />
         </div>
+      ) : null}
+
+      {/*
+        Everything needed to judge the offer, on one row per grade.
+
+        Bug 8: the thread showed the proposed rate and the selected quantity
+        and nothing else, so deciding whether ₹22 was worth taking meant
+        remembering what was asked, what is left, and what was posted. Three
+        things a farmer is holding in their head in a field.
+      */}
+      {contextGrades.length > 0 ? (
+        <dl className="divide-border bg-card divide-y border-b text-sm">
+          {contextGrades.map((grade) => {
+            const left = remaining?.find((r) => r.grade === grade)?.quantity;
+            const asked = farmerAsk ? rateFor(farmerAsk.bands ?? [], grade) : undefined;
+            const bid = buyerBid ? rateFor(buyerBid.bands ?? [], grade) : undefined;
+
+            return (
+              <div
+                key={grade}
+                className="flex flex-wrap items-baseline gap-x-4 gap-y-1 px-4 py-2"
+              >
+                <dt className="text-faint w-16 shrink-0 text-xs tracking-wide uppercase">
+                  Grade {GRADE_LABELS[grade]}
+                </dt>
+                <dd className="tabular flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                  {left !== undefined ? (
+                    <span className="text-muted-foreground text-xs">
+                      {formatQuantity(left, negotiation.unit, viewerLocale)} left
+                    </span>
+                  ) : null}
+                  {asked !== undefined ? (
+                    <span className="text-xs">
+                      <span className="text-faint">Asking </span>
+                      {formatRate(money(asked), unitLabel)}
+                    </span>
+                  ) : null}
+                  {bid !== undefined ? (
+                    <span className="text-xs">
+                      <span className="text-faint">Offered </span>
+                      {formatRate(money(bid), unitLabel)}
+                    </span>
+                  ) : null}
+                </dd>
+              </div>
+            );
+          })}
+        </dl>
       ) : null}
 
       <ol className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">

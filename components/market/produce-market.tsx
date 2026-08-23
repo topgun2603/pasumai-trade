@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Carousel } from "@/components/ui/carousel";
 import { EntityTag } from "@/components/entity-tag";
 import { LotSplit } from "@/components/negotiation/lot-split";
+import { formatQuantity } from "@/lib/domain/quantity";
 import type { VocabularyEntry } from "@/lib/domain/bargain-vocabulary";
 import type { LotBook } from "@/lib/domain/lot-book";
 import { formatMoney } from "@/lib/domain/money";
@@ -58,7 +59,7 @@ export function ProduceMarket({
           <span key={g.grade} className="bg-secondary rounded px-1.5 py-0.5 text-xs">
             <span className="font-medium">{g.grade.toUpperCase()}</span>{" "}
             <span className="tabular-nums">
-              {g.quantity} {l.unit}
+              {formatQuantity(g.quantity, l.unit)}
             </span>
             {g.askingRate ? (
               <span className="text-primary ml-1 tabular-nums">
@@ -117,7 +118,7 @@ export function ProduceMarket({
       sortValue: (l) => l.quantity,
       cell: (l) => (
         <span className="tabular-nums">
-          {l.quantity} {l.unit}
+          {formatQuantity(l.quantity, l.unit)}
         </span>
       ),
     },
@@ -196,7 +197,7 @@ export function ProduceMarket({
       <div className="flex items-baseline justify-between gap-2">
         <span className="font-medium">{l.produceName}</span>
         <span className="text-muted-foreground text-sm tabular-nums">
-          {l.quantity} {l.unit}
+          {formatQuantity(l.quantity, l.unit)}
         </span>
       </div>
 
