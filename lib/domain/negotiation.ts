@@ -541,9 +541,20 @@ export function applyMessage(
         text: draft.text,
         locale: draft.locale,
         bands,
-        expiresAt: draft.validForMinutes
-          ? new Date(now + draft.validForMinutes * 60_000)
-          : undefined,
+        /*
+          No expiry at zero, and that is the platform default.
+
+          It reads as a falsy check doing something by accident, so: zero
+          minutes means the proposal stands until somebody answers it, which is
+          what `hasExpired` gives an undefined `expiresAt`. Writing
+          `sentAt + 0` instead would expire every proposal the instant it was
+          sent — the same code, one `!= null` away, and nobody would see it
+          until a farmer could not accept anything.
+        */
+        expiresAt:
+          draft.validForMinutes && draft.validForMinutes > 0
+            ? new Date(now + draft.validForMinutes * 60_000)
+            : undefined,
         sentAt: draft.sentAt,
       };
 

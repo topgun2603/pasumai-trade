@@ -13,6 +13,7 @@ import {
   NegotiationError,
   partyFor,
   roundCount,
+  hasExpired,
   standingProposal,
   valueAt,
   type DraftMessage,
@@ -514,5 +515,54 @@ describe("accepting after the lot has moved", () => {
       guarding, so the check applies only when a remainder is supplied.
     */
     expect(send(offered(), "farmer", "accept").status).toBe("agreed");
+  });
+});
+
+describe("a proposal that does not lapse", () => {
+  /*
+    Bug 10. The two-hour window was reported as too short — a farmer reading a
+    message in the evening found the morning's price gone. Zero is now the
+    platform default and means the offer stands until somebody answers it.
+
+    Zero has to produce *no* expiry rather than an expiry of `sentAt`, and the
+    difference between those is one falsy check. These pin it, because the
+    version that expires everything instantly looks almost identical and would
+    not fail anything else in this file.
+  */
+  it("sets no expiry at zero minutes", () => {
+    const n = send(fresh(), "farmer", "proposal", {
+      bands: bands(2500, 2000, 1400),
+      validForMinutes: 0,
+    });
+    expect(standingProposal(n)!.expiresAt).toBeUndefined();
+  });
+
+  it("does not expire, however long anybody waits", () => {
+    const n = send(fresh(), "farmer", "proposal", {
+      bands: bands(2500, 2000, 1400),
+      validForMinutes: 0,
+    });
+    const proposal = standingProposal(n)!;
+
+    expect(hasExpired(proposal, proposal.sentAt.getTime())).toBe(false);
+    // A year later, which is well past any plausible `sentAt + 0` mistake.
+    expect(
+      hasExpired(proposal, proposal.sentAt.getTime() + 365 * 24 * 60 * 60_000),
+    ).toBe(false);
+  });
+
+  it("still expires when a window is actually set", () => {
+    // The setting is not being removed, only defaulted off. Operations can put
+    // a window back and it has to work.
+    const n = send(fresh(), "farmer", "proposal", {
+      bands: bands(2500, 2000, 1400),
+      validForMinutes: 30,
+    });
+    const proposal = standingProposal(n)!;
+    const sent = proposal.sentAt.getTime();
+
+    expect(proposal.expiresAt).toBeDefined();
+    expect(hasExpired(proposal, sent + 29 * 60_000)).toBe(false);
+    expect(hasExpired(proposal, sent + 31 * 60_000)).toBe(true);
   });
 });

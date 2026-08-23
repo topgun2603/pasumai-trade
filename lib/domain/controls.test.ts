@@ -406,6 +406,30 @@ describe("validate settings", () => {
     expect(result.id).toBe("policy");
   });
 
+  /*
+    Bug 10. The two-hour proposal window is now zero by default, meaning an
+    offer stands until somebody answers it.
+
+    Zero has to be *savable*, not merely shippable: the field carried `min: 5`,
+    so Controls would have refused to store the value the platform ships with,
+    and the first sign of it would have been an operator unable to save the
+    policy page at all.
+  */
+  it("saves a proposal window of zero, which is the default", () => {
+    expect(DEFAULT_POLICY.proposalValidityMinutes).toBe(0);
+
+    const result = validate("settings", { ...POLICY, proposalValidityMinutes: 0 });
+    expect(result.ok).toBe(true);
+    expect(result.data?.proposalValidityMinutes).toBe(0);
+  });
+
+  it("still takes a window back when operations wants one", () => {
+    // Defaulted off, not removed.
+    const result = validate("settings", { ...POLICY, proposalValidityMinutes: 90 });
+    expect(result.ok).toBe(true);
+    expect(result.data?.proposalValidityMinutes).toBe(90);
+  });
+
   it("refuses a value outside its declared bounds", () => {
     const result = validate("settings", { ...POLICY, expiringSoonDays: 3000 });
     expect(result.ok).toBe(false);

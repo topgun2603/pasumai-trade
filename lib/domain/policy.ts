@@ -99,7 +99,7 @@ export interface PlatformPolicy {
 }
 
 export const DEFAULT_POLICY: PlatformPolicy = {
-  proposalValidityMinutes: 120,
+  proposalValidityMinutes: 0,
   bargainSilenceHours: 48,
   endOfLifeHours: 24,
   useSoonHours: 60,
@@ -149,9 +149,11 @@ export const POLICY_FIELDS: readonly PolicyField[] = [
   {
     key: "proposalValidityMinutes",
     label: "Proposal holds for",
-    help: "How long a price stays acceptable once sent. Long enough for a farmer to think, short enough that a rate quoted this morning is not binding tonight.",
+    help: "How long a price stays acceptable once sent. Set to 0 to leave a proposal standing until somebody answers it — the default, because a farmer who reads a message in the evening should still be able to take it.",
     suffix: "minutes",
-    min: 5,
+    // Zero is the default and has to be reachable. `min: 5` rejected the very
+    // value shipped below, so Controls refused to save its own default.
+    min: 0,
     max: 2880,
     group: "Bargaining",
   },
