@@ -6,12 +6,16 @@ import { connection } from "next/server";
 import { FarmersTable } from "@/components/admin/farmers-table";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { Button } from "@/components/ui/button";
+import { consoleIsReadOnly } from "@/lib/auth/require";
 import { readFarmerAccounts } from "@/lib/firebase/roster-read";
 
 export const metadata: Metadata = { title: "Farmers · Admin" };
 
 export default async function AdminFarmersPage() {
   await connection();
+
+  // A franchise reads this roster; only operations acts on it.
+  const readOnly = await consoleIsReadOnly();
   const now = new Date();
 
   return (
@@ -29,16 +33,24 @@ export default async function AdminFarmersPage() {
           — a grower with no smartphone is exactly who a franchise signs up —
           but it is a franchise screen, not this one.
         */
+        // Nothing for a franchise: the verification queue is the documents
+        // themselves, which is the one part of this console closed to them.
         aside={
-          <Button asChild variant="outline">
-            <Link href="/admin/kyc">
-              <BadgeCheckIcon className="size-4" />
-              Verification queue
-            </Link>
-          </Button>
+          readOnly ? undefined : (
+            <Button asChild variant="outline">
+              <Link href="/admin/kyc">
+                <BadgeCheckIcon className="size-4" />
+                Verification queue
+              </Link>
+            </Button>
+          )
         }
       />
-      <FarmersTable accounts={await readFarmerAccounts()} now={now.getTime()} />
+      <FarmersTable
+        accounts={await readFarmerAccounts()}
+        now={now.getTime()}
+        readOnly={readOnly}
+      />
     </>
   );
 }

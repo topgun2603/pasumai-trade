@@ -1,4 +1,4 @@
-import { requireConsole } from "@/lib/auth/require";
+import { requireRole } from "@/lib/api/write-guard";
 import { ChatError, cleanMessage } from "@/lib/domain/chat";
 import { standardReply } from "@/lib/domain/chat-replies";
 import { appendMessage } from "@/lib/firebase/chat-store";
@@ -19,7 +19,10 @@ export async function POST(
   request: Request,
   context: RouteContext<"/api/chat/[id]">,
 ) {
-  await requireConsole(["admin"]);
+  // A refusal a fetch can read, rather than a redirect it would follow into
+  // a page of HTML. See the note in the records endpoint.
+  const gate = await requireRole("admin");
+  if (!gate.ok) return gate.response;
 
   const { id } = await context.params;
   if (!id) return Response.json({ error: "Which thread?" }, { status: 422 });

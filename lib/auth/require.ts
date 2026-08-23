@@ -62,3 +62,23 @@ export async function requireConsole(roles: readonly Role[]): Promise<Session> {
 
   return session;
 }
+
+/**
+ * True when whoever is reading the admin console may not act in it.
+ *
+ * A franchise sees most of these screens and none of their buttons. The
+ * layout has already admitted them by the time a page renders, so this is
+ * about what to draw rather than whether to draw anything — the refusal, if it
+ * comes to one, comes from the endpoint.
+ *
+ * Free to call from as many pages as like it: `verifySession` is memoised per
+ * request, so this costs one cookie verification for the whole render however
+ * many components ask.
+ *
+ * Fails closed. A missing session here should be impossible under a guarded
+ * layout, and if it ever happens the right answer is fewer buttons, not more.
+ */
+export async function consoleIsReadOnly(): Promise<boolean> {
+  const session = await verifySession();
+  return session?.claims.role !== "admin";
+}

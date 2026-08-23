@@ -26,11 +26,14 @@ import { relativeTime } from "@/lib/format";
 export function AgenciesTable({
   rows,
   now,
+  readOnly = false,
 }: {
   rows: Array<
     Agency & { workerCount: number; vehicleCount: number; driverCount: number }
   >;
   now: number;
+  /** Hides every row action. A franchise reads these screens, nothing more. */
+  readOnly?: boolean;
 }) {
   const columns: Column<(typeof rows)[number]>[] = [
     {
@@ -161,6 +164,7 @@ export function AgenciesTable({
 
   return (
     <EntityTable
+      readOnly={readOnly}
       kind="agencies"
       rows={rows}
       columns={columns}

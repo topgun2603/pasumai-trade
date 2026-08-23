@@ -30,12 +30,15 @@ export function VehiclesTable({
   fleet,
   now,
   agencyNames,
+  readOnly = false,
 }: {
   fleet: Vehicle[];
   now: number;
   /** Agency id to name. Omitted by an agency's own console, where every
    *  row belongs to them and the column would say the same thing throughout. */
   agencyNames?: Record<string, string>;
+  /** Hides every row action. A franchise reads these screens, nothing more. */
+  readOnly?: boolean;
 }) {
   const columns: Column<Vehicle>[] = [
     {
@@ -165,6 +168,7 @@ export function VehiclesTable({
 
   return (
     <EntityTable
+      readOnly={readOnly}
       kind="vehicles"
       rows={fleet}
       columns={columns}

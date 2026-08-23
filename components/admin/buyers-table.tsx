@@ -13,6 +13,7 @@ export function BuyersTable({
   accounts,
   now,
   kind = "buyers",
+  readOnly = false,
 }: {
   accounts: BuyerAccount[];
   now: number;
@@ -25,6 +26,8 @@ export function BuyersTable({
    * id would.
    */
   kind?: RecordKind;
+  /** Hides every row action. A franchise reads these screens, nothing more. */
+  readOnly?: boolean;
 }) {
   const columns: Column<BuyerAccount>[] = [
     {
@@ -113,6 +116,7 @@ export function BuyersTable({
 
   return (
     <EntityTable
+      readOnly={readOnly}
       kind={kind}
       rows={accounts}
       columns={columns}

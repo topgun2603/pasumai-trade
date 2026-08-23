@@ -36,7 +36,21 @@ export interface InboxThread {
   readonly messages: readonly InboxMessage[];
 }
 
-export function ChatInbox({ threads }: { threads: readonly InboxThread[] }) {
+export function ChatInbox({
+  threads,
+  readOnly = false,
+}: {
+  threads: readonly InboxThread[];
+  /**
+   * Drops the composer and the standard replies.
+   *
+   * A franchise reads this inbox and cannot answer it. Not a soft restriction:
+   * a reply here goes out as the platform, so a partner answering a grower in
+   * the platform's voice is the platform having said it. `POST /api/chat/[id]`
+   * refuses them regardless of what is on screen.
+   */
+  readOnly?: boolean;
+}) {
   const router = useRouter();
   const [openId, setOpenId] = useState(threads[0]?.id ?? "");
   const [draft, setDraft] = useState("");
@@ -170,52 +184,61 @@ export function ChatInbox({ threads }: { threads: readonly InboxThread[] }) {
             ))}
           </div>
 
-          {/*
-            Ten answers that cover most of what gets asked, and the only ones
-            that arrive in the reader's language — a Tamil visitor sees the
-            Tamil version of whichever is picked, without anybody translating
-            anything.
-          */}
-          <div className="flex flex-wrap gap-1.5 border-t px-3 pt-3">
-            {STANDARD_REPLIES.map((reply) => (
-              <button
-                key={reply.id}
-                type="button"
-                disabled={pending}
-                onClick={() => void send(reply.id)}
-                title={reply.text.en}
-                className="border-border hover:bg-accent rounded-full border px-2.5 py-1 text-xs transition-colors disabled:opacity-50"
-              >
-                {reply.label}
-              </button>
-            ))}
-          </div>
+          {readOnly ? (
+            /* Said once, plainly, rather than left as a dead textarea. */
+            <p className="text-faint border-t px-3 py-3 text-xs">
+              Read only — operations answers these.
+            </p>
+          ) : (
+            <>
+              {/*
+              Ten answers that cover most of what gets asked, and the only ones
+              that arrive in the reader's language — a Tamil visitor sees the
+              Tamil version of whichever is picked, without anybody translating
+              anything.
+            */}
+              <div className="flex flex-wrap gap-1.5 border-t px-3 pt-3">
+                {STANDARD_REPLIES.map((reply) => (
+                  <button
+                    key={reply.id}
+                    type="button"
+                    disabled={pending}
+                    onClick={() => void send(reply.id)}
+                    title={reply.text.en}
+                    className="border-border hover:bg-accent rounded-full border px-2.5 py-1 text-xs transition-colors disabled:opacity-50"
+                  >
+                    {reply.label}
+                  </button>
+                ))}
+              </div>
 
-          <div className="flex items-end gap-2 border-t p-3">
-            <textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  void send();
-                }
-              }}
-              rows={2}
-              maxLength={1000}
-              placeholder="Reply"
-              aria-label="Your reply"
-              className="border-input bg-background focus-visible:ring-ring min-h-16 flex-1 resize-none rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
-            />
-            <Button
-              onClick={() => void send()}
-              disabled={pending || !draft.trim()}
-              size="icon"
-              aria-label="Send"
-            >
-              <SendIcon className="size-4" />
-            </Button>
-          </div>
+              <div className="flex items-end gap-2 border-t p-3">
+                <textarea
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      void send();
+                    }
+                  }}
+                  rows={2}
+                  maxLength={1000}
+                  placeholder="Reply"
+                  aria-label="Your reply"
+                  className="border-input bg-background focus-visible:ring-ring min-h-16 flex-1 resize-none rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
+                />
+                <Button
+                  onClick={() => void send()}
+                  disabled={pending || !draft.trim()}
+                  size="icon"
+                  aria-label="Send"
+                >
+                  <SendIcon className="size-4" />
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       ) : null}
     </div>

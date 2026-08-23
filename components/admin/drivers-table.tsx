@@ -24,12 +24,15 @@ export function DriversTable({
   drivers,
   now,
   agencyNames,
+  readOnly = false,
 }: {
   drivers: DriverAccount[];
   now: number;
   /** Agency id to name. Omitted by an agency's own console, where every
    *  row belongs to them and the column would say the same thing throughout. */
   agencyNames?: Record<string, string>;
+  /** Hides every row action. A franchise reads these screens, nothing more. */
+  readOnly?: boolean;
 }) {
   const columns: Column<DriverAccount>[] = [
     {
@@ -137,6 +140,7 @@ export function DriversTable({
 
   return (
     <EntityTable
+      readOnly={readOnly}
       kind="drivers"
       rows={drivers}
       columns={columns}

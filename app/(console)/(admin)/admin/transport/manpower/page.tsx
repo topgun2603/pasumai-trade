@@ -3,12 +3,16 @@ import { connection } from "next/server";
 
 import { ManpowerTable } from "@/components/admin/manpower-table";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { consoleIsReadOnly } from "@/lib/auth/require";
 import { readAgencyRecords, readWorkers } from "@/lib/firebase/roster-read";
 
 export const metadata: Metadata = { title: "Manpower · Admin" };
 
 export default async function AdminManpowerPage() {
   await connection();
+
+  // A franchise reads this roster; only operations acts on it.
+  const readOnly = await consoleIsReadOnly();
   const now = new Date();
   // Operations sees every agency's records, so each row says whose it is.
   const agencyNames = Object.fromEntries((await readAgencyRecords()).map((a) => [a.id, a.name]));
@@ -19,7 +23,7 @@ export default async function AdminManpowerPage() {
         title="Manpower"
         description="Every worker across every agency. Agencies enter their own crew under their own login; operations verifies them. Rates are agreed on the record rather than at the roadside, where a vehicle running decides the price."
       />
-      <ManpowerTable crew={await readWorkers()} agencyNames={agencyNames} now={now.getTime()} />
+      <ManpowerTable crew={await readWorkers()} agencyNames={agencyNames} now={now.getTime()} readOnly={readOnly} />
     </>
   );
 }

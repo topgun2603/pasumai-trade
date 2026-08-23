@@ -22,6 +22,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
+import { franchiseMayRead } from "@/lib/auth/admin-access";
+import type { Role } from "@/lib/auth/claims";
 import { Separator } from "@/components/ui/separator";
 import { BrandMark } from "@/components/marketing/brand-mark";
 import { MobileNav } from "@/components/console/mobile-nav";
@@ -110,15 +112,35 @@ const SECTIONS: Array<{ title?: string; links: NavLink[] }> = [
   },
 ];
 
-export function AdminNav({ pending }: { pending: PendingCounts }) {
+export function AdminNav({
+  pending,
+  role,
+}: {
+  pending: PendingCounts;
+  /**
+   * Operations sees the whole rail. A franchise sees the read-only part of it,
+   * filtered from the same allow-list the `(operations)` route group enforces,
+   * so a link cannot appear here for a page that would then refuse them.
+   */
+  role: Role;
+}) {
   const pathname = usePathname();
+
+  const sections = (
+    role === "admin"
+      ? SECTIONS
+      : SECTIONS.map((section) => ({
+          ...section,
+          links: section.links.filter((link) => franchiseMayRead(link.href)),
+        }))
+  ).filter((section) => section.links.length > 0);
 
   /*
     The rail's own sections, reused. Sixteen links is far too many for a bottom
     bar, and the grouping is what makes them navigable — dropping it on a phone
     would leave one undifferentiated list.
   */
-  const drawerGroups = SECTIONS.map((section) => ({
+  const drawerGroups = sections.map((section) => ({
     label: section.title,
     links: section.links.map(({ href, label, exact }) => ({
       href,
@@ -130,7 +152,7 @@ export function AdminNav({ pending }: { pending: PendingCounts }) {
   return (
     <>
       <MobileNav
-        console="Platform admin"
+        console={role === "admin" ? "Platform admin" : "Platform view"}
         groups={drawerGroups}
         pending={pending}
       />
@@ -150,7 +172,9 @@ export function AdminNav({ pending }: { pending: PendingCounts }) {
             <span className="truncate text-sm font-semibold">
               Pasumai Trade
             </span>
-            <span className="text-faint text-xs">Platform admin</span>
+            <span className="text-faint text-xs">
+              {role === "admin" ? "Platform admin" : "Platform view"}
+            </span>
           </span>
         </div>
 
@@ -159,7 +183,7 @@ export function AdminNav({ pending }: { pending: PendingCounts }) {
         {/* Takes the slack and scrolls on its own, so the footer below stays
           put however many sections are added. */}
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-2">
-          {SECTIONS.map((section, index) => (
+          {sections.map((section, index) => (
             <ul key={section.title ?? index} className="flex flex-col gap-0.5">
               {section.title ? (
                 <li className="text-faint px-2.5 pt-1 pb-1 text-xs font-medium tracking-wide uppercase">
@@ -203,12 +227,14 @@ export function AdminNav({ pending }: { pending: PendingCounts }) {
         </div>
 
         <div className="border-sidebar-border shrink-0 border-t p-3 flex flex-col gap-3">
+          {/* The way back. A franchise arrived from their own console and this
+            is the only thing on screen that returns them to it. */}
           <Link
             href="/listings"
             className="text-muted-foreground hover:text-foreground focus-visible:ring-ring flex items-center gap-2 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
           >
             <ArrowLeftRightIcon className="size-4 shrink-0" />
-            Buyer console
+            {role === "admin" ? "Buyer console" : "Franchise console"}
           </Link>
         </div>
       </nav>

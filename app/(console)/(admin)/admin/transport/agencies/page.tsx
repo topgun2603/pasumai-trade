@@ -7,13 +7,21 @@ import Link from "next/link";
 import { AgenciesTable } from "@/components/admin/agencies-table";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { Button } from "@/components/ui/button";
-import { readDrivers, readVehicles, readWorkers } from "@/lib/firebase/roster-read";
+import { consoleIsReadOnly } from "@/lib/auth/require";
+import {
+  readDrivers,
+  readVehicles,
+  readWorkers,
+} from "@/lib/firebase/roster-read";
 import { readAgencies } from "@/lib/firebase/agency-read";
 
 export const metadata: Metadata = { title: "Agencies · Admin" };
 
 export default async function AdminAgenciesPage() {
   await connection();
+
+  // A franchise reads this roster; only operations acts on it.
+  const readOnly = await consoleIsReadOnly();
   const now = new Date();
 
   const crew = await readWorkers();
@@ -42,16 +50,20 @@ export default async function AdminAgenciesPage() {
           register themselves at `/signup?as=transport` and `?as=manpower`; the
           button here opened a form that waited half a second and wrote nothing.
         */
+        // Nothing for a franchise: the verification queue is the documents
+        // themselves, which is the one part of this console closed to them.
         aside={
-          <Button asChild variant="outline">
-            <Link href="/admin/kyc">
-              <BadgeCheckIcon className="size-4" />
-              Verification queue
-            </Link>
-          </Button>
+          readOnly ? undefined : (
+            <Button asChild variant="outline">
+              <Link href="/admin/kyc">
+                <BadgeCheckIcon className="size-4" />
+                Verification queue
+              </Link>
+            </Button>
+          )
         }
       />
-      <AgenciesTable rows={rows} now={now.getTime()} />
+      <AgenciesTable rows={rows} now={now.getTime()} readOnly={readOnly} />
     </>
   );
 }

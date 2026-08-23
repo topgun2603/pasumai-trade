@@ -3,6 +3,7 @@ import { connection } from "next/server";
 
 import { ChatInbox, type InboxThread } from "@/components/admin/chat-inbox";
 import { AdminPageHeader } from "@/components/admin/page-header";
+import { consoleIsReadOnly } from "@/lib/auth/require";
 import { hourLabel, isOpen } from "@/lib/domain/chat";
 import { readThreads } from "@/lib/firebase/chat-store";
 import { readPlatformPolicy } from "@/lib/firebase/controls-read";
@@ -71,7 +72,7 @@ export default async function AdminChatPage() {
           </span>
         }
       />
-      <ChatInbox threads={rows} />
+      <ChatInbox threads={rows} readOnly={await consoleIsReadOnly()} />
     </>
   );
 }

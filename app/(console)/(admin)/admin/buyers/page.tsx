@@ -6,12 +6,16 @@ import { connection } from "next/server";
 import { BuyersTable } from "@/components/admin/buyers-table";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { Button } from "@/components/ui/button";
+import { consoleIsReadOnly } from "@/lib/auth/require";
 import { readBuyerAccounts } from "@/lib/firebase/roster-read";
 
 export const metadata: Metadata = { title: "Buyers · Admin" };
 
 export default async function AdminBuyersPage() {
   await connection();
+
+  // A franchise reads this roster; only operations acts on it.
+  const readOnly = await consoleIsReadOnly();
   const now = new Date();
 
   return (
@@ -28,16 +32,24 @@ export default async function AdminBuyersPage() {
           to register themselves the whole time, at `/signup?as=buyer`, and the
           real job on this page is checking their documents.
         */
+        // Nothing for a franchise: the verification queue is the documents
+        // themselves, which is the one part of this console closed to them.
         aside={
-          <Button asChild variant="outline">
-            <Link href="/admin/kyc">
-              <BadgeCheckIcon className="size-4" />
-              Verification queue
-            </Link>
-          </Button>
+          readOnly ? undefined : (
+            <Button asChild variant="outline">
+              <Link href="/admin/kyc">
+                <BadgeCheckIcon className="size-4" />
+                Verification queue
+              </Link>
+            </Button>
+          )
         }
       />
-      <BuyersTable accounts={await readBuyerAccounts()} now={now.getTime()} />
+      <BuyersTable
+        accounts={await readBuyerAccounts()}
+        now={now.getTime()}
+        readOnly={readOnly}
+      />
     </>
   );
 }

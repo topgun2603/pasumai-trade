@@ -18,6 +18,7 @@
  * No React and no Firebase imports here on purpose: this is shared by the
  * server that mints claims and the client that reads a session.
  */
+import { franchiseMayRead } from "./admin-access";
 
 /**
  * Six roles, one per door on the public site.
@@ -131,9 +132,27 @@ export function readClaims(token: Record<string, unknown>): Claims | null {
   return { role, accountId, districts };
 }
 
-/** May this role reach this path? Checked in the console layouts. */
+/**
+ * May this role reach this path?
+ *
+ * Note what this is *not*: nothing calls it, and the console layouts do the
+ * enforcing — `requireConsole` on `(admin)`, `(franchise)`, `(agency)` and
+ * `(farm)`, plus `(operations)` nested inside `(admin)`. Kept because it is
+ * the one place the whole map is legible at once, and corrected alongside the
+ * layouts so it cannot quietly become a description of a policy that has
+ * changed. A function that reads like a permission check and returns a stale
+ * answer is worse than no function at all.
+ */
 export function mayAccess(role: Role, pathname: string): boolean {
   if (role === "admin") return true;
+
+  // Ahead of the buying check, which would otherwise answer for a franchise:
+  // they buy produce like a buyer *and* read the admin console, which a buyer
+  // may not. See `admin-access.ts` for how much of it.
+  if (role === "franchise") {
+    return pathname.startsWith("/admin") ? franchiseMayRead(pathname) : true;
+  }
+
   if (isBuyingRole(role)) return !pathname.startsWith("/admin");
   if (isAgencyRole(role)) return pathname.startsWith("/agency");
   if (role === "farmer") return pathname.startsWith("/farm");

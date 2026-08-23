@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowLeftRightIcon,
   BadgeCheckIcon,
   BellIcon,
   CreditCardIcon,
@@ -77,6 +78,17 @@ export function ConsoleNav({
           {
             label: "Franchise",
             links: FRANCHISE_LINKS.map(({ href, label }) => ({ href, label })),
+          },
+        ]
+      : []),
+    // The way into the platform view. On a phone there is no rail footer to
+    // put it in, so it goes in the drawer as a group of one rather than being
+    // unreachable below `md`.
+    ...(session.role === "franchise"
+      ? [
+          {
+            label: "Platform",
+            links: [{ href: "/admin", label: "Platform view", exact: true }],
           },
         ]
       : []),
@@ -172,6 +184,24 @@ export function ConsoleNav({
             );
           })}
         </ul>
+
+        {session.role === "franchise" ? (
+          /*
+            Read-only sight of the whole platform — every farmer, buyer and
+            agency on it, without the buttons. Put in the footer rather than
+            the list above because it is a different console, not another page
+            of this one, and crossing between the two is a full navigation.
+          */
+          <div className="border-sidebar-border shrink-0 border-t p-3">
+            <Link
+              href="/admin"
+              className="text-muted-foreground hover:text-foreground focus-visible:ring-ring flex items-center gap-2 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            >
+              <ArrowLeftRightIcon className="size-4 shrink-0" />
+              Platform view
+            </Link>
+          </div>
+        ) : null}
       </nav>
     </>
   );

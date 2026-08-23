@@ -81,6 +81,7 @@ export function EntityTable<T extends HasStatus>({
   nameOf,
   card,
   kind,
+  readOnly = false,
 }: {
   rows: readonly T[];
   columns: readonly Column<T>[];
@@ -98,6 +99,18 @@ export function EntityTable<T extends HasStatus>({
    * tried. It called `toast.success` instead.
    */
   kind: RecordKind;
+  /**
+   * Drops the row menu entirely.
+   *
+   * A franchise reads these same seven screens and may not act on them, so the
+   * menu is not there rather than there-and-refusing. An empty menu invites a
+   * support call; a disabled one invites a second click.
+   *
+   * This is what the person sees, not what stops them: the endpoint behind
+   * every one of these actions calls `requireConsole(["admin"])` for itself,
+   * because a hidden button is not a permission.
+   */
+  readOnly?: boolean;
 }) {
   return (
     <DataTable
@@ -108,14 +121,18 @@ export function EntityTable<T extends HasStatus>({
       entityLabel={entityLabel}
       card={card}
       tabs={VERIFICATION_TABS as readonly FilterTab<T>[]}
-      rowActions={(row) => (
-        <RowActions
-          kind={kind}
-          id={row.id}
-          name={nameOf(row)}
-          status={row.status}
-        />
-      )}
+      rowActions={
+        readOnly
+          ? undefined
+          : (row) => (
+              <RowActions
+                kind={kind}
+                id={row.id}
+                name={nameOf(row)}
+                status={row.status}
+              />
+            )
+      }
     />
   );
 }

@@ -1,4 +1,4 @@
-import { requireConsole } from "@/lib/auth/require";
+import { requireRole } from "@/lib/api/write-guard";
 import { isVerificationStatus } from "@/lib/domain/admin";
 import { canMove, isRecordKind, RECORDS } from "@/lib/domain/admin-records";
 import { adminDb, hasAdminCredentials } from "@/lib/firebase/admin";
@@ -30,7 +30,16 @@ export async function POST(
   request: Request,
   context: RouteContext<"/api/admin/records/[kind]/[id]">,
 ) {
-  await requireConsole(["admin"]);
+  /*
+    `requireRole`, not `requireConsole`.
+
+    `requireConsole` redirects, which is right for a layout and wrong here: a
+    franchise reaching this endpoint got a 307 to `/listings`, so the fetch
+    that made the call followed it and parsed a page of HTML as its answer.
+    The refusal has to be a refusal the caller can read.
+  */
+  const gate = await requireRole("admin");
+  if (!gate.ok) return gate.response;
 
   if (!hasAdminCredentials()) {
     return Response.json({ error: "Not configured on this deployment." }, { status: 503 });

@@ -22,14 +22,25 @@ import { openListings } from "@/lib/mock/listings";
  * Counts of what is waiting are computed here rather than per page, so the rail
  * shows the same queue depth from wherever you are standing. Once Firestore
  * lands these become aggregation reads, not a scan.
+ *
+ * Two roles reach it. Operations, and a franchise — a regional partner who gets
+ * the same console read-only, minus Controls, Subscriptions, the franchise
+ * roster and the KYC documents. Those four live under `(operations)`, whose
+ * layout admits operations alone; this one only has to let a franchise as far
+ * as the shell. See `lib/auth/admin-access.ts` for what that leaves them.
  */
 export default async function AdminLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  const session = await requireConsole(["admin"]);
+  const session = await requireConsole(["admin", "franchise"]);
   const now = new Date();
+
+  // Decides what the rail offers and whether any row carries an action. The
+  // buttons being absent is presentation; `requireRole("admin")` on every write
+  // endpoint is what makes it a permission.
+  const readOnly = session.claims.role !== "admin";
 
   /*
     Both counts the rail carries that mean somebody is waiting on us. Read
@@ -89,17 +100,26 @@ export default async function AdminLayout({
 
   return (
     <div className="flex min-h-svh w-full">
-      <AdminNav pending={pending} />
+      <AdminNav pending={pending} role={session.claims.role} />
       <div className="flex min-w-0 flex-1 flex-col">
         <ConsoleTopBar
           session={{ email: session.email, role: session.claims.role }}
-          // Only the admin shell offers these. The buying and farm shells hold
-          // one account and have nobody to look into.
-          consoles={CONSOLE_KINDS.map((kind) => ({
-            kind,
-            label: CONSOLES[kind].label,
-            short: CONSOLES[kind].short,
-          }))}
+          /*
+            Only the admin shell offers these, and within it only operations.
+            The buying and farm shells hold one account and have nobody to look
+            into; a franchise has plenty to look into and no business doing it,
+            since a dossier is the KYC and subscription detail of one account
+            gathered onto a single page.
+          */
+          consoles={
+            readOnly
+              ? undefined
+              : CONSOLE_KINDS.map((kind) => ({
+                  kind,
+                  label: CONSOLES[kind].label,
+                  short: CONSOLES[kind].short,
+                }))
+          }
         />
         {children}
       </div>

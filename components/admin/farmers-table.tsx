@@ -11,9 +11,12 @@ import { relativeTime } from "@/lib/format";
 export function FarmersTable({
   accounts,
   now,
+  readOnly = false,
 }: {
   accounts: FarmerAccount[];
   now: number;
+  /** Hides every row action. A franchise reads these screens, nothing more. */
+  readOnly?: boolean;
 }) {
   const columns: Column<FarmerAccount>[] = [
     {
@@ -104,6 +107,7 @@ export function FarmersTable({
 
   return (
     <EntityTable
+      readOnly={readOnly}
       kind="farmers"
       rows={accounts}
       columns={columns}
