@@ -19,6 +19,10 @@ export const metadata: Metadata = { title: "History · Farmer" };
 export default async function FarmHistoryPage() {
   await connection();
 
+  // Read once, not inside the render expression — see the same note on the
+  // renewal page. Relative times then match either side of hydration.
+  const now = new Date().getTime();
+
   const { farmer } = await requireFarmer();
 
   const [mine, aboutMe] = await Promise.all([
@@ -43,7 +47,7 @@ export default async function FarmHistoryPage() {
       <div className="flex max-w-3xl flex-col gap-6 p-5">
         <HistoryList
           entries={entries}
-          now={Date.now()}
+          now={now}
           emptyHint="Once you edit a listing or operations update your account, it will be recorded here."
         />
       </div>

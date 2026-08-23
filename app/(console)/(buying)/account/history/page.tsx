@@ -13,6 +13,10 @@ export const metadata: Metadata = { title: "History" };
 export default async function BuyingHistoryPage() {
   await connection();
 
+  // Read once, not inside the render expression — see the same note on the
+  // renewal page. Relative times then match either side of hydration.
+  const now = new Date().getTime();
+
   const session = await requireConsole([...BUYING_ROLES, "admin"]);
   const accountId = session.claims.accountId ?? "";
 
@@ -37,7 +41,7 @@ export default async function BuyingHistoryPage() {
       <div className="flex max-w-3xl flex-col gap-6 p-5">
         <HistoryList
           entries={entries}
-          now={Date.now()}
+          now={now}
           emptyHint="Once you bargain, order, or operations update your account, it will be recorded here."
         />
       </div>
