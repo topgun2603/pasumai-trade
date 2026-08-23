@@ -69,13 +69,19 @@ export function SiteHeader({
 
   const section = (id: string) => (onLanding ? `#${id}` : `${home}#${id}`);
 
+  /*
+    Ordered the way somebody arrives at the platform rather than the way the
+    pages were built: who it is for, then how it works, then where it reaches,
+    then what it costs. Subscription sits last because it is the question
+    people ask after the other four, not before.
+  */
   const links = [
-    { href: `/${locale}/pricing`, label: t.nav.pricing, page: true },
-    { href: section("languages"), label: t.nav.languages, page: !onLanding },
-    { href: section("how-it-works"), label: t.nav.howItWorks, page: !onLanding },
     { href: section("farmers"), label: t.nav.forFarmers, page: !onLanding },
     { href: section("buyers"), label: t.nav.forBuyers, page: !onLanding },
+    { href: section("how-it-works"), label: t.nav.howItWorks, page: !onLanding },
     { href: section("coverage"), label: t.nav.coverage, page: !onLanding },
+    { href: section("languages"), label: t.nav.languages, page: !onLanding },
+    { href: `/${locale}/pricing`, label: t.nav.pricing, page: true },
   ];
 
   return (

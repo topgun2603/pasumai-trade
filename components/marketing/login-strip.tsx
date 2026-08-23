@@ -1,6 +1,5 @@
 import {
   HardHatIcon,
-  ShieldCheckIcon,
   ShoppingBagIcon,
   StoreIcon,
   TractorIcon,
@@ -12,27 +11,34 @@ import type { Dictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n/config";
 
 /**
- * Six doors, one for each kind of person who signs in.
+ * Five doors, one for each kind of person who signs in from here.
  *
- * Replaces a single "Sign in" button. Six different parties use this platform
+ * Replaces a single "Sign in" button. Five different parties use this platform
  * and they do not think of themselves as one audience — a labour contractor
  * looking for "Manpower" should not have to work out that they are a generic
  * user. Naming each door is also the fastest description of what the platform
  * is: you learn there are farmers, buyers, transport and crew on it before
  * reading a line of copy.
  *
- * Six doors, six roles. Franchise and Buyer see the same console, and so do
+ * Five doors, five roles. Franchise and Buyer see the same console, and so do
  * Transportation and Manpower, but each signs in as itself — a labour
  * contractor is not a "generic agency", and keeping them apart means the day
  * the two diverge there is nothing to unpick.
  */
 export function LoginStrip({ t, locale }: { t: Dictionary; locale: Locale }) {
+  /*
+    No operations door.
+
+    It was first in the row, which put the one entrance nobody visiting the
+    public site can use at the head of a list of five they can. Operations sign
+    in at the same page; they do not need to be advertised on it, and a door
+    that refuses everybody who reads it is not a door.
+  */
   const doors = [
-    { as: "admin", label: t.doors.admin, icon: ShieldCheckIcon },
     { as: "farmer", label: t.doors.farmer, icon: TractorIcon },
-    { as: "franchise", label: t.doors.franchise, icon: StoreIcon },
     { as: "buyer", label: t.doors.buyer, icon: ShoppingBagIcon },
     { as: "transport", label: t.doors.transport, icon: TruckIcon },
+    { as: "franchise", label: t.doors.franchise, icon: StoreIcon },
     { as: "manpower", label: t.doors.manpower, icon: HardHatIcon },
   ];
 
@@ -42,7 +48,7 @@ export function LoginStrip({ t, locale }: { t: Dictionary; locale: Locale }) {
         aria-label={t.doors.label}
         className="mx-auto w-full max-w-6xl px-5"
       >
-        {/* Scrolls rather than wrapping on a narrow screen: six items on two
+        {/* Scrolls rather than wrapping on a narrow screen: five items on two
             ragged lines is worse than one line the thumb can push. */}
         <ul className="scrollbar-none flex items-stretch gap-1 overflow-x-auto py-1.5">
           <li className="hidden shrink-0 items-center pr-3 text-xs font-medium tracking-[0.14em] uppercase opacity-65 lg:flex">

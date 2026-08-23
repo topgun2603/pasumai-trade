@@ -139,6 +139,25 @@ export function ChatWidget({ locale }: { locale: Locale }) {
     }
   }
 
+  /*
+    Says, on the document, that a floating panel owns the bottom-right corner.
+
+    `BackToTop` is fixed to the same corner and is rendered from the landing
+    page while this comes from the layout, so the two share no React tree and
+    cannot be told about each other by a prop. An attribute on `body` is how
+    the theme is already coordinated in this codebase, and it is the one signal
+    both trees can see.
+
+    Side effect only — no `setState` here, which is what the lint rule forbids.
+  */
+  useEffect(() => {
+    if (!open) return;
+    document.body.dataset.floatingPanel = "chat";
+    return () => {
+      delete document.body.dataset.floatingPanel;
+    };
+  }, [open]);
+
   if (!open) {
     return (
       <Button

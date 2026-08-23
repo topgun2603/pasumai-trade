@@ -31,11 +31,7 @@ export const en = {
   },
 
   hero: {
-    cardCrop: "Tomato · 800 kg",
-    cardSettled: "Settled",
-    cardGrade: "Grade",
-    cardNote: "Grade A only, agreed by the farmer and the buyer. Illustrative.",
-    badge: "India · {districts} districts · {farmers} farmers",
+    badge: "Across India",
     titleLine1: "Empowering Farmers.",
     titleLine2: "Building A Greener Future.",
     body: "Pasumai Trade connects farmers and buyers on one trusted platform. Fair trade. Better prices. Sustainable tomorrow.",

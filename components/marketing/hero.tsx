@@ -12,7 +12,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Dictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n/config";
-import { fill } from "@/lib/i18n";
 import { resolveMedia } from "@/lib/marketing/media";
 
 /**
@@ -95,7 +94,10 @@ export function Hero({
               variant="outline"
               className="border-primary/30 bg-accent text-accent-foreground"
             >
-              {fill(t.hero.badge, { districts, farmers })}
+              {/* The reach, not the tally. The counts still carry the claim
+                below, where they have room to be read as figures rather than
+                as a caption. */}
+              {t.hero.badge}
             </Badge>
           </StaggerItem>
 
@@ -170,29 +172,6 @@ export function Hero({
             <div className="from-foreground/25 absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t to-transparent" />
           </div>
 
-          {/* The signature object: an agreed grade on a card. It recurs down
-              the page, so the reader meets it before it has to carry meaning. */}
-          <div className="bg-card/95 absolute bottom-0 -left-8 w-56 rounded-xl border p-3.5 shadow-xl backdrop-blur">
-            <div className="flex items-baseline justify-between pb-2">
-              <span className="text-xs font-medium">{t.hero.cardCrop}</span>
-              <span className="text-success text-[10px] font-medium tracking-wide uppercase">
-                {t.hero.cardSettled}
-              </span>
-            </div>
-            <dl className="flex flex-col gap-1">
-              {[["A", "₹24"]].map(([grade, rate]) => (
-                <div key={grade} className="flex items-baseline justify-between">
-                  <dt className="text-muted-foreground text-xs">
-                    {t.hero.cardGrade} {grade}
-                  </dt>
-                  <dd className="tabular text-sm font-semibold">{rate}</dd>
-                </div>
-              ))}
-            </dl>
-            <p className="text-faint border-border mt-2.5 border-t pt-2 text-[10px] leading-tight">
-              {t.hero.cardNote}
-            </p>
-          </div>
         </div>
       </div>
 

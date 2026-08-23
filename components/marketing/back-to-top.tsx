@@ -44,12 +44,37 @@ function subscribe(onChange: () => void) {
   };
 }
 
+/**
+ * Whether something else has claimed the bottom-right corner.
+ *
+ * The chat widget sets `data-floating-panel` on `body` while its panel is
+ * open. It comes from the marketing layout and this comes from the landing
+ * page, so there is no shared tree to pass a prop through — the attribute is
+ * the only thing both can see. Watched rather than read once, because the
+ * panel opens and closes long after this has mounted.
+ */
+function watchPanel(onChange: () => void) {
+  const observer = new MutationObserver(onChange);
+  observer.observe(document.body, {
+    attributes: true,
+    attributeFilter: ["data-floating-panel"],
+  });
+  return () => observer.disconnect();
+}
+
 export function BackToTop({ label }: { label: string }) {
   const scrolled = useSyncExternalStore(
     subscribe,
     () => window.scrollY > THRESHOLD,
     // The server has no scroll position, and guessing `true` would render a
     // button that flickers away on hydration.
+    () => false,
+  );
+
+  const panelOpen = useSyncExternalStore(
+    watchPanel,
+    () => document.body.dataset.floatingPanel !== undefined,
+    // No document on the server, and no panel can be open before hydration.
     () => false,
   );
 
@@ -64,7 +89,14 @@ export function BackToTop({ label }: { label: string }) {
     });
   }, []);
 
-  if (!scrolled) return null;
+  /*
+    Out of the way entirely while the chat panel is up.
+
+    Sitting above it would put a button over a conversation somebody is in the
+    middle of, and the page is still scrollable behind the panel — so the
+    control has somewhere to be, and it is not here.
+  */
+  if (!scrolled || panelOpen) return null;
 
   return (
     <button
@@ -74,7 +106,7 @@ export function BackToTop({ label }: { label: string }) {
       // is an arrow, which could mean half a dozen things.
       aria-label={label}
       title={label}
-      className="bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-ring fixed right-4 bottom-4 z-40 flex size-11 items-center justify-center rounded-full shadow-lg transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none sm:right-6 sm:bottom-6"
+      className="bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-ring fixed right-4 bottom-20 z-40 flex size-11 items-center justify-center rounded-full shadow-lg transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none sm:right-6 sm:bottom-24"
     >
       <ArrowUpIcon className="size-5" />
     </button>
