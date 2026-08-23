@@ -29,6 +29,7 @@ import { Separator } from "@/components/ui/separator";
 import type { Role } from "@/lib/auth/claims";
 import type { AgencyService } from "@/lib/domain/admin";
 import { BrandMark } from "@/components/marketing/brand-mark";
+import { MobileNav } from "@/components/console/mobile-nav";
 import { cn } from "@/lib/utils";
 
 /**
@@ -121,66 +122,84 @@ export function AgencyNav({
   const pathname = usePathname();
   const links = LINKS.filter((l) => !l.service || l.service === service);
 
+  // The same filtered list the rail draws, so a transport-only link never
+  // appears in a manpower drawer.
+  const drawerGroups = [
+    { links: links.map(({ href, label, exact }) => ({ href, label, exact })) },
+  ];
+
   return (
-    <nav className="bg-sidebar border-sidebar-border sticky top-0 hidden h-svh w-60 shrink-0 flex-col border-r md:flex">
-      <div className="flex items-center gap-2.5 px-4 py-4">
-        <span className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-md">
-          <BrandMark className="size-5" />
-        </span>
-        <span className="flex min-w-0 flex-col leading-tight">
-          <span className="truncate text-sm font-semibold">Pasumai Trade</span>
-          <span className="text-faint text-xs">Agency console</span>
-        </span>
-      </div>
+    <>
+      <MobileNav
+        console={
+          service === "manpower" ? "Manpower console" : "Transport console"
+        }
+        groups={drawerGroups}
+        pending={pending}
+      />
 
-      <Separator />
-
-      <ul className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2">
-        {links.map(({ href, label, icon: Icon, exact }) => {
-          const active = exact
-            ? pathname === href
-            : pathname === href || pathname.startsWith(`${href}/`);
-          const waiting = pending[href] ?? 0;
-
-          return (
-            <li key={href}>
-              <Link
-                href={href}
-                data-tour={href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "focus-visible:ring-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
-                  active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-                )}
-              >
-                <Icon className="size-4 shrink-0" />
-                {label}
-                {waiting > 0 ? (
-                  <Badge
-                    variant="outline"
-                    className="border-warning/40 bg-warning-soft text-warning tabular ml-auto px-1.5"
-                  >
-                    {waiting}
-                  </Badge>
-                ) : null}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-
-      <div className="border-sidebar-border flex shrink-0 flex-col gap-3 border-t p-3">
-        <ThemeToggle />
-        <Separator />
-        <div className="flex flex-col leading-tight">
-          <span className="truncate text-sm font-medium">{agency.name}</span>
-          <span className="text-faint font-mono text-xs">{agency.id}</span>
+      <nav className="bg-sidebar border-sidebar-border sticky top-0 hidden h-svh w-60 shrink-0 flex-col border-r md:flex">
+        <div className="flex items-center gap-2.5 px-4 py-4">
+          <span className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-md">
+            <BrandMark className="size-5" />
+          </span>
+          <span className="flex min-w-0 flex-col leading-tight">
+            <span className="truncate text-sm font-semibold">
+              Pasumai Trade
+            </span>
+            <span className="text-faint text-xs">Agency console</span>
+          </span>
         </div>
+
         <Separator />
-        <SessionFooter email={session.email} role={role} />
-      </div>
-    </nav>
+
+        <ul className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2">
+          {links.map(({ href, label, icon: Icon, exact }) => {
+            const active = exact
+              ? pathname === href
+              : pathname === href || pathname.startsWith(`${href}/`);
+            const waiting = pending[href] ?? 0;
+
+            return (
+              <li key={href}>
+                <Link
+                  href={href}
+                  data-tour={href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "focus-visible:ring-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
+                    active
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                  )}
+                >
+                  <Icon className="size-4 shrink-0" />
+                  {label}
+                  {waiting > 0 ? (
+                    <Badge
+                      variant="outline"
+                      className="border-warning/40 bg-warning-soft text-warning tabular ml-auto px-1.5"
+                    >
+                      {waiting}
+                    </Badge>
+                  ) : null}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+
+        <div className="border-sidebar-border flex shrink-0 flex-col gap-3 border-t p-3">
+          <ThemeToggle />
+          <Separator />
+          <div className="flex flex-col leading-tight">
+            <span className="truncate text-sm font-medium">{agency.name}</span>
+            <span className="text-faint font-mono text-xs">{agency.id}</span>
+          </div>
+          <Separator />
+          <SessionFooter email={session.email} role={role} />
+        </div>
+      </nav>
+    </>
   );
 }

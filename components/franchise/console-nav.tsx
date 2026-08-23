@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { MobileNav } from "@/components/console/mobile-nav";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Separator } from "@/components/ui/separator";
 import type { Notification } from "@/lib/domain/notification";
@@ -60,6 +61,28 @@ export function ConsoleNav({
   const pathname = usePathname();
 
   /*
+    The same links the rail shows, grouped the same way. Built from the lists
+    above rather than restated, so a link added to the rail appears on a phone
+    without anybody remembering to add it twice.
+  */
+  const drawerGroups = [
+    {
+      label: "Buying",
+      links: BUYING_LINKS.map(({ href, label }) => ({ href, label })),
+    },
+    // Operations see the franchise links here too, matching the rail below —
+    // they field the call when a franchise cannot work a screen.
+    ...(session.role === "franchise" || session.role === "admin"
+      ? [
+          {
+            label: "Franchise",
+            links: FRANCHISE_LINKS.map(({ href, label }) => ({ href, label })),
+          },
+        ]
+      : []),
+  ];
+
+  /*
     Operations see the franchise links too, because they field the call when a
     franchise cannot work a screen and need to be looking at the same rail.
   */
@@ -69,23 +92,14 @@ export function ConsoleNav({
       : BUYING_LINKS;
 
   return (
-    // Pinned to the viewport rather than stretched to the page, so the theme
-    // toggle and account block stay reachable however long the content runs.
-    <nav className="bg-sidebar border-sidebar-border sticky top-0 hidden h-svh w-60 shrink-0 flex-col border-r md:flex">
-      <div className="flex items-center gap-2.5 px-4 py-4">
-        <span className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-md">
-          <BrandMark className="size-5" />
-        </span>
-        <span className="flex min-w-0 flex-1 flex-col leading-tight">
-          <span className="truncate text-sm font-semibold">Pasumai Trade</span>
-          <span className="text-faint text-xs">
-            {session.role === "franchise"
-              ? "Franchise console"
-              : "Buying console"}
-          </span>
-        </span>
-        {/* English on this surface, off the same records the farmer reads in
-            Tamil — the row stores facts, not a sentence. */}
+    <>
+      <MobileNav
+        console={
+          session.role === "franchise" ? "Franchise console" : "Buying console"
+        }
+        groups={drawerGroups}
+        pending={pending}
+      >
         <NotificationBell
           notifications={notifications.rows}
           unread={notifications.unread}
@@ -93,41 +107,72 @@ export function ConsoleNav({
           locale="en"
           href="/notifications"
         />
-      </div>
+      </MobileNav>
 
-      <Separator />
+      {/*
+        Pinned to the viewport rather than stretched to the page, so the theme
+        toggle and account block stay reachable however long the content runs.
+      */}
+      <nav className="bg-sidebar border-sidebar-border sticky top-0 hidden h-svh w-60 shrink-0 flex-col border-r md:flex">
+        <div className="flex items-center gap-2.5 px-4 py-4">
+          <span className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-md">
+            <BrandMark className="size-5" />
+          </span>
+          <span className="flex min-w-0 flex-1 flex-col leading-tight">
+            <span className="truncate text-sm font-semibold">
+              Pasumai Trade
+            </span>
+            <span className="text-faint text-xs">
+              {session.role === "franchise"
+                ? "Franchise console"
+                : "Buying console"}
+            </span>
+          </span>
+          {/* English on this surface, off the same records the farmer reads in
+            Tamil — the row stores facts, not a sentence. */}
+          <NotificationBell
+            notifications={notifications.rows}
+            unread={notifications.unread}
+            capped={notifications.capped}
+            locale="en"
+            href="/notifications"
+          />
+        </div>
 
-      <ul className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2">
-        {links.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(`${href}/`);
-          const waiting = pending[href] ?? 0;
-          return (
-            <li key={href}>
-              <Link
-                href={href}
-                data-tour={href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "focus-visible:ring-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
-                  active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-                )}
-              >
-                <Icon className="size-4 shrink-0" />
-                {label}
-                {waiting > 0 ? (
-                  // Capped, because past a point the number stops being a
-                  // figure anybody acts on and starts being a smudge.
-                  <span className="bg-primary text-primary-foreground ml-auto min-w-5 rounded-full px-1.5 py-0.5 text-center text-[11px] leading-none font-medium tabular-nums">
-                    {waiting > 49 ? "50+" : waiting}
-                  </span>
-                ) : null}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
+        <Separator />
+
+        <ul className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2">
+          {links.map(({ href, label, icon: Icon }) => {
+            const active = pathname === href || pathname.startsWith(`${href}/`);
+            const waiting = pending[href] ?? 0;
+            return (
+              <li key={href}>
+                <Link
+                  href={href}
+                  data-tour={href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "focus-visible:ring-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
+                    active
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                  )}
+                >
+                  <Icon className="size-4 shrink-0" />
+                  {label}
+                  {waiting > 0 ? (
+                    // Capped, because past a point the number stops being a
+                    // figure anybody acts on and starts being a smudge.
+                    <span className="bg-primary text-primary-foreground ml-auto min-w-5 rounded-full px-1.5 py-0.5 text-center text-[11px] leading-none font-medium tabular-nums">
+                      {waiting > 49 ? "50+" : waiting}
+                    </span>
+                  ) : null}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    </>
   );
 }
