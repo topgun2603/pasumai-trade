@@ -16,6 +16,7 @@ import {
   type ComplianceDocument,
   type Vehicle,
 } from "@/lib/domain/admin";
+import { formatRegistration } from "@/lib/domain/registration";
 import { formatQuantity, relativeTime } from "@/lib/format";
 
 /** Earliest expiry in a document set, or +Infinity when nothing lapses. */
@@ -49,7 +50,7 @@ export function VehiclesTable({
       cell: (v) => (
         <div className="flex items-center gap-2.5">
           <EntityPhoto
-            name={v.registration}
+            name={formatRegistration(v.registration)}
             seed={v.id}
             photoUrl={v.photoUrl}
             size="sm"
@@ -57,7 +58,7 @@ export function VehiclesTable({
           />
           <span className="flex min-w-0 flex-col leading-tight">
             <span className="truncate font-mono font-medium">
-              {v.registration}
+              {formatRegistration(v.registration)}
             </span>
             <span className="text-faint text-xs">{v.id}</span>
           </span>
@@ -174,9 +175,9 @@ export function VehiclesTable({
       columns={columns}
       entityLabel="vehicles"
       searchPlaceholder="Registration, owner or driver"
-      nameOf={(v) => v.registration}
+      nameOf={(v) => formatRegistration(v.registration)}
       searchText={(v) =>
-        `${v.registration} ${v.owner} ${v.district} ${v.assignedDriver ?? ""} ${v.id} ${agencyNames?.[v.agencyId] ?? ""}`
+        `${v.registration} ${formatRegistration(v.registration)} ${v.owner} ${v.district} ${v.assignedDriver ?? ""} ${v.id} ${agencyNames?.[v.agencyId] ?? ""}`
       }
       card={(v) => (
         <>
@@ -184,7 +185,7 @@ export function VehiclesTable({
             <span className="bg-secondary relative -mx-4 -mt-4 mb-1 block h-32 overflow-hidden rounded-t-lg">
               <Image
                 src={v.photoUrl}
-                alt={`Vehicle ${v.registration}`}
+                alt={`Vehicle ${formatRegistration(v.registration)}`}
                 fill
                 unoptimized
                 sizes="(min-width: 1280px) 22rem, (min-width: 768px) 45vw, 90vw"
@@ -203,7 +204,7 @@ export function VehiclesTable({
           <div className="flex items-start justify-between gap-2">
             <span className="flex min-w-0 flex-col leading-tight">
               <span className="truncate font-mono font-medium">
-                {v.registration}
+                {formatRegistration(v.registration)}
               </span>
               <span className="text-faint text-xs">
                 {v.id} · {v.district}

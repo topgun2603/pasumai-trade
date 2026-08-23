@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatRegistration } from "@/lib/domain/registration";
 import { formatQuantity } from "@/lib/domain/quantity";
 import { VEHICLE_TYPE_LABELS, type VehicleType } from "@/lib/domain/admin";
 import { countdown } from "@/lib/format";
@@ -78,7 +79,7 @@ export function PickupBoard({ jobs, now }: { jobs: OfferedJob[]; now: number }) 
     }
 
     toast.success("Job accepted", {
-      description: `${data.registration} is committed to this pickup.`,
+      description: `${formatRegistration(data.registration ?? "")} is committed to this pickup.`,
     });
     router.refresh();
   }
@@ -149,14 +150,15 @@ export function PickupBoard({ jobs, now }: { jobs: OfferedJob[]; now: number }) 
                   <SelectContent>
                     {job.usable.map((vehicle) => (
                       <SelectItem key={vehicle.id} value={vehicle.id}>
-                        {vehicle.registration} · {VEHICLE_TYPE_LABELS[vehicle.type]}
+                        {formatRegistration(vehicle.registration)} ·{" "}
+                        {VEHICLE_TYPE_LABELS[vehicle.type]}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               ) : canTake ? (
                 <span className="text-muted-foreground text-xs">
-                  {job.usable[0].registration}
+                  {formatRegistration(job.usable[0].registration)}
                 </span>
               ) : (
                 <span className="text-muted-foreground text-xs">

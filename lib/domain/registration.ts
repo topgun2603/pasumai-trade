@@ -441,3 +441,30 @@ export function validateVehicle(values: VehicleForm): FieldErrors<VehicleForm> {
     permitExpiry: checkFutureDate(values.permitExpiry, "Permit expiry"),
   };
 }
+
+/**
+ * A number plate, written the way it is written on the lorry.
+ *
+ * Stored canonical — `roster-write` strips the spaces, because "tn 38 aa 1234"
+ * and "TN38AA1234" are the same vehicle and a lookup has to agree with itself.
+ * Read, that same value is a run of ten characters nobody scans easily, and it
+ * sat beside seeded records that *did* carry spaces — so the fleet table
+ * showed one field in two formats depending on where the row came from.
+ *
+ * Grouped here on the way out rather than stored grouped, so the canonical
+ * form stays canonical and every screen shows the same thing.
+ *
+ * Anything that is not a recognisable Indian plate comes back untouched. A
+ * registration from a state whose format this does not know is still somebody's
+ * lorry, and mangling it would be worse than leaving it alone.
+ */
+const PLATE_PARTS = /^([A-Z]{2})(\d{1,2})([A-Z]{1,3})(\d{1,4})$/;
+
+export function formatRegistration(value: string): string {
+  const canonical = value.toUpperCase().replace(/\s+/g, "");
+  const parts = PLATE_PARTS.exec(canonical);
+  if (!parts) return value.trim();
+
+  const [, state, rto, series, number] = parts;
+  return `${state} ${rto} ${series} ${number}`;
+}
