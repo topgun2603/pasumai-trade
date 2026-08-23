@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { useGate } from "@/components/console/gate-dialog";
+
 import { EntityTag } from "@/components/entity-tag";
 import { BargainThread } from "@/components/negotiation/bargain-thread";
 import type { VocabularyEntry } from "@/lib/domain/bargain-vocabulary";
@@ -89,6 +91,7 @@ export function BargainConsole({
   initialThreadId?: string;
 }) {
   const router = useRouter();
+  const gate = useGate();
   const [selectedId, setSelectedId] = useState(
     // Checked against the list rather than trusted: a thread id in a URL that
     // is not one of theirs must not select anything.
@@ -173,18 +176,23 @@ export function BargainConsole({
           .catch(() => ({}) as { error?: string; code?: string });
         const detail = body.error ?? null;
 
-        // 402 is the one refusal the person can clear themselves, so it gets a
-        // way out rather than an apology. The button that reached here was
-        // deliberately not hidden — seeing what bargaining looks like is how
-        // someone decides the plan is worth it.
+        /*
+          A refusal the person can clear themselves, so it gets a door rather
+          than an apology. The button that reached here was deliberately not
+          hidden — seeing what bargaining looks like is how somebody decides
+          the plan is worth it.
+
+          Bug 20: a dialog, not a toast. A toast disappears while the sentence
+          is still being read, and what is needed here is an explanation and a
+          way out, not a notification.
+        */
         if (response.status === 402) {
-          toast.error("Subscription needed", {
-            description: detail ?? "Bargaining needs an active plan.",
-            action: {
-              label: "See plans",
-              onClick: () => router.push("/account/subscription"),
-            },
-          });
+          gate.show("subscription", detail ?? undefined);
+          return false;
+        }
+
+        if (response.status === 403 && body.code === "unverified") {
+          gate.show("verification", detail ?? undefined);
           return false;
         }
 

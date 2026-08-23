@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { GateProvider } from "@/components/console/gate-dialog";
 import { ServiceWorker } from "@/components/console/service-worker";
 import { ConsoleTour } from "@/components/console/tour";
 import { FarmNav } from "@/components/farm/farm-nav";
@@ -71,7 +72,7 @@ export default async function FarmLayout({
         t={t}
       />
       <div className="flex min-w-0 flex-1 flex-col pb-20 md:pb-0">
-        {children}
+        <GateProvider console="farm">{children}</GateProvider>
       </div>
       {/* First run only. `readSeenTours` is one extra document read on a
           console page; it rides the same parallel batch as the notification

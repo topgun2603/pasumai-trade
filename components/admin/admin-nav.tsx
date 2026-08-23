@@ -21,6 +21,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { SessionFooter } from "@/components/auth/session-footer";
 import { Badge } from "@/components/ui/badge";
 import { franchiseMayRead } from "@/lib/auth/admin-access";
 import type { Role } from "@/lib/auth/claims";
@@ -115,8 +116,11 @@ const SECTIONS: Array<{ title?: string; links: NavLink[] }> = [
 export function AdminNav({
   pending,
   role,
+  email,
 }: {
   pending: PendingCounts;
+  /** Shown above Sign out, so an operator can see which login they are on. */
+  email?: string;
   /**
    * Operations sees the whole rail. A franchise sees the read-only part of it,
    * filtered from the same allow-list the `(operations)` route group enforces,
@@ -236,6 +240,9 @@ export function AdminNav({
             <ArrowLeftRightIcon className="size-4 shrink-0" />
             {role === "admin" ? "Buyer console" : "Franchise console"}
           </Link>
+
+          {/* Bug 16: bottom-left, the same as every other console. */}
+          <SessionFooter email={email} role={role} />
         </div>
       </nav>
     </>

@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { SessionFooter } from "@/components/auth/session-footer";
 import { MobileNav } from "@/components/console/mobile-nav";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Separator } from "@/components/ui/separator";
@@ -220,6 +221,15 @@ export function ConsoleNav({
             </Link>
           </div>
         ) : null}
+
+        {/*
+          Bug 16: Sign out sits bottom-left on every console. It was in the top
+          bar here and in the admin shell, and bottom-left on farm and agency —
+          the same control in two places depending on which door you came
+          through, which is the sort of thing that makes cross-role support
+          calls harder than they need to be.
+        */}
+        <SessionFooter email={session.email} role={session.role} />
       </nav>
     </>
   );

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { GateProvider } from "@/components/console/gate-dialog";
 import { AgencyNav } from "@/components/agency/agency-nav";
 import { ConsoleTour } from "@/components/console/tour";
 import { requireAgency } from "@/lib/auth/agency";
@@ -50,9 +51,11 @@ export default async function AgencyLayout({
   ]);
 
   const pending = {
-    "/agency/workers": mine(workers).filter((w) => needsReview(w.status)).length,
+    "/agency/workers": mine(workers).filter((w) => needsReview(w.status))
+      .length,
     "/agency/fleet": mine(vehicles).filter((v) => needsReview(v.status)).length,
-    "/agency/drivers": mine(drivers).filter((d) => needsReview(d.status)).length,
+    "/agency/drivers": mine(drivers).filter((d) => needsReview(d.status))
+      .length,
   };
 
   /*
@@ -72,7 +75,9 @@ export default async function AgencyLayout({
         session={{ email }}
         pending={pending}
       />
-      <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <GateProvider console="agency">{children}</GateProvider>
+      </div>
       {/* First run only. See `lib/firebase/tour-read.ts` for where the flag lives. */}
       {tour ? <ConsoleTour tour={tour} /> : null}
     </div>

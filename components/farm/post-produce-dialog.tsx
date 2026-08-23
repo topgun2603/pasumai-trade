@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { useGate } from "@/components/console/gate-dialog";
+
 import {
   emptyRows,
   GradeRows,
@@ -64,6 +66,7 @@ export interface CropOption {
  */
 export function PostProduceDialog({ crops }: { crops: CropOption[] }) {
   const router = useRouter();
+  const gate = useGate();
   const [open, setOpen] = useState(false);
   const [produceId, setProduceId] = useState("");
   const [rows, setRows] = useState<GradeRowState>(emptyRows);
@@ -203,10 +206,17 @@ export function PostProduceDialog({ crops }: { crops: CropOption[] }) {
     setStage("idle");
 
     if (!response.ok) {
-      if (response.status === 402 || response.status === 403) {
-        toast.error(data.error ?? "This needs a plan.", {
-          action: { label: "Open", onClick: () => router.push("/farm/account/subscription") },
-        });
+      /*
+        Bug 20: the same dialog every other blocked action uses, rather than a
+        toast whose action button vanishes after four seconds while somebody is
+        still reading the sentence above it.
+      */
+      if (response.status === 402) {
+        gate.show("subscription", data.error);
+        return;
+      }
+      if (response.status === 403) {
+        gate.show("verification", data.error);
         return;
       }
       if (data.field) setErrors({ [data.field]: data.error } as DraftErrors);

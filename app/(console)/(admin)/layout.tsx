@@ -100,7 +100,11 @@ export default async function AdminLayout({
 
   return (
     <div className="flex min-h-svh w-full">
-      <AdminNav pending={pending} role={session.claims.role} />
+      <AdminNav
+        pending={pending}
+        role={session.claims.role}
+        email={session.email}
+      />
       <div className="flex min-w-0 flex-1 flex-col">
         <ConsoleTopBar
           session={{ email: session.email, role: session.claims.role }}
