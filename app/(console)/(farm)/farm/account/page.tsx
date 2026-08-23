@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import { DocumentList, StatusBadge } from "@/components/admin/badges";
+import { ProfilePhoto } from "@/components/account/profile-photo";
 import { PageHeader } from "@/components/page-header";
 import { requireFarmer } from "@/lib/auth/farm";
 
@@ -39,6 +40,12 @@ export default async function FarmAccountPage() {
       />
 
       <div className="flex flex-col gap-6 p-5">
+        {/* Theirs to change, unlike everything in the list below it — which is
+          held by operations and says so. */}
+        <div className="bg-card rounded-lg border p-4">
+          <ProfilePhoto name={farmer.name} photoUrl={farmer.photoUrl} />
+        </div>
+
         <dl className="border-border divide-border bg-card divide-y rounded-lg border">
           {rows.map(([label, value]) => (
             <div key={label} className="flex flex-wrap items-center gap-3 px-4 py-3">

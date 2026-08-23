@@ -35,6 +35,7 @@ import { MANPOWER_SKILLS } from "@/lib/domain/admin";
 import { money } from "@/lib/domain/money";
 
 import { adminDb, hasAdminCredentials } from "./admin";
+import { withSignedPhotos } from "./photo-url";
 
 /**
  * Everyone and everything the consoles list.
@@ -134,7 +135,15 @@ async function readAll<T>(
   if (!hasAdminCredentials()) return [];
   try {
     const snapshot = await adminDb().collection(collection).get();
-    return snapshot.docs.map((doc) => shape(doc.id, doc.data()));
+    /*
+      Portraits are signed here, once, for every roster read there is.
+
+      `photoUrl` holds a storage path, and every screen showing one passed it
+      to `next/image`, which resolved it against our own origin and got a 404.
+      The seeded rows store `/mock/portrait.svg` and did render, so the screens
+      looked right and only the real photographs were missing.
+    */
+    return withSignedPhotos(snapshot.docs.map((doc) => shape(doc.id, doc.data())));
   } catch {
     return [];
   }

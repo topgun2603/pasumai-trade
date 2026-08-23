@@ -9,6 +9,7 @@ import type {
 } from "@/lib/domain/admin";
 
 import { adminDb, hasAdminCredentials } from "./admin";
+import { signedPhoto, withSignedPhotos } from "./photo-url";
 
 /**
  * An agency, from Firestore.
@@ -94,7 +95,10 @@ export async function readAgency(id: string): Promise<Agency | undefined> {
   if (hasAdminCredentials()) {
     try {
       const doc = await adminDb().collection("agencies").doc(id).get();
-      if (doc.exists) return shapeAgency(doc.id, doc.data()!);
+      if (doc.exists) {
+        const agency = shapeAgency(doc.id, doc.data()!);
+        return { ...agency, photoUrl: await signedPhoto(agency.photoUrl) };
+      }
     } catch (error) {
       // Logged rather than swallowed: an agency that cannot be read is an
       // account about to be told it does not exist, and the reason for that
@@ -120,9 +124,11 @@ export async function readAgencies(): Promise<Agency[]> {
   try {
     const snapshot = await adminDb().collection("agencies").get();
 
-    return snapshot.docs
-      .map((doc) => shapeAgency(doc.id, doc.data()))
-      .sort((a, b) => a.name.localeCompare(b.name, "en-IN"));
+    const agencies = await withSignedPhotos(
+      snapshot.docs.map((doc) => shapeAgency(doc.id, doc.data())),
+    );
+
+    return agencies.sort((a, b) => a.name.localeCompare(b.name, "en-IN"));
   } catch (error) {
     console.error("agencies unreadable", error);
     return [];

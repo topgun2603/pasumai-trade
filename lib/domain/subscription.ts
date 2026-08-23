@@ -194,6 +194,38 @@ export function effectiveStatus(
   return subscription.status;
 }
 
+/**
+ * Whether the plan catalogue opens by itself on the subscription page.
+ *
+ * Bug 22: every plan was listed under the status line, so a subscriber's own
+ * subscription page was mostly six prices they could not use, and the one
+ * thing they came for — what am I on, when does it end — was a single row
+ * above the pile.
+ *
+ * Somebody without a running plan came here precisely to choose one, so for
+ * them the catalogue *is* the page and a button in front of it is a step for
+ * nothing. Somebody with one sees their plan, and asks for the rest.
+ *
+ * Here rather than in the component because it is a decision, and decisions in
+ * this codebase are testable — there is no DOM environment, on purpose.
+ */
+export function catalogueOpensBy(
+  /** `"none"` because a page can render for an account that never subscribed. */
+  status: SubscriptionStatus | "none",
+  asked: boolean,
+): boolean {
+  if (asked) return true;
+
+  /*
+    Expired and past-due deliberately count as "no running plan".
+
+    They are the people most in need of the prices: an expired subscriber is
+    one tap from renewing and hiding the plans behind a button is the last
+    thing that should stand between them and it.
+  */
+  return status !== "active" && status !== "trialing";
+}
+
 export function daysRemaining(subscription: Subscription, now: Date): number {
   return Math.ceil((subscription.renewsAt.getTime() - now.getTime()) / DAY_MS);
 }

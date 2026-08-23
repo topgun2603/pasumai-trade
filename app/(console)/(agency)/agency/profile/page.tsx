@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import { DocumentList, StatusBadge } from "@/components/admin/badges";
+import { ProfilePhoto } from "@/components/account/profile-photo";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { requireAgency } from "@/lib/auth/agency";
@@ -43,6 +44,11 @@ export default async function AgencyProfilePage() {
       />
 
       <div className="flex max-w-3xl flex-col gap-6 p-6">
+        {/* The one thing on this page they can change themselves. */}
+        <div className="bg-card rounded-lg border p-4">
+          <ProfilePhoto name={agency.name} photoUrl={agency.photoUrl} />
+        </div>
+
         <dl className="bg-card divide-border divide-y rounded-lg border">
           {rows.map(([label, value]) => (
             <div

@@ -3,6 +3,7 @@ import "server-only";
 import type { ComplianceDocument, FarmerAccount, VerificationStatus } from "@/lib/domain/admin";
 
 import { adminDb } from "./admin";
+import { signedPhoto } from "./photo-url";
 
 /**
  * One farmer, read from Firestore.
@@ -69,7 +70,8 @@ export async function readFarmer(accountId: string): Promise<FarmerAccount | nul
     registeredBy: typeof d.registeredBy === "string" ? d.registeredBy : "",
     activeListings: typeof d.activeListings === "number" ? d.activeListings : 0,
     completedOrders: typeof d.completedOrders === "number" ? d.completedOrders : 0,
-    photoUrl: typeof d.photoUrl === "string" ? d.photoUrl : undefined,
+    // Signed, not the raw storage path — see lib/firebase/photo-url.ts.
+    photoUrl: await signedPhoto(d.photoUrl),
     landPhotoUrl: typeof d.landPhotoUrl === "string" ? d.landPhotoUrl : undefined,
     documents: shapeDocuments(d.documents),
   };

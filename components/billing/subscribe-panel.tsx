@@ -1,6 +1,16 @@
 "use client";
 
-import { BanknoteIcon, CheckIcon, ClockIcon, CopyIcon, FlaskConicalIcon, InfinityIcon, ShieldCheckIcon } from "lucide-react";
+import {
+  ArrowUpRightIcon,
+  BanknoteIcon,
+  CheckIcon,
+  ChevronUpIcon,
+  ClockIcon,
+  CopyIcon,
+  FlaskConicalIcon,
+  InfinityIcon,
+  ShieldCheckIcon,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -10,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/domain/money";
 import {
+  catalogueOpensBy,
   SUBSCRIPTION_LABELS,
   type Badge as TermBadge,
   type SubscriptionStatus,
@@ -56,7 +67,22 @@ export function SubscribePanel({
 }) {
   const router = useRouter();
   const [pending, setPending] = useState<Term | null>(null);
-  const [reference, setReference] = useState<string | null>(current.reference ?? null);
+  const [reference, setReference] = useState<string | null>(
+    current.reference ?? null,
+  );
+
+  /*
+    Whether the whole plan catalogue is on screen.
+
+    Somebody already paying does not need six prices in front of them; they
+    need to know what they are on and when it ends. Everybody else came here
+    precisely to choose, so for them the catalogue is the page and hiding it
+    behind a button would be a step added for nothing.
+
+    Derived rather than seeded, so there is no effect syncing a piece of state
+    to a prop that already knows the answer — see `catalogueOpen` below.
+  */
+  const [showPlans, setShowPlans] = useState(false);
 
   // Lifetime is pulled out of the ladder and given its own row beneath it.
   // Ranking it as a seventh rung invites a farmer to read it as "three years,
@@ -90,17 +116,20 @@ export function SubscribePanel({
       if (response.ok && data.bypassed) {
         setPending(null);
         toast.success("Subscription active (payment bypassed)", {
-          description: "No money was taken. Turn the bypass off before going live.",
+          description:
+            "No money was taken. Turn the bypass off before going live.",
         });
         router.refresh();
         return;
       }
 
       if (!response.ok || !data.orderId) {
-        if (data.alreadyActive) toast.info("That subscription is already running.");
+        if (data.alreadyActive)
+          toast.info("That subscription is already running.");
         else if (response.status === 503) {
           toast.error("Card payment is not switched on here yet.", {
-            description: "Ask operations for a bank transfer reference instead.",
+            description:
+              "Ask operations for a bank transfer reference instead.",
           });
         } else toast.error(data.error ?? "Could not start the payment.");
         setPending(null);
@@ -112,7 +141,8 @@ export function SubscribePanel({
       const ready = await loadCheckout();
       if (!ready) {
         toast.error("Could not load the payment window.", {
-          description: "An ad blocker or a poor connection can stop it. Try again.",
+          description:
+            "An ad blocker or a poor connection can stop it. Try again.",
         });
         setPending(null);
         return;
@@ -142,7 +172,9 @@ export function SubscribePanel({
         body: JSON.stringify(result),
       });
 
-      const outcome = (await verified.json().catch(() => ({}))) as { error?: string };
+      const outcome = (await verified.json().catch(() => ({}))) as {
+        error?: string;
+      };
       setPending(null);
 
       if (!verified.ok) {
@@ -155,7 +187,9 @@ export function SubscribePanel({
         return;
       }
 
-      toast.success("Subscription active", { description: "Everything is unlocked." });
+      toast.success("Subscription active", {
+        description: "Everything is unlocked.",
+      });
       router.refresh();
     } catch {
       setPending(null);
@@ -177,6 +211,9 @@ export function SubscribePanel({
    */
   const running = current.status === "active" || current.status === "trialing";
 
+  // The rule lives in the domain, where it is tested — see `catalogueOpensBy`.
+  const catalogueOpen = catalogueOpensBy(current.status, showPlans);
+
   const isCurrent = (option: TermOption) =>
     running &&
     (option.highlight
@@ -190,34 +227,38 @@ export function SubscribePanel({
       return (
         <div className="border-success/40 bg-success-soft text-success flex w-full items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium">
           <CheckIcon className="size-4" />
-          {current.renewsAtLabel ? `Runs to ${current.renewsAtLabel}` : "Your current plan"}
+          {current.renewsAtLabel
+            ? `Runs to ${current.renewsAtLabel}`
+            : "Your current plan"}
         </div>
       );
     }
 
     return (
-    <Button
-      type="button"
-      // Violet on the lifetime band: a primary-green button sitting on it is
-      // the one colour collision on the page.
-      className={
-        option.highlight
-          ? "w-full bg-stone-800 text-white hover:bg-stone-900 focus-visible:ring-stone-500 dark:bg-stone-200 dark:text-stone-900 dark:hover:bg-stone-100"
-          : "w-full"
-      }
-      variant={option.recommended && !option.highlight ? "default" : "outline"}
-      disabled={pending !== null}
-      onClick={() => choose(option)}
-    >
-      {pending === option.term
-        ? bypassed
-          ? "Activating…"
-          : "Opening payment…"
-        : bypassed
-          ? "Activate (no payment)"
-          : current.status === "expired" || current.status === "pastDue"
-            ? "Renew"
-            : `Pay ${formatMoney(option.price)}`}
+      <Button
+        type="button"
+        // Violet on the lifetime band: a primary-green button sitting on it is
+        // the one colour collision on the page.
+        className={
+          option.highlight
+            ? "w-full bg-stone-800 text-white hover:bg-stone-900 focus-visible:ring-stone-500 dark:bg-stone-200 dark:text-stone-900 dark:hover:bg-stone-100"
+            : "w-full"
+        }
+        variant={
+          option.recommended && !option.highlight ? "default" : "outline"
+        }
+        disabled={pending !== null}
+        onClick={() => choose(option)}
+      >
+        {pending === option.term
+          ? bypassed
+            ? "Activating…"
+            : "Opening payment…"
+          : bypassed
+            ? "Activate (no payment)"
+            : current.status === "expired" || current.status === "pastDue"
+              ? "Renew"
+              : `Pay ${formatMoney(option.price)}`}
       </Button>
     );
   };
@@ -230,8 +271,8 @@ export function SubscribePanel({
           <span className="flex flex-col gap-0.5 text-sm">
             <span className="font-medium">Payment is bypassed for testing</span>
             <span className="opacity-90">
-              Choosing a term activates it immediately and charges nothing. Unset PAYMENTS_BYPASS
-              to take real payments.
+              Choosing a term activates it immediately and charges nothing.
+              Unset PAYMENTS_BYPASS to take real payments.
             </span>
           </span>
         </div>
@@ -270,7 +311,10 @@ export function SubscribePanel({
         </div>
 
         {current.lifetime ? (
-          <Badge variant="outline" className="border-stone-500/50 text-stone-700 dark:text-stone-300">
+          <Badge
+            variant="outline"
+            className="border-stone-500/50 text-stone-700 dark:text-stone-300"
+          >
             <InfinityIcon className="size-3" />
             Lifetime
           </Badge>
@@ -304,43 +348,87 @@ export function SubscribePanel({
             </Button>
             {current.amountLabel ? (
               <span className="text-sm">
-                Amount: <span className="font-medium">{current.amountLabel}</span>
+                Amount:{" "}
+                <span className="font-medium">{current.amountLabel}</span>
               </span>
             ) : null}
           </div>
           <p className="text-muted-foreground flex items-start gap-1.5 text-xs">
             <ClockIcon className="mt-0.5 size-3.5 shrink-0" />
-            Quote this reference on the transfer. Operations switch you on once it clears —
-            usually the same working day. Paying by card or UPI above is instant.
+            Quote this reference on the transfer. Operations switch you on once
+            it clears — usually the same working day. Paying by card or UPI
+            above is instant.
           </p>
         </div>
       ) : null}
 
-      {/* The ladder. Longer terms cost less per month and nothing else changes
-          — every term buys the same capabilities, because a farmer who paid
-          less should not be a farmer who can sell less. */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {ladder.map((option) => (
-          <PlanCard
-            key={option.term}
-            option={option}
-            current={isCurrent(option)}
-            footer={cta(option)}
-          />
-        ))}
-      </div>
+      {/*
+        The upgrade door, for somebody already paying.
 
-      {lifetime ? (
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-4">
-            <span className="from-border h-px flex-1 bg-gradient-to-r to-transparent" />
-            <span className="text-muted-foreground text-xs tracking-wide uppercase">
-              or stop paying altogether
-            </span>
-            <span className="to-border h-px flex-1 bg-gradient-to-r from-transparent" />
-          </div>
-          <PlanCard option={lifetime} current={isCurrent(lifetime)} footer={cta(lifetime)} />
+        Bug 22: the full catalogue used to sit open under the status strip, so
+        the six prices a subscriber cannot use were the bulk of their own
+        subscription page and the one thing they came for — what am I on, when
+        does it end — was a single line above it.
+      */}
+      {running ? (
+        <div className="flex items-center gap-4">
+          <span className="from-border h-px flex-1 bg-gradient-to-r to-transparent" />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowPlans((open) => !open)}
+            aria-expanded={catalogueOpen}
+          >
+            {catalogueOpen ? (
+              <>
+                <ChevronUpIcon className="size-4" />
+                Hide plans
+              </>
+            ) : (
+              <>
+                <ArrowUpRightIcon className="size-4" />
+                Upgrade subscription
+              </>
+            )}
+          </Button>
+          <span className="to-border h-px flex-1 bg-gradient-to-r from-transparent" />
         </div>
+      ) : null}
+
+      {catalogueOpen ? (
+        <>
+          {/* The ladder. Longer terms cost less per month and nothing else changes
+            — every term buys the same capabilities, because a farmer who paid
+            less should not be a farmer who can sell less. */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {ladder.map((option) => (
+              <PlanCard
+                key={option.term}
+                option={option}
+                current={isCurrent(option)}
+                footer={cta(option)}
+              />
+            ))}
+          </div>
+
+          {lifetime ? (
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-4">
+                <span className="from-border h-px flex-1 bg-gradient-to-r to-transparent" />
+                <span className="text-muted-foreground text-xs tracking-wide uppercase">
+                  or stop paying altogether
+                </span>
+                <span className="to-border h-px flex-1 bg-gradient-to-r from-transparent" />
+              </div>
+              <PlanCard
+                option={lifetime}
+                current={isCurrent(lifetime)}
+                footer={cta(lifetime)}
+              />
+            </div>
+          ) : null}
+        </>
       ) : null}
     </div>
   );

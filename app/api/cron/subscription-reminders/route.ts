@@ -1,4 +1,9 @@
 import { notificationKey } from "@/lib/domain/notification-key";
+import {
+  renewalDestination,
+  renewalToken,
+  RENEWAL_LINK_TTL_MS,
+} from "@/lib/domain/renewal-link";
 import { readPolicy } from "@/lib/domain/policy";
 import {
   CHANNELS,
@@ -13,6 +18,7 @@ import { writeNotifications } from "@/lib/firebase/notifications-write";
 import { sendPushes } from "@/lib/firebase/push-send";
 import { markReminded, readSubscriptions } from "@/lib/firebase/subscriptions-read";
 import { configured, sendOn } from "@/lib/notify/channels";
+import { siteUrl } from "@/lib/site-url";
 
 /**
  * The periodic renewal reminder.
@@ -69,6 +75,7 @@ export async function GET(request: Request) {
   }
 
   const now = new Date();
+  const origin = siteUrl();
 
   // The ladder operations configured, not the one this file shipped with.
   const settings = await adminDb().collection("settings").doc("policy").get();
@@ -86,7 +93,27 @@ export async function GET(request: Request) {
       Math.floor(((subscription.renewsAt?.getTime() ?? 0) - now.getTime()) / 86_400_000),
     );
     const text = line(stage, subscription.name, days);
-    const href = subscription.collection === "farmers" ? "/farm/subscription" : "/subscription";
+    const href = renewalDestination(subscription.collection);
+
+    /*
+      The same message, addressed differently depending on how it travels.
+
+      In-app and push land inside the platform, where a path is a link. SMS,
+      WhatsApp and email land outside it, where `/farm/subscription` is not a
+      link at all — which is what Bug 23 is: a lapsed subscriber was told to
+      renew and given nothing to tap.
+
+      The token names the account so the tap lands on the right console for
+      the right role. It is not a sign-in; see `lib/domain/renewal-link.ts`.
+    */
+    const away = `${origin}/renew/${renewalToken(
+      {
+        accountId: subscription.accountId,
+        collection: subscription.collection,
+        expiresAt: now.getTime() + RENEWAL_LINK_TTL_MS,
+      },
+      secret,
+    )}`;
 
     const channels = reachable(subscription, enabled);
     const delivered: Result["channels"] = [];
@@ -125,7 +152,9 @@ export async function GET(request: Request) {
         mobile: subscription.mobile,
         email: subscription.email,
         text,
-        href,
+        // Absolute, and carrying the token. A relative path in a text message
+        // is a string somebody has to work out what to do with.
+        href: away,
       });
       delivered.push({
         channel: outcome.channel,

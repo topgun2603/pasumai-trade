@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { ROLES } from "@/lib/auth/claims";
 import { rupees } from "./money";
 import {
+  catalogueOpensBy,
   CAPABILITIES,
   CAPABILITIES_FOR_ROLE,
   CAPABILITY_LABELS,
@@ -364,5 +365,38 @@ describe("naming a plan for a person", () => {
     for (const id of ["m1", "lifetime", "franchise-outlet", "something_odd"]) {
       expect(describePlan(id).title).not.toBe(id);
     }
+  });
+});
+
+describe("what the subscription page opens with", () => {
+  /*
+    Bug 22. The full plan catalogue sat open under the status line, so a paying
+    subscriber's own page was mostly six prices they could not use, and their
+    plan and its expiry were one row above the pile.
+  */
+  it("keeps the catalogue shut for somebody already paying", () => {
+    expect(catalogueOpensBy("active", false)).toBe(false);
+    expect(catalogueOpensBy("trialing", false)).toBe(false);
+  });
+
+  it("opens it the moment they ask to upgrade", () => {
+    expect(catalogueOpensBy("active", true)).toBe(true);
+  });
+
+  it("opens it for anybody without a plan", () => {
+    // They came here to choose one. A button in front of the prices is a step
+    // added for nothing.
+    expect(catalogueOpensBy("none", false)).toBe(true);
+    expect(catalogueOpensBy("requested", false)).toBe(true);
+  });
+
+  it("opens it for an expired or past-due plan", () => {
+    /*
+      The people most in need of the prices. Hiding them behind a button is the
+      last thing that should stand between a lapsed subscriber and renewing —
+      which is the same person Bug 23's SMS is trying to reach.
+    */
+    expect(catalogueOpensBy("expired", false)).toBe(true);
+    expect(catalogueOpensBy("pastDue", false)).toBe(true);
   });
 });
