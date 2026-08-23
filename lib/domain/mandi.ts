@@ -139,46 +139,62 @@ export interface MandiQuote {
  * parse is dropped rather than rendered as `NaN` on a ticker on the front
  * page.
  */
+export interface AgmarknetRecord {
+  State?: unknown;
+  District?: unknown;
+  Market?: unknown;
+  Commodity?: unknown;
+  Variety?: unknown;
+  Grade?: unknown;
+  Arrival_Date?: unknown;
+  Min_Price?: unknown;
+  Max_Price?: unknown;
+  Modal_Price?: unknown;
+}
+
 export function readQuote(
-  raw: {
-    state?: unknown;
-    district?: unknown;
-    market?: unknown;
-    commodity?: unknown;
-    arrival_date?: unknown;
-    min_price?: unknown;
-    max_price?: unknown;
-    modal_price?: unknown;
-  },
+  raw: AgmarknetRecord,
   unit: QuantityUnit,
 ): MandiQuote | null {
-  const commodity = typeof raw.commodity === "string" ? raw.commodity : "";
+  const commodity = typeof raw.Commodity === "string" ? raw.Commodity : "";
   const cropId = cropForCommodity(commodity);
   if (!cropId) return null;
 
-  const low = perUnit(Number(raw.min_price), unit);
-  const high = perUnit(Number(raw.max_price), unit);
-  const modal = perUnit(Number(raw.modal_price), unit);
+  /*
+    Prices arrive as strings and are not always whole — a real row reads
+    `"Modal_Price": "21536.62"`. `Number` takes both, and `perUnit` rounds to
+    the paise afterwards.
+  */
+  const low = perUnit(Number(raw.Min_Price), unit);
+  const high = perUnit(Number(raw.Max_Price), unit);
+  const modal = perUnit(Number(raw.Modal_Price), unit);
   if (!low || !high || !modal) return null;
 
   // A zero modal means the row exists but nothing traded. Not a price.
   if (modal.minorUnits <= 0) return null;
 
-  const asOf = readArrivalDate(raw.arrival_date);
+  const asOf = readArrivalDate(raw.Arrival_Date);
   if (!asOf) return null;
 
   return {
     cropId,
     commodity,
-    market: typeof raw.market === "string" ? raw.market : "",
-    district: typeof raw.district === "string" ? raw.district : "",
-    state: typeof raw.state === "string" ? raw.state : "",
+    market: typeof raw.Market === "string" ? raw.Market : "",
+    district: typeof raw.District === "string" ? raw.District : "",
+    state: typeof raw.State === "string" ? raw.State : "",
     low: low.minorUnits,
     high: high.minorUnits,
     modal: modal.minorUnits,
     unit,
     asOf,
   };
+}
+
+/** Their date format, for a filter value. `DD/MM/YYYY`. */
+export function arrivalDateParam(date: Date): string {
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  return `${day}/${month}/${date.getUTCFullYear()}`;
 }
 
 /**

@@ -61,20 +61,41 @@ export async function GET(request: Request) {
   }
 
   const now = new Date();
-  const results: Array<{ state: string; quotes?: number; of?: number; error?: string }> = [];
+  const results: Array<{
+    state: string;
+    quotes?: number;
+    of?: number;
+    day?: string | null;
+    error?: string;
+  }> = [];
 
   for (const state of STATES) {
-    const result = await fetchStateRates(state);
+    const result = await fetchStateRates(state, "kg", now);
 
     if (!result.ok) {
-      // One state failing does not stop the rest. A silent Agmarknet in
-      // Kerala is not a reason to leave Tamil Nadu's rates a day old.
+      /*
+        One state failing does not stop the rest — a silent Agmarknet in Kerala
+        is no reason to leave Tamil Nadu's rates a day old.
+
+        Except a throttle, which is not about the state at all: the key is
+        spent, every remaining request would fail the same way, and carrying on
+        would report five states as broken when the truth is one quota.
+      */
       results.push({ state, error: result.reason });
+      if (result.reason === "throttled") break;
       continue;
     }
 
     await writeStateRates(state, result.quotes, now);
-    results.push({ state, quotes: result.quotes.length, of: result.fetched });
+    results.push({
+      state,
+      quotes: result.quotes.length,
+      of: result.fetched,
+      // Worth returning: `quotes` far below `of` means the commodity mapping
+      // is missing names this state actually reports, and `day` says how far
+      // back the last reporting day was.
+      day: result.day,
+    });
   }
 
   return Response.json({ at: now.toISOString(), states: results });

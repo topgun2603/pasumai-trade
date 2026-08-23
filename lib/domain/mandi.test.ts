@@ -9,6 +9,7 @@ import {
   perUnit,
   readArrivalDate,
   readQuote,
+  arrivalDateParam,
   tickerQuotes,
   type MandiQuote,
 } from "./mandi";
@@ -122,15 +123,20 @@ describe("their date format", () => {
 });
 
 describe("reading one record", () => {
+  /*
+    Field names exactly as the endpoint returns them — capitalised, with
+    underscores. Copied from a live response rather than from the docs, which
+    describe the filter parameters in a different case from the record keys.
+  */
   const RAW = {
-    state: "Tamil Nadu",
-    district: "Erode",
-    market: "Erode",
-    commodity: "Tomato",
-    arrival_date: "22/08/2026",
-    min_price: "2000",
-    max_price: "2800",
-    modal_price: "2400",
+    State: "Tamil Nadu",
+    District: "Erode",
+    Market: "Erode",
+    Commodity: "Tomato",
+    Arrival_Date: "22/08/2026",
+    Min_Price: "2000",
+    Max_Price: "2800",
+    Modal_Price: "2400",
   };
 
   it("converts and keeps the market it came from", () => {
@@ -144,20 +150,32 @@ describe("reading one record", () => {
   });
 
   it("drops a commodity we do not carry", () => {
-    expect(readQuote({ ...RAW, commodity: "Arecanut" }, "kg")).toBeNull();
+    expect(readQuote({ ...RAW, Commodity: "Arecanut" }, "kg")).toBeNull();
   });
 
   it("drops a row where nothing actually traded", () => {
     // The row exists; the price is zero. That is not a price.
-    expect(readQuote({ ...RAW, modal_price: "0" }, "kg")).toBeNull();
+    expect(readQuote({ ...RAW, Modal_Price: "0" }, "kg")).toBeNull();
   });
 
   it("drops a row with an unreadable date", () => {
-    expect(readQuote({ ...RAW, arrival_date: "" }, "kg")).toBeNull();
+    expect(readQuote({ ...RAW, Arrival_Date: "" }, "kg")).toBeNull();
   });
 
   it("drops a row for a unit that cannot be compared", () => {
     expect(readQuote(RAW, "crate")).toBeNull();
+  });
+
+  it("takes a price that is not a whole rupee", () => {
+    // Real rows carry decimals — "Modal_Price": "21536.62" is one of theirs.
+    const quote = readQuote({ ...RAW, Modal_Price: "2450.62" }, "kg");
+    expect(quote?.modal).toBe(2451);
+  });
+
+  it("ignores a field in the wrong case rather than half-reading a row", () => {
+    // The docs name the *filters* in one case and the records come back in
+    // another; a row keyed the other way is not a row we can read.
+    expect(readQuote({ commodity: "Tomato" } as never, "kg")).toBeNull();
   });
 });
 
@@ -217,5 +235,22 @@ describe("what the ticker shows", () => {
 
   it("has nothing to say when every market is silent", () => {
     expect(tickerQuotes([], NOW)).toEqual([]);
+  });
+});
+
+describe("their date, as a filter value", () => {
+  it("round-trips through the format they expect", () => {
+    /*
+      The archive holds eighty-one million rows returned oldest first, so a
+      fetch without a date filter reads 2023. Getting this string right is what
+      makes the ticker "live" rather than three years old.
+    */
+    const date = new Date(Date.UTC(2026, 7, 3));
+    expect(arrivalDateParam(date)).toBe("03/08/2026");
+    expect(readArrivalDate(arrivalDateParam(date))?.getTime()).toBe(date.getTime());
+  });
+
+  it("pads both the day and the month", () => {
+    expect(arrivalDateParam(new Date(Date.UTC(2026, 0, 9)))).toBe("09/01/2026");
   });
 });
