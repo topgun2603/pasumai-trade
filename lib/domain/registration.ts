@@ -10,6 +10,8 @@
  * these checks are for the person typing, not for the data.
  */
 
+import { isWellFormedAadhaar } from "@/lib/domain/kyc";
+
 export type FieldErrors<T> = Partial<Record<keyof T, string>>;
 
 /* -------------------------------------------------------------------------
@@ -36,7 +38,8 @@ const AADHAAR = /^[0-9]{12}$/;
 const FSSAI = /^[0-9]{14}$/;
 
 /** `TN 20 BA 4471`, with or without spaces. */
-const VEHICLE_REGISTRATION = /^[A-Z]{2}\s?[0-9]{1,2}\s?[A-Z]{1,3}\s?[0-9]{1,4}$/;
+const VEHICLE_REGISTRATION =
+  /^[A-Z]{2}\s?[0-9]{1,2}\s?[A-Z]{1,3}\s?[0-9]{1,4}$/;
 
 /** `TN20 20180004471` — state, RTO, then eleven digits. */
 const DRIVING_LICENCE = /^[A-Z]{2}[0-9]{2}\s?[0-9]{11}$/;
@@ -78,7 +81,8 @@ export function checkMobile(value: string): string | undefined {
  */
 export function toE164(value: string): string | null {
   const digits = value.replace(/[^0-9]/g, "").replace(/^0+/, "");
-  const ten = digits.startsWith("91") && digits.length === 12 ? digits.slice(2) : digits;
+  const ten =
+    digits.startsWith("91") && digits.length === 12 ? digits.slice(2) : digits;
   return MOBILE.test(ten) ? `+91${ten}` : null;
 }
 
@@ -94,7 +98,10 @@ export function checkPincode(value: string): string | undefined {
  * stricter pattern rejects addresses that genuinely work, and an agency turned
  * away at registration because of a regex is an agency that phones instead.
  */
-export function checkEmail(value: string, optional = false): string | undefined {
+export function checkEmail(
+  value: string,
+  optional = false,
+): string | undefined {
   const trimmed = value.trim();
   if (trimmed === "") return optional ? undefined : "Email is required";
   // `\s` and `\.`, both of which had lost their backslash. `[^s@]` reads as
@@ -106,7 +113,10 @@ export function checkEmail(value: string, optional = false): string | undefined 
     : "That does not look like an email address";
 }
 
-export function checkGstin(value: string, optional = false): string | undefined {
+export function checkGstin(
+  value: string,
+  optional = false,
+): string | undefined {
   if (value.trim() === "") return optional ? undefined : "GSTIN is required";
   return GSTIN.test(normalise(value).replace(/\s/g, ""))
     ? undefined
@@ -134,15 +144,39 @@ export function checkBankAccount(value: string): string | undefined {
     : "Account numbers are 9 to 18 digits";
 }
 
-export function checkAadhaar(value: string, optional = false): string | undefined {
-  if (value.trim() === "") return optional ? undefined : "Aadhaar is required";
-  return AADHAAR.test(value.replace(/\s/g, ""))
+/**
+ * The same Aadhaar rule the verification flow uses, rather than a looser one.
+ *
+ * This checked only that there were twelve digits, while `isWellFormedAadhaar`
+ * in `lib/domain/kyc.ts` also runs the Verhoeff checksum an Aadhaar number
+ * carries. The two disagreed, and the disagreement was the defect: a driver or
+ * worker could be filed with a number these forms accepted and verification
+ * then refused, so the record was already wrong by the time anybody looked at
+ * it — and the person filing it had been told it was fine.
+ *
+ * The checksum catches roughly every single-digit error and adjacent
+ * transposition. It says a number is *well formed*, never that it belongs to
+ * anybody; only UIDAI can say that, and conflating the two is how "Aadhaar
+ * verified" comes to mean nothing.
+ */
+export function checkAadhaar(
+  value: string,
+  optional = false,
+): string | undefined {
+  const digits = value.replace(/\s/g, "");
+  if (digits.trim() === "") return optional ? undefined : "Aadhaar is required";
+  if (!AADHAAR.test(digits)) return "Aadhaar is 12 digits";
+  return isWellFormedAadhaar(digits)
     ? undefined
-    : "Aadhaar is 12 digits";
+    : "That Aadhaar number is not valid — check the twelve digits, one is mistyped";
 }
 
-export function checkFssai(value: string, optional = false): string | undefined {
-  if (value.trim() === "") return optional ? undefined : "FSSAI licence is required";
+export function checkFssai(
+  value: string,
+  optional = false,
+): string | undefined {
+  if (value.trim() === "")
+    return optional ? undefined : "FSSAI licence is required";
   return FSSAI.test(value.replace(/\s/g, ""))
     ? undefined
     : "FSSAI licence numbers are 14 digits";
@@ -231,9 +265,7 @@ export function validateFarmer(values: FarmerForm): FieldErrors<FarmerForm> {
     pincode: checkPincode(values.pincode),
     landAcres: checkPositiveNumber(values.landAcres, "Land under cultivation"),
     primaryCrops:
-      values.primaryCrops.length === 0
-        ? "Select at least one crop"
-        : undefined,
+      values.primaryCrops.length === 0 ? "Select at least one crop" : undefined,
     aadhaar: checkAadhaar(values.aadhaar),
     bankAccountName: required(values.bankAccountName, "Account holder name"),
     bankAccountNumber: checkBankAccount(values.bankAccountNumber),
@@ -343,7 +375,9 @@ export interface ManpowerForm {
  * cash at the roadside, which is exactly the arrangement this platform exists
  * to replace.
  */
-export function validateManpower(values: ManpowerForm): FieldErrors<ManpowerForm> {
+export function validateManpower(
+  values: ManpowerForm,
+): FieldErrors<ManpowerForm> {
   const rate = Number(values.rate);
 
   return {
@@ -397,7 +431,10 @@ export function validateVehicle(values: VehicleForm): FieldErrors<VehicleForm> {
     rcNumber: required(values.rcNumber, "RC number"),
     insurer: required(values.insurer, "Insurer"),
     insurancePolicy: required(values.insurancePolicy, "Policy number"),
-    insuranceExpiry: checkFutureDate(values.insuranceExpiry, "Insurance expiry"),
+    insuranceExpiry: checkFutureDate(
+      values.insuranceExpiry,
+      "Insurance expiry",
+    ),
     fitnessNumber: required(values.fitnessNumber, "Fitness certificate number"),
     fitnessExpiry: checkFutureDate(values.fitnessExpiry, "Fitness expiry"),
     permitNumber: required(values.permitNumber, "Permit number"),

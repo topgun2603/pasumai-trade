@@ -78,7 +78,11 @@ export function ConsoleNav({
         </span>
         <span className="flex min-w-0 flex-1 flex-col leading-tight">
           <span className="truncate text-sm font-semibold">Pasumai Trade</span>
-          <span className="text-faint text-xs">Franchise console</span>
+          <span className="text-faint text-xs">
+            {session.role === "franchise"
+              ? "Franchise console"
+              : "Buying console"}
+          </span>
         </span>
         {/* English on this surface, off the same records the farmer reads in
             Tamil — the row stores facts, not a sentence. */}

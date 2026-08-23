@@ -88,22 +88,41 @@ export function isZero(a: Money): boolean {
   return a.minorUnits === 0;
 }
 
-const RUPEE_FORMAT = new Intl.NumberFormat("en-IN", {
+const WHOLE_RUPEES = new Intl.NumberFormat("en-IN", {
   style: "currency",
   currency: "INR",
   minimumFractionDigits: 0,
   maximumFractionDigits: 0,
 });
 
+const WITH_PAISE = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
 /**
- * `₹22,800` — Indian digit grouping, no decimals.
+ * `₹22,800`, and `₹24.50` when there are paise.
  *
- * Paise are dropped in display because produce settles in whole rupees and a
- * farmer reading `₹22,800.00` has to scan past noise to find the number that
- * matters. `minorUnits` remains the source of truth.
+ * Paise used to be dropped always, on the argument that produce settles in
+ * whole rupees and a farmer reading `₹22,800.00` scans past noise to find the
+ * number that matters. That argument is right about totals and was wrong about
+ * rates: a price of ₹24.50 a kilo was displayed as ₹25, which is two per cent
+ * out on every kilo of every load, in the platform's favour or the farmer's
+ * depending on the number — and invisible either way, because the figure looked
+ * deliberate.
+ *
+ * Showing paise only when there are any keeps both. A whole-rupee amount is
+ * still `₹22,800` with no trailing zeroes to read past, and an amount that is
+ * not a whole number is finally shown as what it is rather than rounded to
+ * something nobody agreed.
  */
 export function formatMoney(amount: Money): string {
-  return RUPEE_FORMAT.format(amount.minorUnits / 100);
+  const rupees = amount.minorUnits / 100;
+  return amount.minorUnits % 100 === 0
+    ? WHOLE_RUPEES.format(rupees)
+    : WITH_PAISE.format(rupees);
 }
 
 /** `₹19/kg` */

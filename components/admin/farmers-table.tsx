@@ -3,10 +3,7 @@
 import Image from "next/image";
 
 import { DocumentList, StatusBadge } from "@/components/admin/badges";
-import {
-  EntityPhoto,
-  MissingPhotoNote,
-} from "@/components/admin/entity-photo";
+import { EntityPhoto, MissingPhotoNote } from "@/components/admin/entity-photo";
 import { EntityTable, type Column } from "@/components/admin/entity-table";
 import type { FarmerAccount } from "@/lib/domain/admin";
 import { relativeTime } from "@/lib/format";
@@ -107,6 +104,7 @@ export function FarmersTable({
 
   return (
     <EntityTable
+      kind="farmers"
       rows={accounts}
       columns={columns}
       entityLabel="farmers"

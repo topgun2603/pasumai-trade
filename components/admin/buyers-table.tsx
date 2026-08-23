@@ -1,11 +1,9 @@
 "use client";
 
 import { ComplianceBadge, StatusBadge } from "@/components/admin/badges";
-import {
-  EntityPhoto,
-  MissingPhotoNote,
-} from "@/components/admin/entity-photo";
+import { EntityPhoto, MissingPhotoNote } from "@/components/admin/entity-photo";
 import { EntityTable, type Column } from "@/components/admin/entity-table";
+import type { RecordKind } from "@/lib/domain/admin-records";
 import { Badge } from "@/components/ui/badge";
 import { BUYER_KIND_LABELS, type BuyerAccount } from "@/lib/domain/admin";
 import { formatMoney, isZero } from "@/lib/domain/money";
@@ -14,9 +12,19 @@ import { relativeTime } from "@/lib/format";
 export function BuyersTable({
   accounts,
   now,
+  kind = "buyers",
 }: {
   accounts: BuyerAccount[];
   now: number;
+  /**
+   * Which collection these rows are from.
+   *
+   * The franchises page renders this same table, and franchises live in their
+   * own collection. Baking "buyers" in would have sent a franchise approval to
+   * the wrong document — the row would not change and a buyer with a matching
+   * id would.
+   */
+  kind?: RecordKind;
 }) {
   const columns: Column<BuyerAccount>[] = [
     {
@@ -73,7 +81,9 @@ export function BuyersTable({
           <span className="text-faint text-sm">No orders yet</span>
         ) : (
           <span className="flex flex-col leading-tight">
-            <span className="tabular text-sm">{formatMoney(a.lifetimeValue)}</span>
+            <span className="tabular text-sm">
+              {formatMoney(a.lifetimeValue)}
+            </span>
             <span className="text-faint tabular text-xs">
               across {a.ordersPlaced} orders
             </span>
@@ -103,6 +113,7 @@ export function BuyersTable({
 
   return (
     <EntityTable
+      kind={kind}
       rows={accounts}
       columns={columns}
       entityLabel="accounts"
@@ -144,7 +155,6 @@ export function BuyersTable({
             <dd className="truncate">{a.mobile}</dd>
             <dd className="tabular">{a.ordersPlaced}</dd>
           </dl>
-
         </>
       )}
     />

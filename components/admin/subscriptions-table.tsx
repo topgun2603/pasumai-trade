@@ -2,14 +2,28 @@
 
 import { useState } from "react";
 
-import { BanknoteIcon, CheckIcon, ClockIcon, InfinityIcon, XIcon } from "lucide-react";
+import {
+  BanknoteIcon,
+  CheckIcon,
+  ClockIcon,
+  InfinityIcon,
+  XIcon,
+} from "lucide-react";
 
-import { DataTable, type Column, type FilterTab } from "@/components/data-table";
+import {
+  DataTable,
+  type Column,
+  type FilterTab,
+} from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/empty-state";
 import { describePlan } from "@/lib/domain/subscription";
-import { CHANNEL_LABELS, type Channel, type ReminderStage } from "@/lib/domain/subscription-reminder";
+import {
+  CHANNEL_LABELS,
+  type Channel,
+  type ReminderStage,
+} from "@/lib/domain/subscription-reminder";
 
 /**
  * Who is paying, on what, and when it runs out.
@@ -61,11 +75,31 @@ const STATUS_STYLE: Record<string, string> = {
  * is faint enough that the cards inside keep their own contrast.
  */
 const PLAN_TINTS = [
-  { panel: "bg-chart-1/5 border-chart-1/20", dot: "bg-chart-1", text: "text-chart-1" },
-  { panel: "bg-chart-2/5 border-chart-2/20", dot: "bg-chart-2", text: "text-chart-2" },
-  { panel: "bg-chart-3/5 border-chart-3/20", dot: "bg-chart-3", text: "text-chart-3" },
-  { panel: "bg-chart-4/5 border-chart-4/20", dot: "bg-chart-4", text: "text-chart-4" },
-  { panel: "bg-chart-5/5 border-chart-5/20", dot: "bg-chart-5", text: "text-chart-5" },
+  {
+    panel: "bg-chart-1/5 border-chart-1/20",
+    dot: "bg-chart-1",
+    text: "text-chart-1",
+  },
+  {
+    panel: "bg-chart-2/5 border-chart-2/20",
+    dot: "bg-chart-2",
+    text: "text-chart-2",
+  },
+  {
+    panel: "bg-chart-3/5 border-chart-3/20",
+    dot: "bg-chart-3",
+    text: "text-chart-3",
+  },
+  {
+    panel: "bg-chart-4/5 border-chart-4/20",
+    dot: "bg-chart-4",
+    text: "text-chart-4",
+  },
+  {
+    panel: "bg-chart-5/5 border-chart-5/20",
+    dot: "bg-chart-5",
+    text: "text-chart-5",
+  },
 ];
 
 export function SubscriptionsTable({ rows }: { rows: SubscriptionRow[] }) {
@@ -88,7 +122,9 @@ export function SubscriptionsTable({ rows }: { rows: SubscriptionRow[] }) {
       header: "Paid",
       sortValue: (row) => row.amountLabel ?? "",
       cell: (row) => (
-        <span className="text-muted-foreground tabular text-sm">{row.amountLabel ?? "—"}</span>
+        <span className="text-muted-foreground tabular text-sm">
+          {row.amountLabel ?? "—"}
+        </span>
       ),
     },
     {
@@ -166,12 +202,16 @@ export function SubscriptionsTable({ rows }: { rows: SubscriptionRow[] }) {
       value: "ending",
       label: "Ending soon",
       match: (row) =>
-        !row.lifetime && row.daysLeft !== null && row.daysLeft >= 0 && row.daysLeft <= 14,
+        !row.lifetime &&
+        row.daysLeft !== null &&
+        row.daysLeft >= 0 &&
+        row.daysLeft <= 14,
     },
     {
       value: "lapsed",
       label: "Lapsed",
-      match: (row) => !row.lifetime && row.daysLeft !== null && row.daysLeft < 0,
+      match: (row) =>
+        !row.lifetime && row.daysLeft !== null && row.daysLeft < 0,
     },
   ];
 
@@ -193,7 +233,11 @@ export function SubscriptionsTable({ rows }: { rows: SubscriptionRow[] }) {
       plan: describePlan(term),
       rows: rows.filter((row) => row.termLabel === term),
     }))
-    .sort((a, b) => b.rows.length - a.rows.length || a.plan.title.localeCompare(b.plan.title));
+    .sort(
+      (a, b) =>
+        b.rows.length - a.rows.length ||
+        a.plan.title.localeCompare(b.plan.title),
+    );
 
   const [openPlan, setOpenPlan] = useState(plans[0]?.term ?? "");
   const active = plans.find((plan) => plan.term === openPlan) ?? plans[0];
@@ -241,7 +285,10 @@ export function SubscriptionsTable({ rows }: { rows: SubscriptionRow[] }) {
                   : "border-transparent text-muted-foreground hover:bg-secondary",
               )}
             >
-              <span aria-hidden className={cn("size-2 rounded-full", tint.dot)} />
+              <span
+                aria-hidden
+                className={cn("size-2 rounded-full", tint.dot)}
+              />
               {plan.plan.title}
               {plan.plan.tier ? (
                 <span className="text-muted-foreground text-xs font-normal">
@@ -261,17 +308,29 @@ export function SubscriptionsTable({ rows }: { rows: SubscriptionRow[] }) {
         })}
       </div>
 
-      <section className={cn("flex flex-col gap-3 rounded-xl border p-4", activeTint.panel)}>
+      <section
+        className={cn(
+          "flex flex-col gap-3 rounded-xl border p-4",
+          activeTint.panel,
+        )}
+      >
         <div className="flex flex-wrap items-center gap-2">
-          <span aria-hidden className={cn("size-2 rounded-full", activeTint.dot)} />
+          <span
+            aria-hidden
+            className={cn("size-2 rounded-full", activeTint.dot)}
+          />
           <h3 className={cn("font-medium", activeTint.text)}>
             {active.plan.title}
             {active.plan.tier ? (
-              <span className="text-muted-foreground font-normal"> · {active.plan.tier}</span>
+              <span className="text-muted-foreground font-normal">
+                {" "}
+                · {active.plan.tier}
+              </span>
             ) : null}
           </h3>
           <span className="text-muted-foreground text-sm">
-            {active.rows.length} subscription{active.rows.length === 1 ? "" : "s"}
+            {active.rows.length} subscription
+            {active.rows.length === 1 ? "" : "s"}
           </span>
 
           {/* A plan nobody can buy any more, still being paid for. Worth saying
@@ -283,7 +342,10 @@ export function SubscriptionsTable({ rows }: { rows: SubscriptionRow[] }) {
           ) : null}
 
           {lapsing > 0 ? (
-            <Badge variant="outline" className="border-warning/40 bg-warning-soft text-warning">
+            <Badge
+              variant="outline"
+              className="border-warning/40 bg-warning-soft text-warning"
+            >
               <ClockIcon className="size-3" />
               {lapsing} ending or lapsed
             </Badge>
@@ -299,7 +361,9 @@ export function SubscriptionsTable({ rows }: { rows: SubscriptionRow[] }) {
           tabs={tabs}
           entityLabel="subscriptions"
           searchPlaceholder="Name or account id"
-          searchText={(row) => `${row.name} ${row.accountId} ${row.kind} ${row.status}`}
+          searchText={(row) =>
+            `${row.name} ${row.accountId} ${row.kind} ${row.status}`
+          }
           initialPageSize={10}
           empty={{
             icon: BanknoteIcon,
@@ -329,7 +393,10 @@ export function SubscriptionsTable({ rows }: { rows: SubscriptionRow[] }) {
             <div className="flex flex-col gap-1.5">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="font-medium">{row.name}</span>
-                <Badge variant="outline" className={STATUS_STYLE[row.status] ?? ""}>
+                <Badge
+                  variant="outline"
+                  className={STATUS_STYLE[row.status] ?? ""}
+                >
                   {row.status}
                 </Badge>
               </div>
@@ -338,7 +405,9 @@ export function SubscriptionsTable({ rows }: { rows: SubscriptionRow[] }) {
                 {row.amountLabel ? ` · ${row.amountLabel}` : ""}
               </p>
               <p className="text-faint text-xs">
-                {row.lifetime ? "Never runs out" : `Runs out ${row.renewsLabel}`}
+                {row.lifetime
+                  ? "Never runs out"
+                  : `Runs out ${row.renewsLabel}`}
               </p>
             </div>
           )}

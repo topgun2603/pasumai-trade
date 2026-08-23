@@ -2,11 +2,12 @@
 
 import { TruckIcon } from "lucide-react";
 
-import { ComplianceBadge, DocumentList, StatusBadge } from "@/components/admin/badges";
 import {
-  EntityPhoto,
-  MissingPhotoNote,
-} from "@/components/admin/entity-photo";
+  ComplianceBadge,
+  DocumentList,
+  StatusBadge,
+} from "@/components/admin/badges";
+import { EntityPhoto, MissingPhotoNote } from "@/components/admin/entity-photo";
 import { EntityTable, type Column } from "@/components/admin/entity-table";
 import type { ComplianceDocument, DriverAccount } from "@/lib/domain/admin";
 import { relativeTime } from "@/lib/format";
@@ -66,7 +67,9 @@ export function DriversTable({
                 <span className="truncate text-sm">
                   {agencyNames[r.agencyId] ?? "Unknown agency"}
                 </span>
-                <span className="text-faint font-mono text-xs">{r.agencyId}</span>
+                <span className="text-faint font-mono text-xs">
+                  {r.agencyId}
+                </span>
               </span>
             ),
           },
@@ -77,7 +80,9 @@ export function DriversTable({
       header: "District",
       className: "min-w-32",
       sortValue: (d) => d.district,
-      cell: (d) => <span className="text-muted-foreground text-sm">{d.district}</span>,
+      cell: (d) => (
+        <span className="text-muted-foreground text-sm">{d.district}</span>
+      ),
     },
     {
       key: "vehicle",
@@ -132,6 +137,7 @@ export function DriversTable({
 
   return (
     <EntityTable
+      kind="drivers"
       rows={drivers}
       columns={columns}
       entityLabel="drivers"

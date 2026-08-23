@@ -1,6 +1,10 @@
 "use client";
 
-import { ComplianceBadge, DocumentList, StatusBadge } from "@/components/admin/badges";
+import {
+  ComplianceBadge,
+  DocumentList,
+  StatusBadge,
+} from "@/components/admin/badges";
 import { EntityPhoto } from "@/components/admin/entity-photo";
 import { EntityTable, type Column } from "@/components/admin/entity-table";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +27,9 @@ export function AgenciesTable({
   rows,
   now,
 }: {
-  rows: Array<Agency & { workerCount: number; vehicleCount: number; driverCount: number }>;
+  rows: Array<
+    Agency & { workerCount: number; vehicleCount: number; driverCount: number }
+  >;
   now: number;
 }) {
   const columns: Column<(typeof rows)[number]>[] = [
@@ -34,7 +40,12 @@ export function AgenciesTable({
       sortValue: (a) => a.name,
       cell: (a) => (
         <div className="flex items-center gap-2.5">
-          <EntityPhoto name={a.name} seed={a.id} photoUrl={a.photoUrl} size="sm" />
+          <EntityPhoto
+            name={a.name}
+            seed={a.id}
+            photoUrl={a.photoUrl}
+            size="sm"
+          />
           <span className="flex min-w-0 flex-col leading-tight">
             <span className="truncate font-medium">{a.name}</span>
             <span className="text-faint truncate text-xs">
@@ -150,6 +161,7 @@ export function AgenciesTable({
 
   return (
     <EntityTable
+      kind="agencies"
       rows={rows}
       columns={columns}
       entityLabel="agencies"
@@ -180,7 +192,8 @@ export function AgenciesTable({
           </span>
 
           <span className="text-muted-foreground tabular text-sm">
-            {a.workerCount} crew · {a.vehicleCount} vehicles · {a.driverCount} drivers
+            {a.workerCount} crew · {a.vehicleCount} vehicles · {a.driverCount}{" "}
+            drivers
           </span>
 
           <DocumentList documents={a.documents} now={now} />

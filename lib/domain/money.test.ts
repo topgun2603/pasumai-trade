@@ -98,15 +98,21 @@ describe("forQuantity", () => {
 });
 
 describe("formatting", () => {
-  it("uses Indian digit grouping with no decimals", () => {
+  it("uses Indian digit grouping", () => {
     // 22,800 rupees — lakh grouping, not thousands.
     expect(formatMoney(rupees(22_800))).toBe("₹22,800");
     expect(formatMoney(rupees(2_000_000))).toBe("₹20,00,000");
   });
 
-  it("drops paise in display while keeping them in the value", () => {
+  it("shows paise rather than rounding them away", () => {
+    /*
+      This asserted `₹22,801` — it pinned the rounding as intended behaviour.
+      It was intended, for totals, and it was silently wrong for rates: ₹24.50
+      a kilo displayed as ₹25. Kept and inverted rather than deleted, so the
+      change is visible as a decision rather than a test that quietly vanished.
+    */
     const amount = money(2_280_050);
-    expect(formatMoney(amount)).toBe("₹22,801");
+    expect(formatMoney(amount)).toBe("₹22,800.50");
     expect(amount.minorUnits).toBe(2_280_050);
   });
 
@@ -116,5 +122,33 @@ describe("formatting", () => {
 
   it("formats zero", () => {
     expect(formatMoney(ZERO)).toBe("₹0");
+  });
+});
+
+describe("paise", () => {
+  /*
+    A rate of ₹24.50 a kilo was displayed as ₹25 — two per cent out on every
+    kilo of every load, and invisible, because a rounded figure looks
+    deliberate. Paise now show when there are any and stay hidden when there
+    are not, so a total is still read at a glance.
+  */
+  it("shows paise when the amount has them", () => {
+    expect(formatMoney({ minorUnits: 2450, currency: "INR" })).toBe("₹24.50");
+    expect(formatMoney({ minorUnits: 2499, currency: "INR" })).toBe("₹24.99");
+    expect(formatMoney({ minorUnits: 1, currency: "INR" })).toBe("₹0.01");
+  });
+
+  it("leaves a whole amount whole", () => {
+    // The reason paise were dropped in the first place: no trailing zeroes to
+    // scan past on the numbers that are already round.
+    expect(formatMoney({ minorUnits: 2500, currency: "INR" })).toBe("₹25");
+    expect(formatMoney({ minorUnits: 2_280_000, currency: "INR" })).toBe("₹22,800");
+    expect(formatMoney({ minorUnits: 0, currency: "INR" })).toBe("₹0");
+  });
+
+  it("never rounds a rate up to the next rupee", () => {
+    for (let paise = 2401; paise < 2500; paise += 1) {
+      expect(formatMoney({ minorUnits: paise, currency: "INR" })).not.toBe("₹25");
+    }
   });
 });

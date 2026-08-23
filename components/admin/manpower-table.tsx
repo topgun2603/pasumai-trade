@@ -2,7 +2,11 @@
 
 import { CircleSlashIcon } from "lucide-react";
 
-import { ComplianceBadge, DocumentList, StatusBadge } from "@/components/admin/badges";
+import {
+  ComplianceBadge,
+  DocumentList,
+  StatusBadge,
+} from "@/components/admin/badges";
 import { EntityPhoto } from "@/components/admin/entity-photo";
 import { EntityTable, type Column } from "@/components/admin/entity-table";
 import { Badge } from "@/components/ui/badge";
@@ -43,7 +47,12 @@ export function ManpowerTable({
       sortValue: (m) => m.name,
       cell: (m) => (
         <div className="flex items-center gap-2.5">
-          <EntityPhoto name={m.name} seed={m.id} photoUrl={m.photoUrl} size="sm" />
+          <EntityPhoto
+            name={m.name}
+            seed={m.id}
+            photoUrl={m.photoUrl}
+            size="sm"
+          />
           <span className="flex min-w-0 flex-col leading-tight">
             <span className="truncate font-medium">{m.name}</span>
             <span className="text-faint truncate text-xs">
@@ -66,7 +75,9 @@ export function ManpowerTable({
                 <span className="truncate text-sm">
                   {agencyNames[r.agencyId] ?? "Unknown agency"}
                 </span>
-                <span className="text-faint font-mono text-xs">{r.agencyId}</span>
+                <span className="text-faint font-mono text-xs">
+                  {r.agencyId}
+                </span>
               </span>
             ),
           },
@@ -107,7 +118,9 @@ export function ManpowerTable({
       cell: (m) => (
         <span className="tabular flex flex-col leading-tight text-right">
           <span className="font-medium">{formatMoney(money(m.rate))}</span>
-          <span className="text-faint text-xs">{ENGAGEMENT_LABELS[m.basis]}</span>
+          <span className="text-faint text-xs">
+            {ENGAGEMENT_LABELS[m.basis]}
+          </span>
         </span>
       ),
     },
@@ -177,6 +190,7 @@ export function ManpowerTable({
 
   return (
     <EntityTable
+      kind="workers"
       rows={crew}
       columns={columns}
       entityLabel="crew"

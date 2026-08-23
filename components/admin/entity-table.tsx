@@ -1,10 +1,16 @@
 "use client";
 
 import { MoreHorizontalIcon } from "lucide-react";
-import { type ReactNode } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 
-import { DataTable, type Column, type FilterTab } from "@/components/data-table";
+import {
+  DataTable,
+  type Column,
+  type FilterTab,
+} from "@/components/data-table";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,7 +19,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { VerificationStatus } from "@/lib/domain/admin";
+import {
+  MOVE_LABELS,
+  RECORDS,
+  type RecordKind,
+} from "@/lib/domain/admin-records";
 
 /**
  * A governed entity list.
@@ -31,10 +43,28 @@ interface HasStatus {
   readonly status: VerificationStatus;
 }
 
+/**
+ * What the menu offers, per status.
+ *
+ * The same shape as `canMove` in the domain, which is what the endpoint checks
+ * against — this decides what is *shown*, that decides what is *allowed*, and
+ * the server is the one that counts.
+ */
+const MOVES_FOR: Record<VerificationStatus, readonly VerificationStatus[]> = {
+  pending: ["verified", "rejected"],
+  verified: ["suspended"],
+  rejected: ["verified"],
+  suspended: ["verified"],
+};
+
 const VERIFICATION_TABS: readonly FilterTab<HasStatus>[] = [
   { value: "all", label: "All" },
   { value: "pending", label: "Pending", match: (r) => r.status === "pending" },
-  { value: "verified", label: "Verified", match: (r) => r.status === "verified" },
+  {
+    value: "verified",
+    label: "Verified",
+    match: (r) => r.status === "verified",
+  },
   {
     value: "blocked",
     label: "Stopped",
@@ -50,6 +80,7 @@ export function EntityTable<T extends HasStatus>({
   entityLabel,
   nameOf,
   card,
+  kind,
 }: {
   rows: readonly T[];
   columns: readonly Column<T>[];
@@ -58,6 +89,15 @@ export function EntityTable<T extends HasStatus>({
   entityLabel: string;
   nameOf: (row: T) => string;
   card?: (row: T) => ReactNode;
+  /**
+   * Which collection these rows live in.
+   *
+   * Required, and the reason the actions work at all: this table is shared by
+   * seven admin screens and the menu previously knew neither the record's id
+   * nor where it lived, so it could not have done anything even if it had
+   * tried. It called `toast.success` instead.
+   */
+  kind: RecordKind;
 }) {
   return (
     <DataTable
@@ -68,7 +108,14 @@ export function EntityTable<T extends HasStatus>({
       entityLabel={entityLabel}
       card={card}
       tabs={VERIFICATION_TABS as readonly FilterTab<T>[]}
-      rowActions={(row) => <RowActions name={nameOf(row)} status={row.status} />}
+      rowActions={(row) => (
+        <RowActions
+          kind={kind}
+          id={row.id}
+          name={nameOf(row)}
+          status={row.status}
+        />
+      )}
     />
   );
 }
@@ -79,60 +126,115 @@ export function EntityTable<T extends HasStatus>({
  * than approved — the wording matters because it is an audit trail.
  */
 function RowActions({
+  kind,
+  id,
   name,
   status,
 }: {
+  kind: RecordKind;
+  id: string;
   name: string;
   status: VerificationStatus;
 }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [confirming, setConfirming] = useState<VerificationStatus | null>(null);
+
+  const record = RECORDS[kind];
+
+  async function move(next: VerificationStatus) {
+    const response = await fetch(`/api/admin/records/${kind}/${id}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ status: next }),
+    });
+
+    const data = (await response.json().catch(() => ({}))) as {
+      error?: string;
+    };
+
+    if (!response.ok) {
+      toast.error(data.error ?? `Could not update ${name}.`);
+      return;
+    }
+
+    toast.success(`${name} ${next === "verified" ? "approved" : next}`);
+    /*
+      Refresh rather than patch the row in place. The rail badges, the tab
+      counts and the row all read the same status, and updating one of the
+      three is how a console starts disagreeing with itself.
+    */
+    startTransition(() => router.refresh());
+  }
+
+  const offered = MOVES_FOR[status] ?? [];
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label={`Actions for ${name}`}>
-          <MoreHorizontalIcon className="size-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => toast.info(`Opening ${name}`)}>
-          View details
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => toast.info(`Requested documents from ${name}`)}
-        >
-          Request documents
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-
-        {status === "pending" ? (
-          <>
-            <DropdownMenuItem onClick={() => toast.success(`${name} approved`)}>
-              Approve
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              variant="destructive"
-              onClick={() => toast.error(`${name} rejected`)}
-            >
-              Reject
-            </DropdownMenuItem>
-          </>
-        ) : null}
-
-        {status === "verified" ? (
-          <DropdownMenuItem
-            variant="destructive"
-            onClick={() => toast.warning(`${name} suspended`)}
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            disabled={pending}
+            aria-label={`Actions for ${name}`}
           >
-            Suspend
-          </DropdownMenuItem>
-        ) : null}
+            <MoreHorizontalIcon className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {/* Offered only where there is a page to open. An item that opens
+              nothing is the same defect in a smaller form. */}
+          {record.dossier ? (
+            <DropdownMenuItem asChild>
+              <Link href={`/admin/consoles/${record.dossier}/${id}`}>
+                View details
+              </Link>
+            </DropdownMenuItem>
+          ) : null}
 
-        {status === "suspended" || status === "rejected" ? (
-          <DropdownMenuItem onClick={() => toast.success(`${name} reinstated`)}>
-            Reinstate
+          {/* The queue is where a document is actually asked for, so this goes
+              there rather than pretending to send something from here. */}
+          <DropdownMenuItem asChild>
+            <Link href="/admin/kyc">Request documents</Link>
           </DropdownMenuItem>
-        ) : null}
-      </DropdownMenuContent>
-    </DropdownMenu>
+
+          {offered.length > 0 ? <DropdownMenuSeparator /> : null}
+
+          {offered.map((next) => (
+            <DropdownMenuItem
+              key={next}
+              variant={next === "verified" ? undefined : "destructive"}
+              // Approving is reversible by suspending; refusing and suspending
+              // are what somebody has to explain afterwards, so those ask.
+              onClick={() =>
+                next === "verified" ? void move(next) : setConfirming(next)
+              }
+            >
+              {MOVE_LABELS[next]}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <ConfirmDialog
+        open={confirming !== null}
+        onOpenChange={(open) => !open && setConfirming(null)}
+        title={`${confirming ? MOVE_LABELS[confirming] : ""} ${name}?`}
+        description={
+          confirming === "rejected"
+            ? `${name} will be told the application was refused. The record is kept, and they can be approved later if they send what is missing.`
+            : `${name} loses access immediately. The record is kept and can be reinstated.`
+        }
+        confirmLabel={confirming ? MOVE_LABELS[confirming] : ""}
+        destructive
+        onConfirm={() => {
+          const next = confirming;
+          setConfirming(null);
+          if (next) void move(next);
+        }}
+      />
+    </>
   );
 }
 

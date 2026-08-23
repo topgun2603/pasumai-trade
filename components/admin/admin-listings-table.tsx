@@ -2,7 +2,11 @@
 
 import { CloudOffIcon, ImageIcon } from "lucide-react";
 
-import { DataTable, type Column, type FilterTab } from "@/components/data-table";
+import {
+  DataTable,
+  type Column,
+  type FilterTab,
+} from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
 import { unitLabel } from "@/lib/domain/enums";
 import { formatMoney } from "@/lib/domain/money";
@@ -96,7 +100,9 @@ export function AdminListingsTable({
             {formatMoney(marketHigh(l.marketRate))}
           </span>
           <span
-            className={isUnofficial(l) ? "text-warning text-xs" : "text-faint text-xs"}
+            className={
+              isUnofficial(l) ? "text-warning text-xs" : "text-faint text-xs"
+            }
           >
             {l.marketRate.source} · {shortDate(l.marketRate.asOf)}
           </span>
@@ -181,7 +187,9 @@ export function AdminListingsTable({
                 {l.produce.emoji}
               </span>
               <span className="flex flex-col leading-tight">
-                <span className="font-medium">{produceName(l.produce, "en")}</span>
+                <span className="font-medium">
+                  {produceName(l.produce, "en")}
+                </span>
                 <span className="text-faint text-xs">
                   {l.id} · {relativeTime(l.createdAt, now)}
                 </span>
@@ -213,7 +221,9 @@ export function AdminListingsTable({
           </dl>
 
           <p
-            className={isUnofficial(l) ? "text-warning text-xs" : "text-faint text-xs"}
+            className={
+              isUnofficial(l) ? "text-warning text-xs" : "text-faint text-xs"
+            }
           >
             {l.marketRate.source} · {formatMoney(marketLow(l.marketRate))} –{" "}
             {formatMoney(marketHigh(l.marketRate))}

@@ -29,6 +29,27 @@ export type VerificationStatus =
   /** Was live, stopped by operations. Reversible. */
   | "suspended";
 
+const VERIFICATION_STATUSES = [
+  "pending",
+  "verified",
+  "rejected",
+  "suspended",
+] as const satisfies readonly VerificationStatus[];
+
+/**
+ * A status from outside, checked.
+ *
+ * The admin endpoint takes one from a request body, and an unchecked string
+ * there would write "approved" or "Verified" into the field every filter reads
+ * — a record that then matches no tab and appears nowhere.
+ */
+export function isVerificationStatus(value: unknown): value is VerificationStatus {
+  return (
+    typeof value === "string" &&
+    (VERIFICATION_STATUSES as readonly string[]).includes(value)
+  );
+}
+
 export const VERIFICATION_LABELS: Record<VerificationStatus, string> = {
   pending: "Pending review",
   verified: "Verified",

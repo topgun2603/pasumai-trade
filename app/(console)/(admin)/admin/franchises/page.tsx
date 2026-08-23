@@ -29,7 +29,11 @@ export default async function AdminFranchisesPage() {
         title="Franchises"
         description="Contracted franchises. They buy produce like any buyer, and unlike a buyer they onboard farmers and dispatch vehicles in their districts."
       />
-      <BuyersTable accounts={await readFranchiseAccounts()} now={now.getTime()} />
+      <BuyersTable
+        kind="franchises"
+        accounts={await readFranchiseAccounts()}
+        now={now.getTime()}
+      />
     </>
   );
 }

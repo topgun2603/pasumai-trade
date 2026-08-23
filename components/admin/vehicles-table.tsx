@@ -3,7 +3,11 @@
 import { SnowflakeIcon, TruckIcon } from "lucide-react";
 import Image from "next/image";
 
-import { ComplianceBadge, DocumentList, StatusBadge } from "@/components/admin/badges";
+import {
+  ComplianceBadge,
+  DocumentList,
+  StatusBadge,
+} from "@/components/admin/badges";
 import { EntityPhoto } from "@/components/admin/entity-photo";
 import { EntityTable, type Column } from "@/components/admin/entity-table";
 import { Badge } from "@/components/ui/badge";
@@ -70,7 +74,9 @@ export function VehiclesTable({
                 <span className="truncate text-sm">
                   {agencyNames[r.agencyId] ?? "Unknown agency"}
                 </span>
-                <span className="text-faint font-mono text-xs">{r.agencyId}</span>
+                <span className="text-faint font-mono text-xs">
+                  {r.agencyId}
+                </span>
               </span>
             ),
           },
@@ -100,7 +106,9 @@ export function VehiclesTable({
       header: "Capacity",
       className: "min-w-24 text-right tabular",
       sortValue: (v) => v.capacityKg,
-      cell: (v) => <span className="text-sm">{formatQuantity(v.capacityKg)} kg</span>,
+      cell: (v) => (
+        <span className="text-sm">{formatQuantity(v.capacityKg)} kg</span>
+      ),
     },
     {
       key: "owner",
@@ -157,6 +165,7 @@ export function VehiclesTable({
 
   return (
     <EntityTable
+      kind="vehicles"
       rows={fleet}
       columns={columns}
       entityLabel="vehicles"
@@ -218,7 +227,9 @@ export function VehiclesTable({
             <dt className="text-faint text-xs">Driver</dt>
             <dd className="tabular">{formatQuantity(v.capacityKg)} kg</dd>
             <dd className="truncate">
-              {v.assignedDriver ?? <span className="text-faint">Unassigned</span>}
+              {v.assignedDriver ?? (
+                <span className="text-faint">Unassigned</span>
+              )}
             </dd>
           </dl>
 
