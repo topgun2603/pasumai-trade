@@ -28,7 +28,6 @@ export function LiveBargains({
   initial,
   viewer,
   now,
-  validForMinutes,
   vocabulary,
   remaining,
   books,
@@ -40,7 +39,6 @@ export function LiveBargains({
   initial: Negotiation[];
   viewer: Party;
   now: number;
-  validForMinutes: number;
   /** What either side may say, read from Controls on the server. */
   vocabulary: readonly VocabularyEntry[];
   /**
@@ -120,7 +118,6 @@ export function LiveBargains({
         threads={threads}
         viewer={viewer}
         now={now}
-        validForMinutes={validForMinutes}
         vocabulary={vocabulary}
         remaining={remaining}
         books={books}

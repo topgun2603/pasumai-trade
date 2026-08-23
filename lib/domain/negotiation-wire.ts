@@ -21,7 +21,6 @@ export interface WireMessage {
   readonly text?: string;
   readonly locale?: string;
   readonly bands?: readonly GradeBand[];
-  readonly expiresAt?: string;
   readonly sentAt: string;
 }
 
@@ -65,7 +64,6 @@ export function toWire(negotiation: Negotiation): WireNegotiation {
       text: m.text,
       locale: m.locale,
       bands: m.bands,
-      expiresAt: m.expiresAt?.toISOString(),
       sentAt: m.sentAt.toISOString(),
     })),
   };
@@ -78,7 +76,6 @@ export function fromWire(wire: WireNegotiation): Negotiation {
     agreedAt: wire.agreedAt ? new Date(wire.agreedAt) : undefined,
     messages: wire.messages.map((m) => ({
       ...m,
-      expiresAt: m.expiresAt ? new Date(m.expiresAt) : undefined,
       sentAt: new Date(m.sentAt),
     })),
   };

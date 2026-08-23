@@ -58,7 +58,10 @@ export function shapeNegotiation(
     text: m.text ?? undefined,
     locale: m.locale ?? undefined,
     bands: toBands(m.bands),
-    expiresAt: toOptionalDate(m.expiresAt),
+    // Threads written before proposals stopped expiring still carry an
+    // `expiresAt`. It is left in Firestore and simply not read: rewriting live
+    // bargains to drop a field nothing consults would be a migration bought
+    // for nothing.
     sentAt: toDate(m.sentAt),
   }));
 

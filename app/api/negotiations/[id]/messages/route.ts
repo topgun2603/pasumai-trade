@@ -213,8 +213,6 @@ export async function POST(
     text: phrase?.text.en,
     locale: typeof body.locale === "string" ? body.locale : undefined,
     bands: kind === "proposal" ? readBands(body.bands, body.quantities) : undefined,
-    validForMinutes:
-      typeof body.validForMinutes === "number" ? body.validForMinutes : undefined,
     sentAt,
   };
 
@@ -245,7 +243,6 @@ export async function POST(
         text: m.text ?? null,
         locale: m.locale ?? null,
         bands: writeBands(m.bands),
-        expiresAt: m.expiresAt ?? null,
         sentAt: m.sentAt,
       })),
       updatedAt: sentAt,

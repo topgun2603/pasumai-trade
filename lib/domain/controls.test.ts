@@ -8,7 +8,7 @@ import {
   validate,
 } from "./controls";
 import { activeProduce, type Produce } from "./models";
-import { DEFAULT_POLICY } from "./policy";
+import { DEFAULT_POLICY, POLICY_FIELDS } from "./policy";
 
 /**
  * The controls validators are the only thing standing between a browser and
@@ -407,27 +407,25 @@ describe("validate settings", () => {
   });
 
   /*
-    Bug 10. The two-hour proposal window is now zero by default, meaning an
-    offer stands until somebody answers it.
+    Bug 10. Proposals no longer expire, and the setting that made them is gone
+    rather than defaulted off.
 
-    Zero has to be *savable*, not merely shippable: the field carried `min: 5`,
-    so Controls would have refused to store the value the platform ships with,
-    and the first sign of it would have been an operator unable to save the
-    policy page at all.
+    Pinned because the field is the kind of thing that gets added back by
+    somebody reading the old Firestore document and assuming a key was lost.
+    A proposal stands until it is taken or withdrawn; there is no window to
+    configure.
   */
-  it("saves a proposal window of zero, which is the default", () => {
-    expect(DEFAULT_POLICY.proposalValidityMinutes).toBe(0);
-
-    const result = validate("settings", { ...POLICY, proposalValidityMinutes: 0 });
-    expect(result.ok).toBe(true);
-    expect(result.data?.proposalValidityMinutes).toBe(0);
+  it("has no proposal expiry setting at all", () => {
+    expect("proposalValidityMinutes" in DEFAULT_POLICY).toBe(false);
+    expect(POLICY_FIELDS.map((f) => f.key)).not.toContain("proposalValidityMinutes");
   });
 
-  it("still takes a window back when operations wants one", () => {
-    // Defaulted off, not removed.
-    const result = validate("settings", { ...POLICY, proposalValidityMinutes: 90 });
+  it("ignores a stale expiry key rather than storing it", () => {
+    // Live projects still hold `proposalValidityMinutes: 120` in
+    // `settings/policy`. Saving the page must not carry it forward.
+    const result = validate("settings", { ...POLICY, proposalValidityMinutes: 120 });
     expect(result.ok).toBe(true);
-    expect(result.data?.proposalValidityMinutes).toBe(90);
+    expect(result.data).not.toHaveProperty("proposalValidityMinutes");
   });
 
   it("refuses a value outside its declared bounds", () => {

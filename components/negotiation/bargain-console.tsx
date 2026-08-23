@@ -16,7 +16,6 @@ import { formatRate, money } from "@/lib/domain/money";
 import type { GradeBand } from "@/lib/domain/models";
 import {
   gap,
-  hasExpired,
   lastProposalBy,
   pricedGrades,
   rateFor,
@@ -51,7 +50,6 @@ export function BargainConsole({
   threads,
   viewer,
   now,
-  validForMinutes,
   vocabulary,
   remaining,
   books,
@@ -62,7 +60,6 @@ export function BargainConsole({
   threads: Negotiation[];
   viewer: Party;
   now: number;
-  validForMinutes: number;
   /** What either side may say, from Controls. */
   vocabulary: readonly VocabularyEntry[];
   /**
@@ -133,7 +130,6 @@ export function BargainConsole({
     kind: "note" | "proposal" | "accept" | "withdraw";
     phraseId?: string;
     bands?: GradeBand[];
-    validForMinutes?: number;
   }): Promise<boolean> {
     if (!selected) return false;
 
@@ -287,7 +283,6 @@ export function BargainConsole({
               negotiation={selected}
               viewer={viewer}
               now={now}
-              validForMinutes={validForMinutes}
               vocabulary={vocabulary}
               remaining={remaining?.[selected.listingId]}
               book={books?.[selected.listingId]}
@@ -304,11 +299,13 @@ export function BargainConsole({
     <div className="grid flex-1 grid-cols-1 lg:grid-cols-[20rem_1fr]">      <ul className="max-h-[calc(100svh-4rem)] overflow-y-auto border-b lg:border-r lg:border-b-0">
         {threads.map((thread) => {
           const standing = standingProposal(thread);
+          // A price is waiting on this reader until they answer it. Nothing
+          // ages it out any more — a proposal stands until it is taken or
+          // withdrawn.
           const waiting =
             thread.status === "open" &&
             standing !== undefined &&
-            standing.author !== viewer &&
-            !hasExpired(standing, now);
+            standing.author !== viewer;
           const distance = gap(thread);
           const last = thread.messages.at(-1);
           const active = thread.id === selected?.id;
@@ -427,7 +424,6 @@ export function BargainConsole({
             negotiation={selected}
             viewer={viewer}
             now={now}
-            validForMinutes={validForMinutes}
             vocabulary={vocabulary}
             remaining={remaining?.[selected.listingId]}
             book={books?.[selected.listingId]}

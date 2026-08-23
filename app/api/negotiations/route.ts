@@ -229,7 +229,6 @@ export async function POST(request: Request) {
           ratePerUnit: b.ratePerUnit,
           quantity: b.quantity ?? null,
         })) ?? null,
-      expiresAt: m.expiresAt ?? null,
       sentAt: m.sentAt,
     })),
   });

@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { countdown, relativeTime } from "@/lib/format";
+import { relativeTime } from "@/lib/format";
 import { GRADES, GRADE_LABELS, QUANTITY_UNITS, type Grade } from "@/lib/domain/enums";
 import {
   phraseById,
@@ -34,7 +34,6 @@ import {
   canAccept,
   canPropose,
   gap,
-  hasExpired,
   isPartial,
   isSettled,
   lastProposalBy,
@@ -66,7 +65,7 @@ import { cn } from "@/lib/utils";
  *    same domain functions the server enforces, and when they refuse, the
  *    reason is shown rather than the button silently doing nothing.
  *
- * `now` is passed in from the server so the countdown renders identically on
+ * `now` is passed in from the server so relative times render identically on
  * both sides of hydration.
  */
 
@@ -106,17 +105,12 @@ function reading(
 function ProposalCard({
   negotiation,
   bands,
-  now,
-  expiresAt,
   tone,
 }: {
   negotiation: Negotiation;
   bands: readonly GradeBand[];
-  now: number;
-  expiresAt?: Date;
   tone: "mine" | "theirs" | "agreed";
 }) {
-  const expired = expiresAt ? now >= expiresAt.getTime() : false;
   const unitLabel = QUANTITY_UNITS[negotiation.unit].en;
   const partial = isPartial(negotiation, bands);
 
@@ -129,7 +123,6 @@ function ProposalCard({
           : tone === "mine"
             ? "border-primary/30 bg-background"
             : "border-border bg-background",
-        expired && "opacity-60",
       )}
     >
       <div className="flex items-center justify-between gap-2">
@@ -141,19 +134,6 @@ function ProposalCard({
             </Badge>
           ) : null}
         </span>
-        {expiresAt ? (
-          <Badge
-            variant="outline"
-            className={cn(
-              "tabular",
-              expired
-                ? "border-border text-muted-foreground"
-                : "border-warning/40 bg-warning-soft text-warning",
-            )}
-          >
-            {countdown(expiresAt, now)}
-          </Badge>
-        ) : null}
       </div>
 
       <ul className="flex flex-col gap-1">
@@ -253,8 +233,6 @@ function Bubble({
           <ProposalCard
             negotiation={negotiation}
             bands={message.bands}
-            now={now}
-            expiresAt={message.expiresAt}
             tone={mine ? "mine" : "theirs"}
           />
         ) : null}
@@ -277,7 +255,6 @@ export function BargainThread({
   negotiation,
   viewer,
   now,
-  validForMinutes,
   vocabulary,
   remaining,
   book,
@@ -287,8 +264,6 @@ export function BargainThread({
   negotiation: Negotiation;
   viewer: Party;
   now: number;
-  /** How long a proposal holds, from platform policy. */
-  validForMinutes: number;
   /**
    * Everything either side may say, as operations maintain it in Controls.
    *
@@ -319,7 +294,6 @@ export function BargainThread({
     kind: "note" | "proposal" | "accept" | "withdraw";
     phraseId?: string;
     bands?: GradeBand[];
-    validForMinutes?: number;
   }) => Promise<boolean>;
   pending: boolean;
 }) {
@@ -353,7 +327,7 @@ export function BargainThread({
   const [countering, setCountering] = useState(false);
 
   const settled = isSettled(negotiation);
-  const acceptCheck = canAccept(negotiation, viewer, now);
+  const acceptCheck = canAccept(negotiation, viewer);
 
   // The single grade on the table, where there is only one. Drives the accept
   // button's label, which used to name grade A whatever was actually offered.
@@ -401,19 +375,9 @@ export function BargainThread({
     sayable.find((p) => p.id === "not-interested") ??
     sayable.find((p) => p.topic === "closing");
 
-  // "2h", "45m", "1h 30m" — the policy figure, said the way it reads.
-  const hours = Math.floor(validForMinutes / 60);
-  const minutes = validForMinutes % 60;
-  const holdLabel =
-    hours === 0
-      ? `${minutes}m`
-      : minutes === 0
-        ? `${hours}h`
-        : `${hours}h ${minutes}m`;
-
   async function send(
     kind: "note" | "proposal" | "accept" | "withdraw",
-    extra: { phraseId?: string; bands?: GradeBand[]; validForMinutes?: number } = {},
+    extra: { phraseId?: string; bands?: GradeBand[] } = {},
   ) {
     const ok = await onSend({ kind, ...extra });
     if (ok) setCountering(false);
@@ -496,7 +460,6 @@ export function BargainThread({
             <ProposalCard
               negotiation={negotiation}
               bands={negotiation.agreedBands}
-              now={now}
               tone="agreed"
             />
           ) : (
@@ -536,7 +499,7 @@ export function BargainThread({
                 <ArrowRightIcon className="size-4" />
                 Counter
               </Button>
-              {!acceptCheck.allowed && hasExpired(theirs, now) ? (
+              {!acceptCheck.allowed ? (
                 <span className="text-warning text-xs">
                   {acceptCheck.refusal.message}
                 </span>
@@ -630,11 +593,11 @@ export function BargainThread({
                   Cancel
                 </Button>
                 <Button
-                  onClick={() => send("proposal", { bands: proposed, validForMinutes })}
+                  onClick={() => send("proposal", { bands: proposed })}
                   disabled={pending || !proposeCheck.allowed}
                 >
                   <SendIcon className="size-4" />
-                  Send rates · holds {holdLabel}
+                  Send rates
                 </Button>
               </div>
             </div>

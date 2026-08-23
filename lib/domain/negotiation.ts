@@ -111,8 +111,6 @@ export interface NegotiationMessage {
   readonly locale?: string;
   /** Best grade first. Present on `proposal` and on the `accept` that took it. */
   readonly bands?: readonly GradeBand[];
-  /** Proposals go stale — a price quoted this morning is not on tonight. */
-  readonly expiresAt?: Date;
   readonly sentAt: Date;
 }
 
@@ -164,14 +162,6 @@ export function lastProposalBy(
     if (message.kind === "proposal" && message.author === party) return message;
   }
   return undefined;
-}
-
-export function hasExpired(
-  message: NegotiationMessage | undefined,
-  now: number,
-): boolean {
-  if (!message?.expiresAt) return false;
-  return now >= message.expiresAt.getTime();
 }
 
 export function rateFor(
@@ -262,7 +252,6 @@ export type NegotiationRefusalCode =
   | "noChange"
   | "nothingToAccept"
   | "ownProposal"
-  | "proposalExpired"
   /** Wanted more of a grade than is left unsold. */
   | "exceedsAvailable"
   /** The lot sold between the offer being made and the farmer accepting it. */
@@ -444,12 +433,18 @@ export function canPropose(
 /**
  * May this party accept what is on the table?
  *
- * The proposal has to exist, be someone else's, and still be live.
+ * The proposal has to exist and be someone else's. It does not have to be
+ * recent: a price stands until it is taken or withdrawn, which is how the
+ * bargain works in the field. Whether the produce is still there is a separate
+ * question, asked at the accept in `applyMessage`.
+ *
+ * No clock, deliberately. This took a `now` for the expiry check and would
+ * otherwise still take one it never read, which reads as though something here
+ * still ages.
  */
 export function canAccept(
   negotiation: Negotiation,
   party: Party,
-  now: number,
 ): NegotiationResult {
   if (isSettled(negotiation)) {
     return refuse("settled", "This bargain is already closed.");
@@ -467,13 +462,6 @@ export function canAccept(
     return refuse(
       "ownProposal",
       "You cannot accept your own price. Wait for the other side.",
-    );
-  }
-
-  if (hasExpired(proposal, now)) {
-    return refuse(
-      "proposalExpired",
-      "That price has expired. Ask for it again, or send your own.",
     );
   }
 
@@ -504,7 +492,6 @@ export interface DraftMessage {
   readonly locale?: string;
   readonly bands?: readonly GradeBand[];
   /** Minutes the proposal stays live. Ignored on other kinds. */
-  readonly validForMinutes?: number;
   readonly sentAt: Date;
 }
 
@@ -525,8 +512,6 @@ export function applyMessage(
   /** What is still unsold on the listing. See `canPropose`. */
   remaining?: readonly { grade: Grade; quantity: number }[],
 ): Negotiation {
-  const now = draft.sentAt.getTime();
-
   switch (draft.kind) {
     case "proposal": {
       const bands = draft.bands ?? [];
@@ -541,20 +526,6 @@ export function applyMessage(
         text: draft.text,
         locale: draft.locale,
         bands,
-        /*
-          No expiry at zero, and that is the platform default.
-
-          It reads as a falsy check doing something by accident, so: zero
-          minutes means the proposal stands until somebody answers it, which is
-          what `hasExpired` gives an undefined `expiresAt`. Writing
-          `sentAt + 0` instead would expire every proposal the instant it was
-          sent — the same code, one `!= null` away, and nobody would see it
-          until a farmer could not accept anything.
-        */
-        expiresAt:
-          draft.validForMinutes && draft.validForMinutes > 0
-            ? new Date(now + draft.validForMinutes * 60_000)
-            : undefined,
         sentAt: draft.sentAt,
       };
 
@@ -562,7 +533,7 @@ export function applyMessage(
     }
 
     case "accept": {
-      const check = canAccept(negotiation, draft.author, now);
+      const check = canAccept(negotiation, draft.author);
       if (!check.allowed) throw new NegotiationError(check.refusal);
 
       const proposal = standingProposal(negotiation)!;

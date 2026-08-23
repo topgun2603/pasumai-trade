@@ -13,7 +13,6 @@ import {
   NegotiationError,
   partyFor,
   roundCount,
-  hasExpired,
   standingProposal,
   valueAt,
   type DraftMessage,
@@ -197,38 +196,29 @@ describe("moving backwards", () => {
 
 describe("accepting", () => {
   it("refuses when nothing has been put forward", () => {
-    const result = canAccept(fresh(), "buyer", at(5).getTime());
+    const result = canAccept(fresh(), "buyer");
     expect(result.allowed).toBe(false);
     if (!result.allowed) expect(result.refusal.code).toBe("nothingToAccept");
   });
 
   it("refuses a party accepting their own price", () => {
-    const result = canAccept(opened(), "buyer", at(5).getTime());
+    const result = canAccept(opened(), "buyer");
     expect(result.allowed).toBe(false);
     if (!result.allowed) expect(result.refusal.code).toBe("ownProposal");
   });
 
   it("lets the other side accept", () => {
-    expect(canAccept(opened(), "farmer", at(5).getTime()).allowed).toBe(true);
+    expect(canAccept(opened(), "farmer").allowed).toBe(true);
   });
 
-  it("refuses an expired proposal", () => {
-    let n = fresh();
-    n = send(n, "buyer", "proposal", {
-      bands: bands(2200, 1800, 1300),
-      validForMinutes: 30,
-    });
-    const proposal = standingProposal(n)!;
-    const after = proposal.expiresAt!.getTime() + 1;
-
-    const result = canAccept(n, "farmer", after);
-    expect(result.allowed).toBe(false);
-    if (!result.allowed) expect(result.refusal.code).toBe("proposalExpired");
-  });
-
-  it("treats a proposal with no expiry as always live", () => {
-    const distantFuture = T0.getTime() + 400 * 86_400_000;
-    expect(canAccept(opened(), "farmer", distantFuture).allowed).toBe(true);
+  /*
+    Bug 10. Proposals used to lapse after two hours, so a farmer reading a
+    message in the evening found the morning's price gone. They no longer
+    expire at all — a price stands until it is taken or withdrawn, and whether
+    the produce is still there is asked separately, at the accept.
+  */
+  it("accepts a proposal made a year ago", () => {
+    expect(canAccept(opened(), "farmer").allowed).toBe(true);
   });
 
   it("accepts the standing proposal, not the party's own earlier one", () => {
@@ -258,7 +248,7 @@ describe("settling", () => {
     const settled = send(opened(), "farmer", "accept");
 
     expect(canPropose(settled, "buyer", bands(2300, 1900, 1350)).allowed).toBe(false);
-    expect(canAccept(settled, "buyer", at(99).getTime()).allowed).toBe(false);
+    expect(canAccept(settled, "buyer").allowed).toBe(false);
     expect(() => send(settled, "buyer", "note", { text: "one more thing" })).toThrow(
       NegotiationError,
     );
@@ -267,7 +257,7 @@ describe("settling", () => {
   it("refuses everything once withdrawn", () => {
     const gone = send(opened(), "buyer", "withdraw", { text: "Sourced elsewhere" });
     expect(gone.status).toBe("withdrawn");
-    expect(canAccept(gone, "farmer", at(99).getTime()).allowed).toBe(false);
+    expect(canAccept(gone, "farmer").allowed).toBe(false);
     expect(() => send(gone, "buyer", "withdraw")).toThrow(NegotiationError);
   });
 
@@ -515,54 +505,5 @@ describe("accepting after the lot has moved", () => {
       guarding, so the check applies only when a remainder is supplied.
     */
     expect(send(offered(), "farmer", "accept").status).toBe("agreed");
-  });
-});
-
-describe("a proposal that does not lapse", () => {
-  /*
-    Bug 10. The two-hour window was reported as too short — a farmer reading a
-    message in the evening found the morning's price gone. Zero is now the
-    platform default and means the offer stands until somebody answers it.
-
-    Zero has to produce *no* expiry rather than an expiry of `sentAt`, and the
-    difference between those is one falsy check. These pin it, because the
-    version that expires everything instantly looks almost identical and would
-    not fail anything else in this file.
-  */
-  it("sets no expiry at zero minutes", () => {
-    const n = send(fresh(), "farmer", "proposal", {
-      bands: bands(2500, 2000, 1400),
-      validForMinutes: 0,
-    });
-    expect(standingProposal(n)!.expiresAt).toBeUndefined();
-  });
-
-  it("does not expire, however long anybody waits", () => {
-    const n = send(fresh(), "farmer", "proposal", {
-      bands: bands(2500, 2000, 1400),
-      validForMinutes: 0,
-    });
-    const proposal = standingProposal(n)!;
-
-    expect(hasExpired(proposal, proposal.sentAt.getTime())).toBe(false);
-    // A year later, which is well past any plausible `sentAt + 0` mistake.
-    expect(
-      hasExpired(proposal, proposal.sentAt.getTime() + 365 * 24 * 60 * 60_000),
-    ).toBe(false);
-  });
-
-  it("still expires when a window is actually set", () => {
-    // The setting is not being removed, only defaulted off. Operations can put
-    // a window back and it has to work.
-    const n = send(fresh(), "farmer", "proposal", {
-      bands: bands(2500, 2000, 1400),
-      validForMinutes: 30,
-    });
-    const proposal = standingProposal(n)!;
-    const sent = proposal.sentAt.getTime();
-
-    expect(proposal.expiresAt).toBeDefined();
-    expect(hasExpired(proposal, sent + 29 * 60_000)).toBe(false);
-    expect(hasExpired(proposal, sent + 31 * 60_000)).toBe(true);
   });
 });

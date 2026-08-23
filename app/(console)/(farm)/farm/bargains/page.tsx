@@ -10,13 +10,9 @@ import { requireFarmer } from "@/lib/auth/farm";
 import { readBargainVocabulary } from "@/lib/firebase/bargain-vocabulary-read";
 import { lotBooks } from "@/lib/domain/lot-book";
 import { isReady, nextStep } from "@/lib/domain/readiness";
-import { readControls } from "@/lib/firebase/controls-read";
 import { readNegotiations } from "@/lib/firebase/negotiations-read";
 import { readLots } from "@/lib/firebase/remaining-read";
-import { CATALOGUE } from "@/lib/mock/catalogue";
-import { GEOGRAPHY } from "@/lib/mock/locations";
 import { negotiations } from "@/lib/mock/negotiations";
-import { DOCUMENT_RULES, PACKS, PHRASES } from "@/lib/mock/reference";
 
 export const metadata: Metadata = { title: "Bargains · Farmer" };
 
@@ -47,18 +43,16 @@ export default async function FarmBargainsPage({
   ]);
   const clock = new Date().getTime();
 
-  const [{ threads }, { vocabulary }, controls] = await Promise.all([
+  /*
+    The controls catalogue used to be read here too, for one number: how long
+    a proposal held. Proposals no longer expire, so that round trip is gone —
+    which matters most on this page, read on a handset over a rural signal.
+  */
+  const [{ threads }, { vocabulary }] = await Promise.all([
     readNegotiations(negotiations(clock)),
     // What either side may say, as operations maintain it in Controls. Read on
     // the server so the picker and the write endpoint agree on the list.
     readBargainVocabulary(),
-    readControls({
-      crops: Object.values(CATALOGUE),
-      geo: GEOGRAPHY,
-      packs: PACKS,
-      phrases: PHRASES,
-      documentRules: DOCUMENT_RULES,
-    }),
   ]);
 
   // Scoped by the session's farmer id. There is no path that takes one from
@@ -145,8 +139,7 @@ export default async function FarmBargainsPage({
             filter="open"
             viewer="farmer"
             now={clock}
-            validForMinutes={controls.policy.proposalValidityMinutes}
-            vocabulary={vocabulary}
+                vocabulary={vocabulary}
             remaining={remaining}
             books={books}
             // Arriving from a listing opens that lot's bargain rather than

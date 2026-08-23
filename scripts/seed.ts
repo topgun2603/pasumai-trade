@@ -536,7 +536,6 @@ async function main() {
         text: m.text ?? null,
         locale: m.locale ?? null,
         bands: m.bands ?? null,
-        expiresAt: m.expiresAt ?? null,
         sentAt: m.sentAt,
       })),
     }),

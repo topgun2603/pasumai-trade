@@ -6,13 +6,9 @@ import { LiveBargains } from "@/components/negotiation/live-bargains";
 import { PageHeader } from "@/components/page-header";
 import { lotBooks } from "@/lib/domain/lot-book";
 import { readBargainVocabulary } from "@/lib/firebase/bargain-vocabulary-read";
-import { readControls } from "@/lib/firebase/controls-read";
 import { readNegotiations } from "@/lib/firebase/negotiations-read";
 import { readLots } from "@/lib/firebase/remaining-read";
-import { CATALOGUE } from "@/lib/mock/catalogue";
-import { GEOGRAPHY } from "@/lib/mock/locations";
 import { negotiations } from "@/lib/mock/negotiations";
-import { DOCUMENT_RULES, PACKS, PHRASES } from "@/lib/mock/reference";
 import { isBuyingRole } from "@/lib/auth/claims";
 import { verifySession } from "@/lib/auth/session";
 
@@ -25,19 +21,18 @@ export default async function BargainsPage() {
   // identically either side of hydration.
   const now = new Date().getTime();
 
-  // Both reads hit Firestore; neither depends on the other.
-  const [{ threads, live }, { vocabulary }, controls] = await Promise.all([
+  /*
+    Both reads hit Firestore; neither depends on the other.
+
+    There was a third — the whole controls catalogue — read for one number,
+    the proposal expiry window. Proposals no longer expire, so the round trip
+    went with it.
+  */
+  const [{ threads, live }, { vocabulary }] = await Promise.all([
     readNegotiations(negotiations(now)),
     // The same list the farmer's side gets and the same list the endpoint
     // checks against — see lib/firebase/bargain-vocabulary-read.ts.
     readBargainVocabulary(),
-    readControls({
-      crops: Object.values(CATALOGUE),
-      geo: GEOGRAPHY,
-      packs: PACKS,
-      phrases: PHRASES,
-      documentRules: DOCUMENT_RULES,
-    }),
   ]);
 
   // What is unsold on each lot under negotiation, so a buyer bidding for part
@@ -115,7 +110,6 @@ export default async function BargainsPage() {
         initial={visible}
         viewer="buyer"
         now={now}
-        validForMinutes={controls.policy.proposalValidityMinutes}
         vocabulary={vocabulary}
         remaining={remaining}
         books={books}

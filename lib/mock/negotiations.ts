@@ -31,7 +31,6 @@ interface Line {
   bands?: GradeBand[];
   /** Minutes before now. */
   ago: number;
-  validForMinutes?: number;
 }
 
 function thread(
@@ -48,9 +47,6 @@ function thread(
       text: line.text,
       locale: line.locale,
       bands: line.bands,
-      expiresAt: line.validForMinutes
-        ? new Date(sentAt.getTime() + line.validForMinutes * MINUTE)
-        : undefined,
       sentAt,
     };
   });
@@ -144,7 +140,6 @@ export function negotiations(now: number = Date.now()): Negotiation[] {
           locale: "en",
           bands: bands(3300, 2750, 2000),
           ago: 22,
-          validForMinutes: 120,
         },
       ],
       now,
@@ -180,7 +175,6 @@ export function negotiations(now: number = Date.now()): Negotiation[] {
           locale: "en",
           bands: bands(7400, 6300, 4800),
           ago: 88,
-          validForMinutes: 97,
         },
       ],
       now,
