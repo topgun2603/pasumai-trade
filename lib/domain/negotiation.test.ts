@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import type { Grade } from "./enums";
 import type { GradeBand } from "./models";
 import {
   applyMessage,
@@ -60,15 +61,14 @@ function send(
   author: Party,
   kind: DraftMessage["kind"],
   extra: Partial<DraftMessage> = {},
+  remaining?: readonly { grade: Grade; quantity: number }[],
 ): Negotiation {
   seq += 1;
-  return applyMessage(negotiation, {
-    id: `M-${seq}`,
-    author,
-    kind,
-    sentAt: at(seq),
-    ...extra,
-  });
+  return applyMessage(
+    negotiation,
+    { id: `M-${seq}`, author, kind, sentAt: at(seq), ...extra },
+    remaining,
+  );
 }
 
 /** The usual opening: farmer asks, buyer counters lower. */
@@ -467,5 +467,52 @@ describe("partial quantities", () => {
   it("prices a band with no quantity as the whole lot, as it always did", () => {
     const bid: GradeBand[] = [{ grade: "a", ratePerUnit: 2200 }];
     expect(valueAt(fresh(), bid, "a").minorUnits).toBe(800 * 2200);
+  });
+});
+
+describe("accepting after the lot has moved", () => {
+  /*
+    A bid is checked against what remains when it is made. Accepting was not,
+    so a farmer with a bargain open could agree a price for produce another
+    buyer had already taken — a binding commitment against stock that is gone.
+    The check belongs at the accept, because that is the moment something
+    becomes owed.
+  */
+  function offered() {
+    let n = fresh();
+    n = send(n, "buyer", "proposal", {
+      bands: [{ grade: "a", ratePerUnit: 2200, quantity: 500 }],
+    });
+    return n;
+  }
+
+  it("refuses an accept when the whole lot has gone", () => {
+    expect(() =>
+      send(offered(), "farmer", "accept", {}, [{ grade: "a", quantity: 0 }]),
+    ).toThrow(/sold since the offer was made/);
+  });
+
+  it("refuses an accept when only part of the grade is left", () => {
+    // 500 kg was offered on; 200 kg remains. Half a deal is not the deal that
+    // was agreed, so it is refused rather than silently reduced.
+    expect(() =>
+      send(offered(), "farmer", "accept", {}, [{ grade: "a", quantity: 200 }]),
+    ).toThrow(/Only part of this is still available/);
+  });
+
+  it("allows the accept when the stock is still there", () => {
+    const agreed = send(offered(), "farmer", "accept", {}, [
+      { grade: "a", quantity: 500 },
+    ]);
+    expect(agreed.status).toBe("agreed");
+  });
+
+  it("does not refuse when the caller has nothing to compare against", () => {
+    /*
+      `applyMessage` is called from paths with no listing to hand. Refusing
+      every accept for want of an argument would be worse than the bug it is
+      guarding, so the check applies only when a remainder is supplied.
+    */
+    expect(send(offered(), "farmer", "accept").status).toBe("agreed");
   });
 });

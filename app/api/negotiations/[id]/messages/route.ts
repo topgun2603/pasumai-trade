@@ -189,8 +189,18 @@ export async function POST(
   // rather than trusted from the client: the whole reason quantities are
   // checked is that another buyer may have taken the rest while this screen was
   // open.
+  /*
+    Read for an accept as well as a proposal.
+
+    It used to be proposals only, which checked a bid against the lot when it
+    was made and never again — so a farmer could accept an offer for produce
+    another buyer had taken in the meantime, and the platform would record a
+    binding agreement against stock that was gone.
+  */
   const remaining =
-    kind === "proposal" ? await readRemaining(negotiation.listingId) : undefined;
+    kind === "proposal" || kind === "accept"
+      ? await readRemaining(negotiation.listingId)
+      : undefined;
 
   const draft: DraftMessage = {
     // Sequential rather than random: the id says where in the thread it sits,

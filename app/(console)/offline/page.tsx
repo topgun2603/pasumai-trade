@@ -41,8 +41,10 @@ export default function OfflinePage() {
 
       {/*
         A plain reload, not a router refresh. There is no React running that
-        could route anywhere, and the point is to try the network again.
+        could route anywhere, and the point is to try the network again — a
+        client-side Link would navigate within the same dead shell.
       */}
+      {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- see above */}
       <a
         href="/farm"
         className="border-border hover:bg-secondary rounded-lg border px-4 py-2 text-sm transition-colors"

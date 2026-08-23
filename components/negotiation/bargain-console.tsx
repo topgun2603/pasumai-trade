@@ -171,10 +171,11 @@ export function BargainConsole({
       });
 
       if (!response.ok) {
-        const detail = await response
+        const body = await response
           .json()
-          .then((d: { error?: string }) => d.error)
-          .catch(() => null);
+          .then((d: { error?: string; code?: string }) => d)
+          .catch(() => ({}) as { error?: string; code?: string });
+        const detail = body.error ?? null;
 
         // 402 is the one refusal the person can clear themselves, so it gets a
         // way out rather than an apology. The button that reached here was
@@ -187,6 +188,23 @@ export function BargainConsole({
               label: "See plans",
               onClick: () => router.push("/subscription"),
             },
+          });
+          return false;
+        }
+
+        /*
+          The lot moved while this screen sat open.
+
+          "Not sent" would be the wrong thing to say: nothing is wrong with the
+          message, the produce is simply no longer there. And the screen is now
+          lying — it is still showing an offer with an Accept button against
+          stock another buyer has taken — so it is refreshed before the toast,
+          which is what makes the stale button go away.
+        */
+        if (body.code === "soldOut") {
+          router.refresh();
+          toast.error("This lot has moved", {
+            description: detail ?? "Someone else has taken it.",
           });
           return false;
         }

@@ -265,6 +265,8 @@ export type NegotiationRefusalCode =
   | "proposalExpired"
   /** Wanted more of a grade than is left unsold. */
   | "exceedsAvailable"
+  /** The lot sold between the offer being made and the farmer accepting it. */
+  | "soldOut"
   /** A quantity that is not a whole number of units, or is zero. */
   | "badQuantity";
 
@@ -553,6 +555,53 @@ export function applyMessage(
       if (!check.allowed) throw new NegotiationError(check.refusal);
 
       const proposal = standingProposal(negotiation)!;
+
+      /*
+        The lot may have gone while this screen was open.
+
+        A bid is checked against what remains when it is *made*; accepting was
+        not, so a farmer with a bargain open could agree a price for produce
+        another buyer had already taken — a binding commitment against stock
+        that is not there. The check has to happen at the accept, because that
+        is the moment something becomes owed.
+
+        Only when the caller supplies the remainder. `applyMessage` is used by
+        tests and by the offline path with nothing to compare against, and
+        refusing every accept for want of an argument would be worse than the
+        bug.
+      */
+      if (remaining) {
+        const left = (grade: Grade) =>
+          remaining.find((r) => r.grade === grade)?.quantity ?? 0;
+
+        const short = (proposal.bands ?? []).filter(
+          (band) => (band.quantity ?? 0) > left(band.grade),
+        );
+
+        if (short.length > 0) {
+          /*
+            Gone entirely, or merely not enough — two different sentences,
+            because they call for two different things from the farmer.
+
+            The test for "gone" is that nothing at all remains of what was
+            offered on, not that every band is short: an offer naming one grade
+            has every band short the moment that grade runs low, and telling
+            somebody the lot has sold when 200 of 500 kilos are sitting there
+            would be wrong.
+          */
+          const nothingLeft = short.every((band) => left(band.grade) === 0);
+
+          throw new NegotiationError({
+            code: "soldOut",
+            message: nothingLeft
+              ? "This lot has sold since the offer was made. Nothing is left to agree."
+              : `Only part of this is still available — grade ${short
+                  .map((b) => b.grade.toUpperCase())
+                  .join(", ")} has less left than was offered on. Ask for a fresh offer.`,
+          });
+        }
+      }
+
       const message: NegotiationMessage = {
         id: draft.id,
         author: draft.author,
