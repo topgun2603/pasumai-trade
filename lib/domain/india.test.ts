@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { INDIAN_STATES, districtsOf, isDistrictOf, stateById } from "./india";
+import {
+  INDIAN_STATES,
+  districtsOf,
+  isAmbiguousDistrict,
+  isDistrictOf,
+  stateById,
+  stateNameForDistrict,
+} from "./india";
 import { GEOGRAPHY } from "@/lib/mock/locations";
 
 /**
@@ -99,5 +106,33 @@ describe("India geography", () => {
     expect(stateById("atlantis")).toBeUndefined();
     expect(districtsOf("atlantis")).toEqual([]);
     expect(isDistrictOf("atlantis", "Erode")).toBe(false);
+  });
+});
+
+describe("finding a state from a district", () => {
+  it("names the state for a district only one state has", () => {
+    expect(stateNameForDistrict("Erode")).toBe("Tamil Nadu");
+    expect(stateNameForDistrict("Tiruppur")).toBe("Tamil Nadu");
+  });
+
+  it("ignores case and stray spacing", () => {
+    expect(stateNameForDistrict("  erode ")).toBe("Tamil Nadu");
+  });
+
+  /*
+    The case worth having the function for. Showing a farmer in Bihar the
+    mandi rates from Maharashtra would be a wrong number presented as a right
+    one; falling back to a default is a mild loss by comparison.
+  */
+  it("refuses a district name two states share", () => {
+    expect(stateNameForDistrict("Aurangabad")).toBeUndefined();
+    expect(isAmbiguousDistrict("Aurangabad")).toBe(true);
+  });
+
+  it("says nothing for a district that does not exist", () => {
+    expect(stateNameForDistrict("Nowhere")).toBeUndefined();
+    expect(stateNameForDistrict("")).toBeUndefined();
+    // Absent is not the same as ambiguous.
+    expect(isAmbiguousDistrict("Nowhere")).toBe(false);
   });
 });

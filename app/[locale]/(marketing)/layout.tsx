@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { ChatWidget } from "@/components/marketing/chat-widget";
 import { SiteFooter } from "@/components/marketing/site-footer";
+import { TickerSlot } from "@/components/market/ticker-slot";
 import { LoginStrip } from "@/components/marketing/login-strip";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { getDictionary, isLocale } from "@/lib/i18n";
@@ -31,6 +32,11 @@ export default async function MarketingLayout({
       <SiteHeader locale={locale} t={t}>
         <LoginStrip locale={locale} t={t} />
       </SiteHeader>
+
+      {/* Directly under the header, above everything else on every marketing
+        page. Agmarknet's figures, not ours — see components/market/mandi-ticker. */}
+      <TickerSlot locale={locale} />
+
       <main className="flex-1">{children}</main>
       <SiteFooter locale={locale} t={t} />
       {/*

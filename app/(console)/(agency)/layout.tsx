@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
 
+import { TickerSlot } from "@/components/market/ticker-slot";
 import { GateProvider } from "@/components/console/gate-dialog";
 import { AgencyNav } from "@/components/agency/agency-nav";
 import { ConsoleTour } from "@/components/console/tour";
+import { stateNameForDistrict } from "@/lib/domain/india";
 import { requireAgency } from "@/lib/auth/agency";
 import { verifySession } from "@/lib/auth/session";
 import { needsReview } from "@/lib/domain/admin";
@@ -76,6 +78,7 @@ export default async function AgencyLayout({
         pending={pending}
       />
       <div className="flex min-w-0 flex-1 flex-col">
+        <TickerSlot state={stateNameForDistrict(agency.district)} />
         <GateProvider console="agency">{children}</GateProvider>
       </div>
       {/* First run only. See `lib/firebase/tour-read.ts` for where the flag lives. */}

@@ -974,3 +974,44 @@ export function isDistrictOf(stateId: string, district: string): boolean {
   const wanted = district.trim().toLowerCase();
   return districtsOf(stateId).some((name) => name.toLowerCase() === wanted);
 }
+
+/**
+ * Which state a district is in, where the answer is not ambiguous.
+ *
+ * District names are not unique across India — there is an Aurangabad in
+ * Maharashtra and another in Bihar, a Bilaspur in Himachal and another in
+ * Chhattisgarh, a Hamirpur in two states. So this returns `undefined` for a
+ * name that appears more than once rather than picking whichever state comes
+ * first in the list.
+ *
+ * That matters here because the caller is choosing which state's mandi rates
+ * to show somebody. Falling back to a default is a mild loss; confidently
+ * showing a farmer in Bihar the rates from Maharashtra is a wrong number
+ * presented as a right one.
+ *
+ * Built once at module load — this is a linear scan over seven hundred
+ * districts and the ticker asks on every request.
+ */
+const STATE_BY_DISTRICT: ReadonlyMap<string, string | null> = (() => {
+  const found = new Map<string, string | null>();
+
+  for (const state of INDIAN_STATES) {
+    for (const district of state.districts) {
+      const key = district.trim().toLowerCase();
+      // `null` marks a name claimed by more than one state.
+      found.set(key, found.has(key) ? null : state.name);
+    }
+  }
+
+  return found;
+})();
+
+export function stateNameForDistrict(district: string): string | undefined {
+  if (!district) return undefined;
+  return STATE_BY_DISTRICT.get(district.trim().toLowerCase()) ?? undefined;
+}
+
+/** Districts whose name is used by more than one state. */
+export function isAmbiguousDistrict(district: string): boolean {
+  return STATE_BY_DISTRICT.get(district.trim().toLowerCase()) === null;
+}

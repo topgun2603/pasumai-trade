@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { AdminNav } from "@/components/admin/admin-nav";
+import { TickerSlot } from "@/components/market/ticker-slot";
 import { ConsoleTopBar } from "@/components/console/top-bar";
 import { CONSOLES, CONSOLE_KINDS } from "@/lib/domain/console-kinds";
 import { requireConsole } from "@/lib/auth/require";
@@ -125,6 +126,9 @@ export default async function AdminLayout({
                 }))
           }
         />
+        {/* Operations watch every district, so this is the platform's default
+          state rather than one of theirs — they have no district of their own. */}
+        <TickerSlot />
         {children}
       </div>
     </div>

@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 
+import { TickerSlot } from "@/components/market/ticker-slot";
 import { GateProvider } from "@/components/console/gate-dialog";
 import { ServiceWorker } from "@/components/console/service-worker";
+import { stateNameForDistrict } from "@/lib/domain/india";
 import { ConsoleTour } from "@/components/console/tour";
 import { FarmNav } from "@/components/farm/farm-nav";
 import { requireFarmer } from "@/lib/auth/farm";
@@ -72,6 +74,17 @@ export default async function FarmLayout({
         t={t}
       />
       <div className="flex min-w-0 flex-1 flex-col pb-20 md:pb-0">
+        {/*
+          Scoped to wherever this farmer is, and read in their language. The
+          district is the only geography on the account, so the state comes
+          from it — and where the district name belongs to two states, the
+          default is shown rather than a confident guess.
+        */}
+        <TickerSlot
+          state={stateNameForDistrict(farmer.district)}
+          locale={locale}
+          label={t.farm.nav.prices}
+        />
         <GateProvider console="farm">{children}</GateProvider>
       </div>
       {/* First run only. `readSeenTours` is one extra document read on a

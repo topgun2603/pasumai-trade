@@ -277,3 +277,50 @@
     opacity: 1;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   The mandi ticker.
+
+   Two copies of the same list slide left by exactly half the track's width, so
+   the moment the first copy has passed the animation restarts with the second
+   copy where the first began — a seam nobody can see, without measuring
+   anything in JavaScript.
+
+   Paused on hover and on focus. A price scrolling past is unreadable if you
+   are trying to read one, and a keyboard user tabbing into a moving link has
+   no way to stop it otherwise.
+
+   `prefers-reduced-motion` stops it dead rather than slowing it: a horizontal
+   crawl across every page is exactly the motion somebody turns that setting
+   off to avoid. The list is still there and still scrollable by hand.
+--------------------------------------------------------------------------- */
+@keyframes pasumai-ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.pasumai-ticker-track {
+  animation: pasumai-ticker var(--ticker-duration, 60s) linear infinite;
+  will-change: transform;
+}
+
+.pasumai-ticker:hover .pasumai-ticker-track,
+.pasumai-ticker:focus-within .pasumai-ticker-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pasumai-ticker-track {
+    animation: none;
+    /* Half the track is the duplicate, which is decoration once nothing
+       moves — hiding it stops a screen reader meeting every price twice. */
+    transform: none;
+  }
+  .pasumai-ticker-track > [data-ticker-copy="true"] {
+    display: none;
+  }
+}

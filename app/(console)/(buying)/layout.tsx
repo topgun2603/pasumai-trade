@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { TickerSlot } from "@/components/market/ticker-slot";
 import { GateProvider } from "@/components/console/gate-dialog";
 import { ConsoleNav } from "@/components/franchise/console-nav";
 import { BUYING_ROLES } from "@/lib/auth/claims";
@@ -68,6 +69,7 @@ export default async function BuyingLayout({
         <ConsoleTopBar
           session={{ email: session.email, role: session.claims.role }}
         />
+        <TickerSlot />
         <GateProvider console="buying">{children}</GateProvider>
       </div>
       {/* First run only. `readSeenTours` is one extra document read on a
