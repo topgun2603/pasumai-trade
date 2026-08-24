@@ -36,7 +36,6 @@ const BUYING_LINKS = [
   // a marketplace.
   { href: "/listings", label: "Marketplace", icon: StoreIcon },
   { href: "/bargains", label: "Bargains", icon: HandshakeIcon },
-  { href: "/notifications", label: "Notifications", icon: BellIcon },
   /*
     Orders stays here, against the letter of Bug 21.
 
@@ -47,11 +46,16 @@ const BUYING_LINKS = [
   */
   { href: "/orders", label: "Orders", icon: PackageIcon },
   /*
-    Bug 17: Verification and Subscription have left the rail. They live under
-    Account now, which is where the rest of what the platform holds about
-    somebody already is — and it sits last, per Bug 16.
+    Profile second from the bottom, notifications at the very bottom — the same
+    two positions on every console, so somebody moving between roles finds them
+    without looking.
+
+    Verification and Subscription live under Profile rather than on the rail,
+    which is where the rest of what the platform holds about somebody already
+    is.
   */
-  { href: "/account", label: "Account", icon: UserRoundIcon },
+  { href: "/account", label: "My Profile", icon: UserRoundIcon },
+  { href: "/notifications", label: "Notifications", icon: BellIcon },
 ];
 
 /**
@@ -256,7 +260,7 @@ export function ConsoleNav({
           through, which is the sort of thing that makes cross-role support
           calls harder than they need to be.
         */}
-        <SessionFooter email={session.email} role={session.role} />
+        <SessionFooter />
       </nav>
     </>
   );

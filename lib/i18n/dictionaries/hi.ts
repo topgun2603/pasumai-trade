@@ -303,7 +303,7 @@ export const hi: Dictionary = {
       produce: "मेरी उपज",
       bargains: "मोलभाव",
       notifications: "सूचनाएँ",
-      account: "खाता",
+      account: "मेरी प्रोफ़ाइल",
       logistics: "परिवहन",
       prices: "दाम",
       verification: "जाँच",

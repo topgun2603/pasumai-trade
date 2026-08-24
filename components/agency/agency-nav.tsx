@@ -25,7 +25,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
-import type { Role } from "@/lib/auth/claims";
 import type { AgencyService } from "@/lib/domain/admin";
 import { BrandMark } from "@/components/marketing/brand-mark";
 import { MobileNav } from "@/components/console/mobile-nav";
@@ -87,9 +86,11 @@ const LINKS: Array<{
   /*
     Bug 25 and Bug 17: verification, subscription and the agency record itself
     stop being three rail items and become one Profile area holding all three.
-    Last in the rail, per Bug 16.
+
+    "My Profile", the same words as every other console — an agency owner and a
+    farmer should not have to learn two names for the same place.
   */
-  { href: "/agency/profile", label: "Profile", icon: BuildingIcon },
+  { href: "/agency/profile", label: "My Profile", icon: BuildingIcon },
 ];
 
 function ThemeToggle() {
@@ -122,15 +123,11 @@ function ThemeToggle() {
 export function AgencyNav({
   agency,
   service,
-  role,
-  session,
   pending,
 }: {
   agency: { name: string; id: string };
   /** What this login is for. Transport sees fleet and drivers; manpower sees crew. */
   service: AgencyService;
-  role: Role;
-  session: { email?: string };
   pending: Record<string, number>;
 }) {
   const pathname = usePathname();
@@ -211,7 +208,7 @@ export function AgencyNav({
             <span className="text-faint font-mono text-xs">{agency.id}</span>
           </div>
           <Separator />
-          <SessionFooter email={session.email} role={role} />
+          <SessionFooter />
         </div>
       </nav>
     </>

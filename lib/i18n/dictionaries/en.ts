@@ -318,7 +318,7 @@ export const en = {
       produce: "My produce",
       bargains: "Bargains",
       notifications: "Notifications",
-      account: "Account",
+      account: "My Profile",
       logistics: "Logistics",
       prices: "Prices",
       verification: "Verification",

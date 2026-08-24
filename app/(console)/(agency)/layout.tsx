@@ -31,7 +31,7 @@ export default async function AgencyLayout({
 }: {
   children: ReactNode;
 }) {
-  const { agency, email, service } = await requireAgency();
+  const { agency, service } = await requireAgency();
   const session = await verifySession();
 
   const mine = <T extends { agencyId: string }>(rows: T[]) =>
@@ -73,8 +73,6 @@ export default async function AgencyLayout({
       <AgencyNav
         agency={{ name: agency.name, id: agency.id }}
         service={service}
-        role={session!.claims.role}
-        session={{ email }}
         pending={pending}
       />
       <div className="flex min-w-0 flex-1 flex-col">

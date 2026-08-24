@@ -304,7 +304,7 @@ export const kn: Dictionary = {
       produce: "ನನ್ನ ಬೆಳೆ",
       bargains: "ಚೌಕಾಸಿಗಳು",
       notifications: "ಅಧಿಸೂಚನೆಗಳು",
-      account: "ಖಾತೆ",
+      account: "ನನ್ನ ಪ್ರೊಫೈಲ್",
       logistics: "ಸಾಗಾಣಿಕೆ",
       prices: "ಬೆಲೆಗಳು",
       verification: "ಪರಿಶೀಲನೆ",

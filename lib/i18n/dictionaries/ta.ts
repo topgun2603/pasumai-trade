@@ -313,7 +313,7 @@ export const ta: Dictionary = {
       produce: "என் விளைபொருள்",
       bargains: "பேரங்கள்",
       notifications: "அறிவிப்புகள்",
-      account: "கணக்கு",
+      account: "என் சுயவிவரம்",
       logistics: "போக்குவரத்து",
       prices: "விலைகள்",
       verification: "சரிபார்ப்பு",

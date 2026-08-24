@@ -304,7 +304,7 @@ export const te: Dictionary = {
       produce: "నా పంట",
       bargains: "బేరాలు",
       notifications: "నోటిఫికేషన్లు",
-      account: "ఖాతా",
+      account: "నా ప్రొఫైల్",
       logistics: "రవాణా",
       prices: "ధరలు",
       verification: "ధృవీకరణ",

@@ -5,7 +5,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { ROLE_LABELS, type Role } from "@/lib/auth/claims";
 import { signOut } from "@/lib/auth/sign-in";
 
 /**
@@ -16,12 +15,8 @@ import { signOut } from "@/lib/auth/sign-in";
  * more than a greeting.
  */
 export function SessionFooter({
-  email,
-  role,
   labels,
 }: {
-  email?: string;
-  role: Role;
   /**
    * Optional, and English when absent.
    *
@@ -50,15 +45,19 @@ export function SessionFooter({
   }
 
   return (
+    /*
+      Sign out, and nothing above it.
+
+      This carried the signed-in address and the role, under a header that
+      already names the account — the same person identified twice, a few
+      centimetres apart, on every console. The header is where somebody looks
+      to check whose console they are in; this is where they look to leave.
+
+      `email` and `role` went with it. Sign-out is a document load to the
+      sign-in page and consults neither, so keeping them would have been two
+      props nobody reads — which drift, and then mislead.
+    */
     <div className="flex flex-col gap-2">
-      <div className="flex min-w-0 flex-col leading-tight">
-        <span className="truncate text-sm font-medium" title={email}>
-          {email ?? "Signed in"}
-        </span>
-        <span className="text-muted-foreground text-xs">
-          {labels?.role ?? ROLE_LABELS[role]}
-        </span>
-      </div>
       <Button
         variant="outline"
         size="sm"

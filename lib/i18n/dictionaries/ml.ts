@@ -304,7 +304,7 @@ export const ml: Dictionary = {
       produce: "എന്റെ വിള",
       bargains: "വിലപേശലുകൾ",
       notifications: "അറിയിപ്പുകൾ",
-      account: "അക്കൗണ്ട്",
+      account: "എന്റെ പ്രൊഫൈൽ",
       logistics: "ചരക്കുനീക്കം",
       prices: "വിലകൾ",
       verification: "പരിശോധന",

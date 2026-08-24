@@ -52,9 +52,6 @@ const SECTIONS: Array<{ title?: string; links: NavLink[] }> = [
   {
     links: [
       { href: "/admin", label: "Overview", icon: GaugeIcon, exact: true },
-      // Second, because it is the answer to "what should I do now" and the rest
-      // of the rail is the answer to "where do I go to do it".
-      { href: "/admin/notifications", label: "Notifications", icon: BellIcon },
       { href: "/admin/analytics", label: "Analytics", icon: ChartColumnIcon },
     ],
   },
@@ -111,16 +108,23 @@ const SECTIONS: Array<{ title?: string; links: NavLink[] }> = [
       },
     ],
   },
+  {
+    /*
+      Last on this rail as on every other. Operations have no profile — they
+      are not an account on the platform — so notifications stand alone in the
+      final position rather than being wedged into Trade.
+    */
+    links: [
+      { href: "/admin/notifications", label: "Notifications", icon: BellIcon },
+    ],
+  },
 ];
 
 export function AdminNav({
   pending,
   role,
-  email,
 }: {
   pending: PendingCounts;
-  /** Shown above Sign out, so an operator can see which login they are on. */
-  email?: string;
   /**
    * Operations sees the whole rail. A franchise sees the read-only part of it,
    * filtered from the same allow-list the `(operations)` route group enforces,
@@ -242,7 +246,7 @@ export function AdminNav({
           </Link>
 
           {/* Bug 16: bottom-left, the same as every other console. */}
-          <SessionFooter email={email} role={role} />
+          <SessionFooter />
         </div>
       </nav>
     </>

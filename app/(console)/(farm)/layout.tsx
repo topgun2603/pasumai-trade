@@ -28,7 +28,7 @@ export default async function FarmLayout({
 }: {
   children: ReactNode;
 }) {
-  const { farmer, email } = await requireFarmer();
+  const { farmer } = await requireFarmer();
   const now = new Date().getTime();
 
   // Bargains where the buyer spoke last, so the farmer owes a reply. Filtered
@@ -59,8 +59,6 @@ export default async function FarmLayout({
     <div className="flex min-h-svh w-full">
       <FarmNav
         farmer={{ name: farmer.name, id: farmer.id, village: farmer.village }}
-        role="farmer"
-        session={{ email }}
         pending={{
           "/farm/bargains": waiting,
           "/farm/notifications": feed.unread,

@@ -48,6 +48,14 @@ import { cn } from "@/lib/utils";
   screen, so it is the part most worth being in their own language — the label
   is looked up per render from whichever dictionary the cookie chose.
 */
+/*
+  One list, in the order it appears on screen.
+
+  It was two arrays with a visual gap that never rendered, which made "last"
+  ambiguous — last in the second array is not last to a reader. Merged, so the
+  order in this file is the order on the rail, and `bar` alone decides what a
+  thumb can reach.
+*/
 const LINKS = [
   /*
     Home is a welcome page, not the landing page.
@@ -63,15 +71,21 @@ const LINKS = [
   { href: "/farm", key: "overview", icon: GaugeIcon, exact: true, bar: true },
   { href: "/farm/listings", key: "produce", icon: SproutIcon, bar: true },
   { href: "/farm/bargains", key: "bargains", icon: HandshakeIcon, bar: true },
+  // Bug 16: the same business function is called Logistics everywhere else.
+  { href: "/farm/sales", key: "logistics", icon: ReceiptIcon, bar: false },
+  { href: "/farm/analytics", key: "prices", icon: ChartColumnIcon, bar: false },
+  /*
+    Profile second from the bottom, notifications at the very bottom, on every
+    console. A badge is something you glance at rather than navigate by, so
+    sitting it mid-list drags the eye past the work on the way down.
+  */
+  { href: "/farm/account", key: "account", icon: UserRoundIcon, bar: true },
   {
     href: "/farm/notifications",
     key: "notifications",
     icon: BellIcon,
     bar: true,
   },
-  // Last, and stays last. Bug 16 wants the account at the bottom of every
-  // sidebar; on the bottom bar it is the fifth thumb position.
-  { href: "/farm/account", key: "account", icon: UserRoundIcon, bar: true },
 ] satisfies ReadonlyArray<{
   href: string;
   key: keyof Dictionary["farm"]["nav"];
@@ -81,28 +95,9 @@ const LINKS = [
    * Whether it earns a place on the bottom bar.
    *
    * The bar has five thumb-sized targets and no more — anything that does not
-   * earn one does not belong on a phone's primary navigation at all. Home is
-   * the first thing to fail that test.
+   * earn one does not belong on a phone's primary navigation at all.
    */
   bar: boolean;
-}>;
-
-/**
- * The rail's second group: everything that is not a daily destination.
- *
- * Written out four times over with the same forty characters of class names
- * before this. Verification and Subscription have left it entirely — Bug 17
- * puts them under Account, where the rest of what the platform holds about
- * somebody already lives.
- */
-const SECONDARY = [
-  // Bug 16: the same business function is called Logistics everywhere else.
-  { href: "/farm/sales", key: "logistics", icon: ReceiptIcon },
-  { href: "/farm/analytics", key: "prices", icon: ChartColumnIcon },
-] satisfies ReadonlyArray<{
-  href: string;
-  key: keyof Dictionary["farm"]["nav"];
-  icon: typeof GaugeIcon;
 }>;
 
 function ThemeToggle({ label }: { label: string }) {
@@ -140,16 +135,12 @@ function isActive(pathname: string, href: string, exact?: boolean) {
 
 export function FarmNav({
   farmer,
-  role,
-  session,
   pending,
   notifications,
   locale,
   t,
 }: {
   farmer: { name: string; id: string; village: string };
-  role: "farmer";
-  session: { email?: string };
   /** Counts shown as badges, e.g. bargains waiting on a reply. */
   pending: Record<string, number>;
   /** The bell in the rail header, read once for the whole console. */
@@ -171,7 +162,10 @@ export function FarmNav({
             <span className="truncate text-sm font-semibold">
               Pasumai Trade
             </span>
-            <span className="text-faint text-xs">{t.farm.nav.role}</span>
+            {/* Whose console this is, not what kind. The role still shows in
+              the footer; the name is what a farmer recognises as theirs, and
+              it is already stored in their own script. */}
+            <span className="text-faint truncate text-xs">{farmer.name}</span>
           </span>
           {/* In whatever language this console is being read in. */}
           <NotificationBell
@@ -217,24 +211,6 @@ export function FarmNav({
               </li>
             );
           })}
-          {SECONDARY.map(({ href, key, icon: Icon }) => (
-            <li key={href}>
-              <Link
-                href={href}
-                data-tour={href}
-                aria-current={isActive(pathname, href) ? "page" : undefined}
-                className={cn(
-                  "focus-visible:ring-ring flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none",
-                  isActive(pathname, href)
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-                )}
-              >
-                <Icon className="size-4 shrink-0" />
-                {t.farm.nav[key]}
-              </Link>
-            </li>
-          ))}
         </ul>
 
         <div className="border-sidebar-border flex shrink-0 flex-col gap-3 border-t p-3">
@@ -245,21 +221,13 @@ export function FarmNav({
           */}
           <LanguageSwitcher current={locale} label={t.farm.nav.language} />
           <ThemeToggle label={t.farm.nav.theme} />
-          <Separator />
-          <div className="flex flex-col leading-tight">
-            <span className="truncate text-sm font-medium">{farmer.name}</span>
-            <span className="text-faint text-xs">
-              {farmer.village} · <span className="font-mono">{farmer.id}</span>
-            </span>
-          </div>
+          {/* The name and village were repeated here, a few centimetres
+            below the same name in the header. One is enough. */}
           <Separator />
           <SessionFooter
-            email={session.email}
-            role={role}
             labels={{
               signOut: t.farm.page.signOut,
               signingOut: t.farm.page.signingOut,
-              role: t.farm.nav.role,
             }}
           />
         </div>
