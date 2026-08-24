@@ -11,10 +11,11 @@ import { EntityTag } from "@/components/entity-tag";
 import { BargainThread } from "@/components/negotiation/bargain-thread";
 import type { VocabularyEntry } from "@/lib/domain/bargain-vocabulary";
 import { Badge } from "@/components/ui/badge";
-import { GRADE_LABELS, QUANTITY_UNITS } from "@/lib/domain/enums";
+import { GRADE_LABELS, unitLabel } from "@/lib/domain/enums";
 import type { GradeQuantity } from "@/lib/domain/listing-draft";
 import type { LotBook } from "@/lib/domain/lot-book";
 import { formatRate, money } from "@/lib/domain/money";
+import { formatQuantity } from "@/lib/domain/quantity";
 import type { GradeBand } from "@/lib/domain/models";
 import {
   gap,
@@ -315,6 +316,28 @@ export function BargainConsole({
             standing !== undefined &&
             standing.author !== viewer;
           const distance = gap(thread);
+
+          /*
+            The farmer's opening price, so a row says what it is about. Their
+            first proposal rather than the latest: the list is scanned to pick
+            a thread, and a figure that moves as each side counters is not
+            something to pick by.
+          */
+          const opened =
+            thread.messages.find(
+              (message) => message.author === "farmer" && message.kind === "proposal",
+            ) ??
+            // Whoever spoke first, where the farmer has not yet. See the note
+            // in bargain-thread.
+            thread.messages.find((message) => message.kind === "proposal");
+          const openingGrade = pricedGrades(opened?.bands ?? [])[0];
+          const asking =
+            openingGrade === undefined
+              ? null
+              : `${GRADE_LABELS[openingGrade]} ${formatRate(
+                  money(rateFor(opened!.bands ?? [], openingGrade)!),
+                  unitLabel(thread.unit),
+                )}`;
           const last = thread.messages.at(-1);
           const active = thread.id === selected?.id;
           const { top, most } = marksFor(thread);
@@ -367,9 +390,18 @@ export function BargainConsole({
                     name={viewer === "buyer" ? thread.farmerName : thread.buyerName}
                     compact
                   />
+                  {/*
+                    Quantity, and the price it was listed at.
+
+                    The row said how much and not what for, so choosing between
+                    four open threads meant opening all four. Also fixes the
+                    raw enum: it read "800 kg" to a Tamil farmer beside a
+                    quantity that read "கிலோ" three lines up.
+                  */}
                   <span className="tabular">
-                    {thread.quantity} {QUANTITY_UNITS[thread.unit].en}
+                    {formatQuantity(thread.quantity, thread.unit)}
                   </span>
+                  {asking ? <span className="tabular font-medium">{asking}</span> : null}
                 </span>
 
                 {top || most ? (
@@ -403,7 +435,7 @@ export function BargainConsole({
                           return (
                             `${who} proposed ${formatRate(
                               money(rateFor(last.bands ?? [], lead)!),
-                              QUANTITY_UNITS[thread.unit].en,
+                              unitLabel(thread.unit),
                             )} / ${GRADE_LABELS[lead]}` +
                             (priced.length > 1 ? ` +${priced.length - 1}` : "")
                           );
@@ -415,7 +447,7 @@ export function BargainConsole({
 
                 {thread.status === "open" && distance.a !== undefined ? (
                   <span className="text-faint tabular text-xs">
-                    {formatRate(money(distance.a), QUANTITY_UNITS[thread.unit].en)}{" "}
+                    {formatRate(money(distance.a), unitLabel(thread.unit))}{" "}
                     apart on grade A
                   </span>
                 ) : null}

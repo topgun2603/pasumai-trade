@@ -372,6 +372,33 @@ export function BargainThread({
   const farmerAsk = lastProposalBy(negotiation, "farmer");
   const buyerBid = lastProposalBy(negotiation, "buyer");
 
+  /*
+    What the farmer opened at, for the header.
+
+    The *first* price they named, not their latest — the header is the fixed
+    reference the rest of the thread is read against, and it stops meaning
+    anything if it moves every time somebody counters. The current positions
+    are on the grade rows below, where they belong.
+  */
+  const farmerOpened = negotiation.messages.find(
+    (message) => message.author === "farmer" && message.kind === "proposal",
+  );
+
+  /*
+    Falls back to whoever spoke first.
+
+    A buyer often opens the thread, so on a farmer's screen there is no asking
+    price until they counter — and the header would carry a quantity and
+    nothing else at exactly the moment they are deciding what to ask for. The
+    opening offer is the number on the table then, and the label says which of
+    the two it is rather than letting a buyer's bid read as an asking price.
+  */
+  const opening =
+    farmerOpened ??
+    negotiation.messages.find((message) => message.kind === "proposal");
+  const openingLabel = farmerOpened ? "Asking" : "Opened at";
+  const openingGrades = pricedGrades(opening?.bands ?? []);
+
   // Every grade anybody has priced or that has stock left — the union, so a
   // grade the buyer has bid on but the farmer has not priced still appears.
   const contextGrades = GRADES.filter(
@@ -422,6 +449,28 @@ export function BargainThread({
               ? remainingOf(book.remaining, book.posted, negotiation.unit, viewerLocale)
               : formatQuantity(negotiation.quantity, negotiation.unit, viewerLocale)}
           </span>
+
+          {/*
+            The asking price, beside the crop rather than buried in the rows.
+
+            The header carried the quantity alone, so the one figure every
+            offer is judged against was the one thing not on screen while
+            judging it.
+          */}
+          {openingGrades.length > 0 ? (
+            <span className="tabular flex flex-wrap items-baseline gap-1.5 text-xs">
+              <span className="text-faint">{openingLabel}</span>
+              {openingGrades.map((grade) => (
+                <span
+                  key={grade}
+                  className="border-primary/25 bg-primary/10 text-primary rounded-md border px-1.5 py-0.5 font-semibold"
+                >
+                  {GRADE_LABELS[grade]}{" "}
+                  {formatRate(money(rateFor(opening!.bands ?? [], grade)!), unitLabel)}
+                </span>
+              ))}
+            </span>
+          ) : null}
           <span className="text-faint flex flex-wrap items-center gap-2 text-xs">
             <EntityTag
               kind={viewer === "buyer" ? "farmer" : "buyer"}
