@@ -188,7 +188,17 @@ export function BargainTranscript({
                     {formatQuantity(thread.quantity, thread.unit, locale)}
                   </span>
                   {asking ? (
-                    <span className="text-muted-foreground tabular text-xs font-normal">
+                    /*
+                      Weighted to be read, not to sit politely beside the crop
+                      name. It was muted grey at eleven pixels, which is how you
+                      style something a reader is meant to skip — and this is
+                      the figure the whole card exists to be compared against.
+
+                      Carries the platform's own accent, so it reads as a pair
+                      with the settled price in the footer rather than as two
+                      unrelated numbers.
+                    */
+                    <span className="border-primary/25 bg-primary/10 text-primary tabular rounded-md border px-2 py-0.5 text-xs font-semibold">
                       asked {asking}
                     </span>
                   ) : null}

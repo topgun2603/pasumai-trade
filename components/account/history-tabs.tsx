@@ -1,5 +1,6 @@
 "use client";
 
+import { HandshakeIcon, HistoryIcon, TrendingUpIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,37 +14,94 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
  * the three to open, and the answer depended on whether they wanted a number,
  * a shape, or a record of who changed it.
  *
- * One page, three tabs. The tabs are client state and nothing else is: each
- * panel is a server-rendered child handed in, so switching tabs costs no round
- * trip and the whole page still renders without JavaScript running.
+ * ## The counts are the point of the design
+ *
+ * A tab that says how much is behind it is a tab somebody can choose without
+ * opening it. Bargains reading 9 and Audits reading 0 answers a question
+ * before a click; three bare words do not, and the reader pays for that in
+ * round trips on a connection that charges for them.
+ *
+ * ## Server-rendered panels
+ *
+ * Only the tab state is client state. Each panel is a server-rendered child
+ * handed in as a prop, so switching costs no round trip and the whole page
+ * renders without JavaScript running.
  */
+
+const ICONS = {
+  bargains: HandshakeIcon,
+  revenue: TrendingUpIcon,
+  audits: HistoryIcon,
+} as const;
+
+export type HistoryTabValue = keyof typeof ICONS;
+
 export function HistoryTabs({
-  actions,
-  bargains,
-  prices,
-  labels,
+  panels,
 }: {
-  actions: ReactNode;
-  bargains: ReactNode;
-  prices: ReactNode;
-  labels: { actions: string; bargains: string; prices: string };
+  panels: ReadonlyArray<{
+    value: HistoryTabValue;
+    label: string;
+    /** Shown on the tab. Omitted where a count would be meaningless. */
+    count?: number;
+    content: ReactNode;
+  }>;
 }) {
   return (
-    <Tabs defaultValue="bargains" className="flex flex-col gap-5">
-      <TabsList>
-        {/*
-          Bargains first and selected by default. It is the question actually
-          asked — what did I sell and for how much — where the audit trail
-          answers a question somebody only has when something looks wrong.
-        */}
-        <TabsTrigger value="bargains">{labels.bargains}</TabsTrigger>
-        <TabsTrigger value="prices">{labels.prices}</TabsTrigger>
-        <TabsTrigger value="actions">{labels.actions}</TabsTrigger>
+    <Tabs defaultValue={panels[0]?.value} className="flex flex-col gap-5">
+      {/*
+        A segmented control rather than the default underline: three peers of
+        equal weight, one of which is on. An underline reads as a place in a
+        sequence, and these are not steps.
+      */}
+      <TabsList
+        variant="line"
+        className="border-border bg-card h-auto w-fit max-w-full gap-1 overflow-x-auto rounded-xl border p-1"
+      >
+        {panels.map(({ value, label, count }) => {
+          const Icon = ICONS[value];
+
+          return (
+            <TabsTrigger
+              key={value}
+              value={value}
+              className="
+                text-muted-foreground flex h-auto shrink-0 items-center gap-2
+                rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap
+                transition-colors
+                hover:bg-secondary hover:text-foreground
+                data-[state=active]:bg-primary/10 data-[state=active]:text-primary
+                data-[state=active]:ring-primary/20 data-[state=active]:ring-1
+              "
+            >
+              <Icon className="size-4 shrink-0" />
+              {label}
+              {count !== undefined ? (
+                /*
+                  Toned down at zero rather than hidden. "Audits 0" is a fact
+                  somebody wants; a missing badge reads as a tab that has not
+                  loaded.
+                */
+                <span
+                  className={
+                    count > 0
+                      ? "bg-primary/15 tabular rounded-full px-1.5 py-0.5 text-[11px] leading-none font-semibold"
+                      : "text-faint tabular rounded-full px-1.5 py-0.5 text-[11px] leading-none"
+                  }
+                >
+                  {count}
+                </span>
+              ) : null}
+            </TabsTrigger>
+          );
+        })}
       </TabsList>
 
-      <TabsContent value="bargains">{bargains}</TabsContent>
-      <TabsContent value="prices">{prices}</TabsContent>
-      <TabsContent value="actions">{actions}</TabsContent>
+      {panels.map(({ value, content }) => (
+        <TabsContent key={value} value={value}>
+          {content}
+        </TabsContent>
+      ))}
     </Tabs>
   );
 }

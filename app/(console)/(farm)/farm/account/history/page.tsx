@@ -77,28 +77,43 @@ export default async function FarmHistoryPage() {
         a three-quarter column wrapped every second line. */}
       <div className="flex flex-col gap-6 p-5">
         <HistoryTabs
-          labels={{
-            bargains: "Bargains",
-            prices: "Prices",
-            actions: "Changes",
-          }}
-          bargains={
-            <BargainTranscript
-              threads={closed}
-              viewer="farmer"
-              vocabulary={vocabulary}
-              locale={locale}
-              now={now}
-            />
-          }
-          prices={<SalesAnalytics sales={sales} />}
-          actions={
-            <HistoryList
-              entries={entries}
-              now={now}
-              emptyHint="Once you edit a listing or operations update your account, it will be recorded here."
-            />
-          }
+          panels={[
+            {
+              value: "bargains",
+              label: "Bargains",
+              count: closed.length,
+              content: (
+                <BargainTranscript
+                  threads={closed}
+                  viewer="farmer"
+                  vocabulary={vocabulary}
+                  locale={locale}
+                  now={now}
+                />
+              ),
+            },
+            {
+              /*
+                "Revenue", not "Prices". The tab holds what the crop earned,
+                which is the question; a price is one figure inside the answer.
+              */
+              value: "revenue",
+              label: "Revenue",
+              content: <SalesAnalytics sales={sales} />,
+            },
+            {
+              value: "audits",
+              label: "Audits",
+              count: entries.length,
+              content: (
+                <HistoryList
+                  entries={entries}
+                  now={now}
+                  emptyHint="Once you edit a listing or operations update your account, it will be recorded here."
+                />
+              ),
+            },
+          ]}
         />
       </div>
     </>
