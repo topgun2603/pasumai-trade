@@ -1,9 +1,11 @@
 import { requireCapability } from "@/lib/api/capability";
+import { formatMoney, money } from "@/lib/domain/money";
 import { canSay, phraseById } from "@/lib/domain/bargain-vocabulary";
 import { GRADES, type Grade } from "@/lib/domain/enums";
 import type { GradeBand } from "@/lib/domain/models";
 import { applyMessage, NegotiationError } from "@/lib/domain/negotiation";
 import { canStart, startNegotiation } from "@/lib/domain/negotiation-start";
+import { record } from "@/lib/firebase/audit-write";
 import { adminDb } from "@/lib/firebase/admin";
 import { readBargainVocabulary } from "@/lib/firebase/bargain-vocabulary-read";
 import { readMarketListings } from "@/lib/firebase/listings-read";
@@ -231,6 +233,27 @@ export async function POST(request: Request) {
         })) ?? null,
       sentAt: m.sentAt,
     })),
+  });
+
+  /*
+    The opening offer. Recorded like any other proposal so a thread's history
+    starts where the thread does — the first price named is the one every later
+    move is read against.
+  */
+  await record({
+    action: "bargain.proposed",
+    actor: {
+      accountId: gate.session.claims.accountId,
+      role: gate.session.claims.role,
+      name: negotiation.buyerName,
+    },
+    subject: { kind: "negotiations", id: ref.id },
+    to: bands
+      ?.map((band) => `${band.grade.toUpperCase()} ${formatMoney(money(band.ratePerUnit))}`)
+      .join(", "),
+    note: negotiation.produceName,
+    parties: [negotiation.farmerId, negotiation.buyerId],
+    at: negotiation.openedAt,
   });
 
   return Response.json(

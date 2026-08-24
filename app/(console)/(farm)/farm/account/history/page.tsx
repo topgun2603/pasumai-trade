@@ -10,7 +10,11 @@ import { requireFarmer } from "@/lib/auth/farm";
 import { consoleLocale } from "@/lib/i18n/console";
 import { newestFirst } from "@/lib/domain/audit";
 import { salesFrom } from "@/lib/domain/farm-analytics";
-import { readActorHistory, readSubjectHistory } from "@/lib/firebase/audit-read";
+import {
+  readActorHistory,
+  readPartyHistory,
+  readSubjectHistory,
+} from "@/lib/firebase/audit-read";
 import { readBargainVocabulary } from "@/lib/firebase/bargain-vocabulary-read";
 import { readNegotiations } from "@/lib/firebase/negotiations-read";
 import { negotiations } from "@/lib/mock/negotiations";
@@ -37,9 +41,12 @@ export default async function FarmHistoryPage() {
 
   const { farmer } = await requireFarmer();
 
-  const [mine, aboutMe, { threads }, { vocabulary }, locale] = await Promise.all([
+  const [mine, aboutMe, alsoMine, { threads }, { vocabulary }, locale] = await Promise.all([
     readActorHistory(farmer.id),
     readSubjectHistory(farmer.id),
+    // Bargains. Their subject is the thread, so neither of the other two reads
+    // finds them — see `parties` in lib/domain/audit.ts.
+    readPartyHistory(farmer.id),
     readNegotiations(negotiations(now)),
     // The same phrase list the live thread reads from, so a bargain settled
     // months ago still renders in whatever language it is opened in.
@@ -49,7 +56,7 @@ export default async function FarmHistoryPage() {
 
   // Deduplicated: an action a farmer took on their own record appears in both.
   const seen = new Set<string>();
-  const entries = newestFirst([...mine, ...aboutMe]).filter((entry) => {
+  const entries = newestFirst([...mine, ...aboutMe, ...alsoMine]).filter((entry) => {
     if (seen.has(entry.id)) return false;
     seen.add(entry.id);
     return true;

@@ -1,3 +1,4 @@
+import { formatMoney, money } from "@/lib/domain/money";
 import { GRADES } from "@/lib/domain/enums";
 import { canSay, phraseById } from "@/lib/domain/bargain-vocabulary";
 import type { GradeBand } from "@/lib/domain/models";
@@ -10,6 +11,7 @@ import {
 } from "@/lib/domain/negotiation";
 import { forBargain } from "@/lib/domain/notification-events";
 import { bargainMessageKey, transportKey } from "@/lib/domain/notification-key";
+import { record } from "@/lib/firebase/audit-write";
 import { adminDb } from "@/lib/firebase/admin";
 import { readBargainVocabulary } from "@/lib/firebase/bargain-vocabulary-read";
 import { shapeNegotiation } from "@/lib/firebase/negotiations-read";
@@ -249,6 +251,47 @@ export async function POST(
     },
     { merge: true },
   );
+
+  /*
+    The bargain's own history.
+
+    Both sides go in `parties`, which is what makes the entry readable at all —
+    a thread's subject is the thread, so neither account matches on its own and
+    the log would record the most consequential thing on the platform and show
+    it to nobody.
+
+    Only the kinds worth keeping. A note is talk; a price, an agreement and a
+    withdrawal are the three that change what is owed.
+  */
+  if (kind === "proposal" || kind === "accept" || kind === "withdraw") {
+    const priced = draft.bands
+      ?.map((band) => `${band.grade.toUpperCase()} ${formatMoney(money(band.ratePerUnit))}`)
+      .join(", ");
+
+    await record({
+      action:
+        kind === "proposal"
+          ? "bargain.proposed"
+          : kind === "accept"
+            ? "bargain.agreed"
+            : "bargain.withdrawn",
+      actor: {
+        accountId: gate.session.claims.accountId,
+        role: gate.session.claims.role,
+        name: author === "farmer" ? negotiation.farmerName : negotiation.buyerName,
+      },
+      subject: { kind: "negotiations", id },
+      to:
+        kind === "accept"
+          ? next.agreedBands
+              ?.map((b) => `${b.grade.toUpperCase()} ${formatMoney(money(b.ratePerUnit))}`)
+              .join(", ")
+          : priced,
+      note: negotiation.produceName,
+      parties: [negotiation.farmerId, negotiation.buyerId],
+      at: sentAt,
+    });
+  }
 
   /*
     Tell the other side, now.

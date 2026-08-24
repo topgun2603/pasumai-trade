@@ -37,6 +37,9 @@ function shape(id: string, d: Record<string, unknown>): AuditEntry | null {
       kind: typeof d.subjectKind === "string" ? d.subjectKind : "",
       id: typeof d.subjectId === "string" ? d.subjectId : "",
     },
+    parties: Array.isArray(d.parties)
+      ? d.parties.filter((p): p is string => typeof p === "string")
+      : undefined,
     from: typeof d.from === "string" ? d.from : undefined,
     to: typeof d.to === "string" ? d.to : undefined,
     note: typeof d.note === "string" ? d.note : undefined,
@@ -81,6 +84,35 @@ export const readActorHistory = cache(async function readActorHistory(
     const snapshot = await adminDb()
       .collection("audit")
       .where("actorId", "==", actorId)
+      .limit(LIMIT)
+      .get();
+
+    return newestFirst(
+      snapshot.docs.map((doc) => shape(doc.id, doc.data())).filter((e) => e !== null),
+    );
+  } catch {
+    return [];
+  }
+});
+
+/**
+ * Everything one account was a party to.
+ *
+ * The third read a history page needs. `subjectId` covers things done *to*
+ * somebody's record and `actorId` covers what they did; neither covers a
+ * bargain, whose subject is the thread and whose actor is whichever side spoke
+ * — so without this the log records the most consequential thing on the
+ * platform and shows it to nobody.
+ */
+export const readPartyHistory = cache(async function readPartyHistory(
+  accountId: string,
+): Promise<AuditEntry[]> {
+  if (!accountId || !hasAdminCredentials()) return [];
+
+  try {
+    const snapshot = await adminDb()
+      .collection("audit")
+      .where("parties", "array-contains", accountId)
       .limit(LIMIT)
       .get();
 

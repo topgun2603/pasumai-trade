@@ -43,6 +43,15 @@ export const AUDIT_ACTIONS = [
   "bargain.proposed",
   "bargain.agreed",
   "bargain.withdrawn",
+  /*
+    Declared, and nothing writes them yet.
+
+    Orders are still `lib/mock/orders.ts` — there is no endpoint that places or
+    cancels one, so there is no write to hook. Kept here rather than deleted
+    because the moment that endpoint exists this is the list it has to appear
+    in, and `audit.test.ts` pins the gap so it stays visible instead of being
+    rediscovered.
+  */
   "order.placed",
   "order.cancelled",
   "account.statusChanged",
@@ -101,6 +110,20 @@ export interface AuditEntry {
   readonly to?: string;
   /** One line of context, where the values alone do not explain it. */
   readonly note?: string;
+  /**
+   * Accounts that may read this entry beyond the actor and the subject.
+   *
+   * A bargain is the case that needs it. Its subject is the thread, which is
+   * neither party's account id, so without this an entry about a price both
+   * of them agreed would be readable by neither — the log would record the
+   * most consequential thing on the platform and show it to nobody.
+   *
+   * Both sides of a bargain go in here. Not the platform's other buyers, and
+   * not operations by this route: operations read everything anyway, and a
+   * list that grows with every interested party is an access-control decision
+   * hiding inside a denormalised field.
+   */
+  readonly parties?: readonly string[];
   readonly at: Date;
 }
 
@@ -129,17 +152,25 @@ export function auditKey(entry: Omit<AuditEntry, "id">): string {
 
 /** Who may read a given entry. Operations see everything; you see your own. */
 export function mayReadAudit(
-  entry: Pick<AuditEntry, "actor" | "subject">,
+  entry: Pick<AuditEntry, "actor" | "subject" | "parties">,
   reader: { role: Role; accountId?: string },
 ): boolean {
   if (reader.role === "admin") return true;
   if (!reader.accountId) return false;
 
-  // Your own actions, and anything done to a record that is yours. The second
-  // half is the important one: a farmer needs to see that operations changed
-  // their listing's quantity, which is not an action they took.
+  /*
+    Your own actions, anything done to a record that is yours, and anything you
+    were a party to.
+
+    The second is the important one for operations acting on somebody: a farmer
+    needs to see that their listing's quantity was changed, which is not an
+    action they took. The third is what makes a bargain visible at all — see
+    `parties`.
+  */
   return (
-    entry.actor.accountId === reader.accountId || entry.subject.id === reader.accountId
+    entry.actor.accountId === reader.accountId ||
+    entry.subject.id === reader.accountId ||
+    (entry.parties?.includes(reader.accountId) ?? false)
   );
 }
 

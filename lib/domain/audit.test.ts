@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  AUDIT_ACTIONS,
+  AUDIT_LABELS,
   auditKey,
   matches,
   mayReadAudit,
@@ -143,5 +145,31 @@ describe("ordering", () => {
     ];
     expect(newestFirst(rows).map((r) => r.id)).toEqual(["new", "old"]);
     expect(rows.map((r) => r.id)).toEqual(["old", "new"]);
+  });
+});
+
+describe("what is actually wired", () => {
+  /*
+    A declared action that nothing writes is a promise the log does not keep.
+    Nine of the eleven are hooked into a real endpoint and proven against a
+    running server; these two are not, because orders have no write path yet —
+    they come from `lib/mock/orders.ts` and there is nothing to place or
+    cancel.
+
+    Pinned so the gap stays visible. When an orders endpoint lands, this list
+    shrinks, and if it does not the failure says so.
+  */
+  const NOT_YET_WIRED = ["order.placed", "order.cancelled"];
+
+  it("names the actions still waiting on an endpoint", () => {
+    expect(NOT_YET_WIRED.every((action) => AUDIT_ACTIONS.includes(action as never))).toBe(true);
+  });
+
+  it("has a label for every action, wired or not", () => {
+    // A row that reaches a history page with no label renders blank, and the
+    // one nobody has written yet is the one nobody notices is missing.
+    for (const action of AUDIT_ACTIONS) {
+      expect(AUDIT_LABELS[action], action).toBeTruthy();
+    }
   });
 });

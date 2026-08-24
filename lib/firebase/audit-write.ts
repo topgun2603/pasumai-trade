@@ -45,6 +45,9 @@ export async function record(entry: Omit<AuditEntry, "id">): Promise<void> {
         from: entry.from ?? null,
         to: entry.to ?? null,
         note: entry.note ?? null,
+        // Denormalised so a reader can query "everything I was part of" with
+        // one `array-contains` rather than a scan.
+        parties: entry.parties ?? [],
         at: entry.at,
       });
   } catch (error) {

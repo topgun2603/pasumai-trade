@@ -54,10 +54,16 @@ export function HistoryTabs({
         equal weight, one of which is on. An underline reads as a place in a
         sequence, and these are not steps.
       */}
-      <TabsList
-        variant="line"
-        className="border-border bg-card h-auto w-fit max-w-full gap-1 overflow-x-auto rounded-xl border p-1"
-      >
+      {/*
+        A sunken track with the live tab raised out of it.
+
+        The first attempt tinted the active tab and put the row on a card, so a
+        pale tint sat on a pale surface and the selected tab was the hardest
+        one to pick out — the opposite of the job. A recessed track gives the
+        raised tab something to be raised *from*, which is what makes "on"
+        legible without colour doing all the work.
+      */}
+      <TabsList className="bg-muted h-auto w-fit max-w-full flex-wrap gap-1 rounded-xl p-1">
         {panels.map(({ value, label, count }) => {
           const Icon = ICONS[value];
 
@@ -68,13 +74,17 @@ export function HistoryTabs({
               className="
                 text-muted-foreground flex h-auto shrink-0 items-center gap-2
                 rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap
-                transition-colors
-                hover:bg-secondary hover:text-foreground
-                data-[state=active]:bg-primary/10 data-[state=active]:text-primary
-                data-[state=active]:ring-primary/20 data-[state=active]:ring-1
+                transition-all
+                hover:text-foreground
+                data-[state=active]:bg-background
+                data-[state=active]:text-foreground
+                data-[state=active]:shadow-sm
+                data-[state=active]:[&_svg]:text-primary
               "
             >
-              <Icon className="size-4 shrink-0" />
+              {/* Colour on the icon alone. The label carries the weight; a
+                fully tinted tab competes with the content below it. */}
+              <Icon className="size-4 shrink-0 opacity-80 transition-colors" />
               {label}
               {count !== undefined ? (
                 /*
@@ -85,7 +95,7 @@ export function HistoryTabs({
                 <span
                   className={
                     count > 0
-                      ? "bg-primary/15 tabular rounded-full px-1.5 py-0.5 text-[11px] leading-none font-semibold"
+                      ? "bg-primary/12 text-primary tabular rounded-full px-1.5 py-0.5 text-[11px] leading-none font-semibold"
                       : "text-faint tabular rounded-full px-1.5 py-0.5 text-[11px] leading-none"
                   }
                 >

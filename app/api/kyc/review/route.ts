@@ -15,6 +15,7 @@ import { CHECK_LABELS } from "@/lib/domain/kyc";
 import { kycDecisionKey } from "@/lib/domain/notification-key";
 import type { NotificationKind } from "@/lib/domain/notification";
 import { adminDb } from "@/lib/firebase/admin";
+import { record } from "@/lib/firebase/audit-write";
 import { writeNotifications } from "@/lib/firebase/notifications-write";
 import { sendPushes } from "@/lib/firebase/push-send";
 
@@ -136,6 +137,29 @@ export async function POST(request: Request) {
     .collection(COLLECTION_FOR_SIGNUP[role])
     .doc(accountId)
     .set(write, { merge: true });
+
+  /*
+    Who decided, and what they decided.
+
+    The most consequential judgement an operator makes about somebody — it
+    decides whether they can trade — and until now it left no trace beyond the
+    check's own state. The reason goes in the note, because "rejected" without
+    it is a decision nobody can answer.
+  */
+  await record({
+    action: "account.documentReviewed",
+    actor: {
+      accountId: gate.session.claims.accountId,
+      role: gate.session.claims.role,
+      name: gate.session.email ?? "Operations",
+    },
+    subject: { kind: COLLECTION_FOR_SIGNUP[role], id: accountId },
+    from: kind,
+    to: state,
+    note: typeof body.reason === "string" ? body.reason : undefined,
+    parties: [accountId],
+    at: now,
+  });
 
   /*
     Tell them, in their own language, on every channel they have.

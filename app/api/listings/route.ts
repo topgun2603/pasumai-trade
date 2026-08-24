@@ -1,4 +1,5 @@
 import { requireCapability } from "@/lib/api/capability";
+import { formatQuantity } from "@/lib/domain/quantity";
 import { GRADES, type Grade } from "@/lib/domain/enums";
 import {
   hasDraftErrors,
@@ -9,6 +10,7 @@ import {
   validateDraft,
   type GradeQuantity,
 } from "@/lib/domain/listing-draft";
+import { record } from "@/lib/firebase/audit-write";
 import { adminDb } from "@/lib/firebase/admin";
 import { CATALOGUE } from "@/lib/mock/catalogue";
 
@@ -150,6 +152,17 @@ export async function POST(request: Request) {
     imagePaths,
     videoPath: videoPath ?? null,
     photoCount: imagePaths.length,
+  });
+
+  // The first entry in a listing's history, so the trail starts where the
+  // listing does rather than at whoever edited it next.
+  await record({
+    action: "listing.created",
+    actor: { accountId: farmerId, role: gate.session.claims.role, name: farmerId },
+    subject: { kind: "listings", id: ref.id },
+    to: `${produce.names.en} · ${formatQuantity(totalQuantity(offered), unit)}`,
+    parties: [farmerId],
+    at: now,
   });
 
   return Response.json(
