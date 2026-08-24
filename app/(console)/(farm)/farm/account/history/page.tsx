@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 
-import { BargainLog } from "@/components/account/bargain-log";
+import { BargainTranscript } from "@/components/account/bargain-transcript";
 import { HistoryList } from "@/components/account/history-list";
 import { HistoryTabs } from "@/components/account/history-tabs";
 import { SalesAnalytics } from "@/components/farm/sales-analytics";
 import { PageHeader } from "@/components/page-header";
 import { requireFarmer } from "@/lib/auth/farm";
+import { consoleLocale } from "@/lib/i18n/console";
 import { newestFirst } from "@/lib/domain/audit";
 import { salesFrom } from "@/lib/domain/farm-analytics";
 import { readActorHistory, readSubjectHistory } from "@/lib/firebase/audit-read";
+import { readBargainVocabulary } from "@/lib/firebase/bargain-vocabulary-read";
 import { readNegotiations } from "@/lib/firebase/negotiations-read";
 import { negotiations } from "@/lib/mock/negotiations";
 
@@ -35,10 +37,14 @@ export default async function FarmHistoryPage() {
 
   const { farmer } = await requireFarmer();
 
-  const [mine, aboutMe, { threads }] = await Promise.all([
+  const [mine, aboutMe, { threads }, { vocabulary }, locale] = await Promise.all([
     readActorHistory(farmer.id),
     readSubjectHistory(farmer.id),
     readNegotiations(negotiations(now)),
+    // The same phrase list the live thread reads from, so a bargain settled
+    // months ago still renders in whatever language it is opened in.
+    readBargainVocabulary(),
+    consoleLocale(),
   ]);
 
   // Deduplicated: an action a farmer took on their own record appears in both.
@@ -49,7 +55,16 @@ export default async function FarmHistoryPage() {
     return true;
   });
 
-  const sales = salesFrom(threads.filter((thread) => thread.farmerId === farmer.id));
+  const ours = threads.filter((thread) => thread.farmerId === farmer.id);
+  const sales = salesFrom(ours);
+
+  /*
+    Finished only, newest first. A live bargain belongs under Bargains where it
+    can still be answered; this page is the record of the ones that are over.
+  */
+  const closed = ours
+    .filter((thread) => thread.status !== "open")
+    .sort((a, b) => (b.agreedAt ?? b.openedAt).getTime() - (a.agreedAt ?? a.openedAt).getTime());
 
   return (
     <>
@@ -58,14 +73,24 @@ export default async function FarmHistoryPage() {
         description="What you have sold, what it has been worth, and every change made to your account."
       />
 
-      <div className="flex max-w-3xl flex-col gap-6 p-5">
+      {/* Full width. A transcript is a conversation with rates beside it, and
+        a three-quarter column wrapped every second line. */}
+      <div className="flex flex-col gap-6 p-5">
         <HistoryTabs
           labels={{
             bargains: "Bargains",
             prices: "Prices",
             actions: "Changes",
           }}
-          bargains={<BargainLog sales={sales} now={now} />}
+          bargains={
+            <BargainTranscript
+              threads={closed}
+              viewer="farmer"
+              vocabulary={vocabulary}
+              locale={locale}
+              now={now}
+            />
+          }
           prices={<SalesAnalytics sales={sales} />}
           actions={
             <HistoryList
