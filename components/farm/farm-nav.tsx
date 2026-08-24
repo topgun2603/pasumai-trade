@@ -138,12 +138,15 @@ function isActive(pathname: string, href: string, exact?: boolean) {
 
 export function FarmNav({
   farmer,
+  session,
   pending,
   notifications,
   locale,
   t,
 }: {
   farmer: { name: string; id: string; village: string };
+  /** Which login is in use. Not the same fact as whose console this is. */
+  session: { email?: string };
   /** Counts shown as badges, e.g. bargains waiting on a reply. */
   pending: Record<string, number>;
   /** The bell in the rail header, read once for the whole console. */
@@ -228,7 +231,10 @@ export function FarmNav({
             below the same name in the header. One is enough. */}
           <Separator />
           <SessionFooter
+            email={session.email}
+            role="farmer"
             labels={{
+              signedInAs: t.console.signedInAs,
               signOut: t.farm.page.signOut,
               signingOut: t.farm.page.signingOut,
             }}

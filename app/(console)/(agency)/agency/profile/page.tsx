@@ -50,7 +50,7 @@ export default async function AgencyProfilePage() {
         aside={<StatusBadge status={agency.status} />}
       />
 
-      <div className="flex max-w-3xl flex-col gap-6 p-6">
+      <div className="flex flex-col gap-6 p-6">
         {/*
           Bug 25 and 17: verification and subscription were rail items beside
           the operational screens. They are here, with the agency record, and

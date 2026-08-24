@@ -77,8 +77,8 @@ const HELP: Record<CheckKind, { placeholder: string; hint: string }> = {
   pan: { placeholder: "AAECK4521M", hint: "Ten characters, as printed on the card." },
   gst: { placeholder: "33AAECK4521M1ZP", hint: "Fifteen characters from your GST certificate." },
   bank: {
-    placeholder: "HDFC0001234:50100123456789",
-    hint: "IFSC, then a colon, then the account number. Only the last four digits are stored.",
+    placeholder: "HDFC0001234",
+    hint: "The IFSC and the account number, as printed in your passbook. Only the last four digits of the account are stored.",
   },
   fssai: { placeholder: "12345678901234", hint: "Fourteen digits from the licence." },
 };
@@ -137,6 +137,8 @@ export function KycOnboarding({ view, roleLabel }: { view: OnboardingView; roleL
   const [values, setValues] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = useState<string | null>(null);
+  /** The other half of the bank check. `values.bank` holds the IFSC. */
+  const [accountNumber, setAccountNumber] = useState("");
   const [chosen, setChosen] = useState<Record<string, Chosen[]>>({});
   const pickers = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -234,7 +236,20 @@ export function KycOnboarding({ view, roleLabel }: { view: OnboardingView; roleL
   }
 
   async function submit(kind: CheckKind) {
-    const value = values[kind] ?? "";
+    /*
+      Bank is two fields and one wire value.
+
+      It used to be one box asking for "IFSC, then a colon, then the account
+      number" — a format nobody has ever been asked for at a bank counter, and
+      one where a missing colon reads as an invalid IFSC. The two are asked for
+      separately and joined here, so the endpoint that checks them is unchanged
+      and the person filling it in is asked for two things they can read off a
+      passbook.
+    */
+    const value =
+      kind === "bank"
+        ? `${(values.bank ?? "").trim()}:${(accountNumber ?? "").trim()}`
+        : (values[kind] ?? "");
     setPending(kind);
 
     let documents: Array<{ path: string; contentType: string }>;
@@ -422,11 +437,38 @@ export function KycOnboarding({ view, roleLabel }: { view: OnboardingView; roleL
                       placeholder={HELP[kind].placeholder}
                       value={values[kind] ?? ""}
                       onChange={(e) => {
-                        setValues((v) => ({ ...v, [kind]: e.target.value }));
+                        setValues((v) => ({
+                          ...v,
+                          // An IFSC is upper case on the passbook and upper
+                          // case in the check, so it is not something to get
+                          // wrong by typing.
+                          [kind]: kind === "bank" ? e.target.value.toUpperCase() : e.target.value,
+                        }));
                         setErrors((x) => ({ ...x, [kind]: "" }));
                       }}
                       aria-invalid={Boolean(errors[kind])}
                     />
+
+                    {/* The account number, in its own box. See `submit`. */}
+                    {kind === "bank" ? (
+                      <>
+                        <Label htmlFor="kyc-bank-account" className="sr-only">
+                          Account number
+                        </Label>
+                        <Input
+                          id="kyc-bank-account"
+                          className="min-w-48 flex-1 font-mono"
+                          placeholder="50100123456789"
+                          inputMode="numeric"
+                          value={accountNumber}
+                          onChange={(e) => {
+                            setAccountNumber(e.target.value);
+                            setErrors((x) => ({ ...x, bank: "" }));
+                          }}
+                          aria-invalid={Boolean(errors.bank)}
+                        />
+                      </>
+                    ) : null}
                     <Button
                       type="button"
                       variant="outline"
@@ -442,6 +484,9 @@ export function KycOnboarding({ view, roleLabel }: { view: OnboardingView; roleL
                         // counts: a masked Aadhaar cannot be retyped from what
                         // is on screen, and a re-upload should not demand it.
                         (!(values[kind] ?? "").trim() && !check?.reference) ||
+                        // Both halves, or the join produces a value the
+                        // endpoint will only reject.
+                        (kind === "bank" && !accountNumber.trim() && !check?.reference) ||
                         !hasEvidence(kind)
                       }
                       onClick={() => submit(kind)}

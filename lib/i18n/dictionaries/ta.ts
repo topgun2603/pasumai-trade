@@ -334,6 +334,7 @@ export const ta: Dictionary = {
     drivers: "ஓட்டுநர்கள்",
     language: "மொழி",
     theme: "தோற்றம்",
+    signedInAs: "உள்நுழைந்தவர்",
     signOut: "வெளியேறு",
     signingOut: "வெளியேறுகிறது…",
   },

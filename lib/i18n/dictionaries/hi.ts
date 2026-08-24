@@ -324,6 +324,7 @@ export const hi: Dictionary = {
     drivers: "चालक",
     language: "भाषा",
     theme: "रंग थीम",
+    signedInAs: "साइन इन",
     signOut: "साइन आउट",
     signingOut: "साइन आउट हो रहा है…",
   },

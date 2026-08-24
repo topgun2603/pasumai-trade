@@ -349,7 +349,7 @@ export const readFarmerAccounts = cache(function readFarmerAccounts(): Promise<
 export const readBuyingAccount = cache(async function readBuyingAccount(
   role: string,
   accountId: string | undefined,
-): Promise<{ name: string } | null> {
+): Promise<BuyerAccount | null> {
   if (!accountId || !hasAdminCredentials()) return null;
 
   const collection = role === "franchise" ? "franchises" : "buyers";
@@ -358,8 +358,13 @@ export const readBuyingAccount = cache(async function readBuyingAccount(
     const snapshot = await adminDb().collection(collection).doc(accountId).get();
     if (!snapshot.exists) return null;
 
-    const name = snapshot.data()?.name;
-    return { name: typeof name === "string" && name ? name : accountId };
+    /*
+      Shaped by the same function the admin roster uses, so a buyer reading
+      their own record and an operator reading it are reading one shape. Two
+      shapers for one document is two places for a field to be dropped.
+    */
+    const [account] = await withSignedPhotos([shapeBuying(snapshot.id, snapshot.data()!)]);
+    return account;
   } catch {
     return null;
   }

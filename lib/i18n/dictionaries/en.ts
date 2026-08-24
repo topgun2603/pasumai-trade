@@ -339,6 +339,7 @@ export const en = {
     drivers: "Drivers",
     language: "Language",
     theme: "Colour theme",
+    signedInAs: "Signed in as",
     signOut: "Sign out",
     signingOut: "Signing out…",
   },

@@ -325,6 +325,7 @@ export const te: Dictionary = {
     drivers: "డ్రైవర్లు",
     language: "భాష",
     theme: "రంగు థీమ్",
+    signedInAs: "సైన్ ఇన్ చేసినవారు",
     signOut: "సైన్ అవుట్",
     signingOut: "సైన్ అవుట్ అవుతోంది…",
   },

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BellIcon,
   BuildingIcon,
   GaugeIcon,
   HardHatIcon,
@@ -13,8 +14,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { SessionFooter } from "@/components/auth/session-footer";
+import { NotificationBell } from "@/components/notifications/notification-bell";
+import type { Notification } from "@/lib/domain/notification";
 import { ThemeToggle } from "@/components/console/theme-toggle";
 import { LanguageSwitcher } from "@/components/marketing/language-switcher";
+import type { Role } from "@/lib/auth/claims";
 import { getDictionary, type Dictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n/config";
 import { Badge } from "@/components/ui/badge";
@@ -86,15 +90,28 @@ const LINKS: Array<{
     farmer should not have to learn two names for the same place.
   */
   { href: "/agency/profile", key: "profile", icon: BuildingIcon },
+  /*
+    The console had no notifications at all. An agency learned a load was
+    waiting by opening the board and looking, and learned its papers had been
+    decided by not being refused any more.
+  */
+  { href: "/agency/notifications", key: "notifications", icon: BellIcon },
 ];
 
 export function AgencyNav({
   agency,
+  notifications,
+  session,
+  role,
   service,
   locale,
   pending,
 }: {
   agency: { name: string; id: string };
+  /** The bell in the rail header, read once for the whole console. */
+  notifications: { rows: Notification[]; unread: number; capped: boolean };
+  session: { email?: string };
+  role: Role;
   locale: Locale;
   /** What this login is for. Transport sees fleet and drivers; manpower sees crew. */
   service: AgencyService;
@@ -132,6 +149,13 @@ export function AgencyNav({
             {/* Whose, not what kind. */}
             <span className="text-faint truncate text-xs">{agency.name}</span>
           </span>
+          <NotificationBell
+            notifications={notifications.rows}
+            unread={notifications.unread}
+            capped={notifications.capped}
+            locale={locale}
+            href="/agency/notifications"
+          />
         </div>
 
         <Separator />
@@ -179,7 +203,13 @@ export function AgencyNav({
             header. Removed on every console, not just the farm one. */}
           <Separator />
           <SessionFooter
-            labels={{ signOut: t.console.signOut, signingOut: t.console.signingOut }}
+            email={session.email}
+            role={role}
+            labels={{
+              signedInAs: t.console.signedInAs,
+              signOut: t.console.signOut,
+              signingOut: t.console.signingOut,
+            }}
           />
         </div>
       </nav>

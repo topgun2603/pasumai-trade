@@ -325,6 +325,7 @@ export const kn: Dictionary = {
     drivers: "ಚಾಲಕರು",
     language: "ಭಾಷೆ",
     theme: "ಬಣ್ಣದ ಥೀಮ್",
+    signedInAs: "ಸೈನ್ ಇನ್ ಆದವರು",
     signOut: "ಸೈನ್ ಔಟ್",
     signingOut: "ಸೈನ್ ಔಟ್ ಆಗುತ್ತಿದೆ…",
   },

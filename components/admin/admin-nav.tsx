@@ -123,8 +123,11 @@ const SECTIONS: Array<{ title?: string; links: NavLink[] }> = [
 export function AdminNav({
   pending,
   role,
+  email,
 }: {
   pending: PendingCounts;
+  /** Which login is in use. Operations often share a machine. */
+  email?: string;
   /**
    * Operations sees the whole rail. A franchise sees the read-only part of it,
    * filtered from the same allow-list the `(operations)` route group enforces,
@@ -246,7 +249,7 @@ export function AdminNav({
           </Link>
 
           {/* Bug 16: bottom-left, the same as every other console. */}
-          <SessionFooter />
+          <SessionFooter email={email} role={role} />
         </div>
       </nav>
     </>

@@ -5,6 +5,7 @@ import { GateProvider } from "@/components/console/gate-dialog";
 import { AgencyNav } from "@/components/agency/agency-nav";
 import { ConsoleTour } from "@/components/console/tour";
 import { stateNameForDistrict } from "@/lib/domain/india";
+import { isCapped, readNotifications } from "@/lib/firebase/notifications-read";
 import { consoleLocale } from "@/lib/i18n/console";
 import { requireAgency } from "@/lib/auth/agency";
 import { verifySession } from "@/lib/auth/session";
@@ -32,9 +33,14 @@ export default async function AgencyLayout({
 }: {
   children: ReactNode;
 }) {
-  const { agency, service } = await requireAgency();
+  const { agency, email, service } = await requireAgency();
   // The rail reads in the owner's own language, like the farm one.
   const locale = await consoleLocale();
+
+  // The bell is on every screen, so the unread count is read here rather than
+  // on the notifications page — a count only visible once you have arrived is
+  // a count nobody sees.
+  const feed = await readNotifications(agency.id);
   const session = await verifySession();
 
   const mine = <T extends { agencyId: string }>(rows: T[]) =>
@@ -75,6 +81,13 @@ export default async function AgencyLayout({
     <div className="flex min-h-svh w-full">
       <AgencyNav
         agency={{ name: agency.name, id: agency.id }}
+        notifications={{
+          rows: feed.notifications,
+          unread: feed.unread,
+          capped: isCapped(feed),
+        }}
+        session={{ email }}
+        role={session!.claims.role}
         service={service}
         locale={locale}
         pending={pending}

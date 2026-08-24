@@ -294,7 +294,13 @@ export function ConsoleNav({
           <ThemeToggle label={t.console.theme} />
           <Separator />
           <SessionFooter
-            labels={{ signOut: t.console.signOut, signingOut: t.console.signingOut }}
+            email={session.email}
+            role={session.role}
+            labels={{
+              signedInAs: t.console.signedInAs,
+              signOut: t.console.signOut,
+              signingOut: t.console.signingOut,
+            }}
           />
         </div>
       </nav>

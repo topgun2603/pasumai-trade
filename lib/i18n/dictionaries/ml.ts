@@ -325,6 +325,7 @@ export const ml: Dictionary = {
     drivers: "ഡ്രൈവർമാർ",
     language: "ഭാഷ",
     theme: "നിറ ദൃശ്യരൂപം",
+    signedInAs: "സൈൻ ഇൻ ചെയ്തത്",
     signOut: "സൈൻ ഔട്ട്",
     signingOut: "സൈൻ ഔട്ട് ചെയ്യുന്നു…",
   },

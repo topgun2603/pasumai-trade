@@ -4,6 +4,7 @@ import { LogOutIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { ROLE_LABELS, type Role } from "@/lib/auth/claims";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/auth/sign-in";
 
@@ -15,8 +16,13 @@ import { signOut } from "@/lib/auth/sign-in";
  * more than a greeting.
  */
 export function SessionFooter({
+  email,
+  role,
   labels,
 }: {
+  /** The login itself. A mobile-OTP account has no address; the role stands in. */
+  email?: string;
+  role: Role;
   /**
    * Optional, and English when absent.
    *
@@ -24,7 +30,7 @@ export function SessionFooter({
    * operated in English. Making this required would force four callers to pass
    * translations that do not exist yet.
    */
-  labels?: { signOut: string; signingOut: string; role?: string };
+  labels?: { signOut: string; signingOut: string; signedInAs?: string };
 }) {
   const [pending, setPending] = useState(false);
 
@@ -46,18 +52,26 @@ export function SessionFooter({
 
   return (
     /*
-      Sign out, and nothing above it.
+      Who is signed in, then the way out.
 
-      This carried the signed-in address and the role, under a header that
-      already names the account — the same person identified twice, a few
-      centimetres apart, on every console. The header is where somebody looks
-      to check whose console they are in; this is where they look to leave.
+      The account's own name is in the rail header. This is a different fact:
+      *which login* is being used, which on a shared handset or a business with
+      two people on one account is the question somebody actually has before
+      they sign out of it.
 
-      `email` and `role` went with it. Sign-out is a document load to the
-      sign-in page and consults neither, so keeping them would have been two
-      props nobody reads — which drift, and then mislead.
+      It was removed with the duplicated name-and-village block above it and
+      should not have been — the two looked alike and were not.
     */
     <div className="flex flex-col gap-2">
+      <div className="flex min-w-0 flex-col leading-tight">
+        <span className="text-faint text-[11px] tracking-wide uppercase">
+          {labels?.signedInAs ?? "Signed in as"}
+        </span>
+        <span className="truncate text-sm font-medium" title={email}>
+          {email ?? ROLE_LABELS[role]}
+        </span>
+      </div>
+
       <Button
         variant="outline"
         size="sm"
