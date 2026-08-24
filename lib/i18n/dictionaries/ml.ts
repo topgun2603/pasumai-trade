@@ -297,6 +297,38 @@ export const ml: Dictionary = {
     writeToUs: "ഞങ്ങൾക്ക് എഴുതുക",
   },
 
+  /**
+   * The rails every non-farm console reads.
+   *
+   * These were hardcoded English on the grounds that buying and agency
+   * are staff surfaces. They are not: a transport owner and a labour
+   * contractor run their own businesses on them, exactly as a farmer
+   * does, and a language switcher with nothing to switch is worse than
+   * no switcher at all.
+   */
+  console: {
+    home: "ഹോം",
+    overview: "അവലോകനം",
+    marketplace: "മാർക്കറ്റ്",
+    bargains: "വിലപേശലുകൾ",
+    orders: "ഓർഡറുകൾ",
+    profile: "എന്റെ പ്രൊഫൈൽ",
+    notifications: "അറിയിപ്പുകൾ",
+    dispatch: "അയയ്ക്കൽ",
+    farmers: "കർഷകർ",
+    platformView: "പ്ലാറ്റ്ഫോം കാഴ്ച",
+    buying: "വാങ്ങൽ",
+    yourDistrict: "നിങ്ങളുടെ ജില്ല",
+    bookTransport: "വാഹനം ബുക്ക്",
+    bookOrders: "ജോലി ബുക്ക്",
+    transport: "വാഹനങ്ങൾ",
+    drivers: "ഡ്രൈവർമാർ",
+    language: "ഭാഷ",
+    theme: "നിറ ദൃശ്യരൂപം",
+    signOut: "സൈൻ ഔട്ട്",
+    signingOut: "സൈൻ ഔട്ട് ചെയ്യുന്നു…",
+  },
+
   farm: {
     nav: {
       home: "ഹോം",

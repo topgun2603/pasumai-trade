@@ -297,6 +297,38 @@ export const kn: Dictionary = {
     writeToUs: "ನಮಗೆ ಬರೆಯಿರಿ",
   },
 
+  /**
+   * The rails every non-farm console reads.
+   *
+   * These were hardcoded English on the grounds that buying and agency
+   * are staff surfaces. They are not: a transport owner and a labour
+   * contractor run their own businesses on them, exactly as a farmer
+   * does, and a language switcher with nothing to switch is worse than
+   * no switcher at all.
+   */
+  console: {
+    home: "ಮುಖಪುಟ",
+    overview: "ಅವಲೋಕನ",
+    marketplace: "ಮಾರುಕಟ್ಟೆ",
+    bargains: "ಚೌಕಾಸಿಗಳು",
+    orders: "ಆರ್ಡರ್‌ಗಳು",
+    profile: "ನನ್ನ ಪ್ರೊಫೈಲ್",
+    notifications: "ಅಧಿಸೂಚನೆಗಳು",
+    dispatch: "ರವಾನೆ",
+    farmers: "ರೈತರು",
+    platformView: "ಪ್ಲಾಟ್‌ಫಾರ್ಮ್ ನೋಟ",
+    buying: "ಖರೀದಿ",
+    yourDistrict: "ನಿಮ್ಮ ಜಿಲ್ಲೆ",
+    bookTransport: "ಸಾಗಣೆ ಬುಕ್",
+    bookOrders: "ಕೆಲಸ ಬುಕ್",
+    transport: "ವಾಹನಗಳು",
+    drivers: "ಚಾಲಕರು",
+    language: "ಭಾಷೆ",
+    theme: "ಬಣ್ಣದ ಥೀಮ್",
+    signOut: "ಸೈನ್ ಔಟ್",
+    signingOut: "ಸೈನ್ ಔಟ್ ಆಗುತ್ತಿದೆ…",
+  },
+
   farm: {
     nav: {
       home: "ಮುಖಪುಟ",

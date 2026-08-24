@@ -297,6 +297,38 @@ export const te: Dictionary = {
     writeToUs: "మాకు రాయండి",
   },
 
+  /**
+   * The rails every non-farm console reads.
+   *
+   * These were hardcoded English on the grounds that buying and agency
+   * are staff surfaces. They are not: a transport owner and a labour
+   * contractor run their own businesses on them, exactly as a farmer
+   * does, and a language switcher with nothing to switch is worse than
+   * no switcher at all.
+   */
+  console: {
+    home: "హోమ్",
+    overview: "అవలోకనం",
+    marketplace: "మార్కెట్",
+    bargains: "బేరసారాలు",
+    orders: "ఆర్డర్లు",
+    profile: "నా ప్రొఫైల్",
+    notifications: "నోటిఫికేషన్లు",
+    dispatch: "పంపడం",
+    farmers: "రైతులు",
+    platformView: "ప్లాట్‌ఫారమ్ వీక్షణ",
+    buying: "కొనుగోలు",
+    yourDistrict: "మీ జిల్లా",
+    bookTransport: "రవాణా బుక్",
+    bookOrders: "పని బుక్",
+    transport: "వాహనాలు",
+    drivers: "డ్రైవర్లు",
+    language: "భాష",
+    theme: "రంగు థీమ్",
+    signOut: "సైన్ అవుట్",
+    signingOut: "సైన్ అవుట్ అవుతోంది…",
+  },
+
   farm: {
     nav: {
       home: "హోమ్",

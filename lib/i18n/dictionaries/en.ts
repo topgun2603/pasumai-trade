@@ -311,6 +311,38 @@ export const en = {
     or an agency is a business operating in English. See lib/i18n/console.ts for
     how the language reaches a surface that has no locale in its path.
   */
+  /**
+   * The rails every non-farm console reads.
+   *
+   * These were hardcoded English on the grounds that buying and agency
+   * are staff surfaces. They are not: a transport owner and a labour
+   * contractor run their own businesses on them, exactly as a farmer
+   * does, and a language switcher with nothing to switch is worse than
+   * no switcher at all.
+   */
+  console: {
+    home: "Home",
+    overview: "Overview",
+    marketplace: "Marketplace",
+    bargains: "Bargains",
+    orders: "Orders",
+    profile: "My Profile",
+    notifications: "Notifications",
+    dispatch: "Dispatch",
+    farmers: "Farmers",
+    platformView: "Platform view",
+    buying: "Buying",
+    yourDistrict: "Your district",
+    bookTransport: "Book Transport",
+    bookOrders: "Book Orders",
+    transport: "Transport",
+    drivers: "Drivers",
+    language: "Language",
+    theme: "Colour theme",
+    signOut: "Sign out",
+    signingOut: "Signing out…",
+  },
+
   farm: {
     nav: {
       home: "Home",

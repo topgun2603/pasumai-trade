@@ -88,18 +88,21 @@ export interface Claims {
  *
  * A buyer sent to `/admin` would get a refusal, so each role names its own
  * landing page and nothing hardcodes one.
+ *
+ * Home, not the overview. This was the other way round on the argument that a
+ * tap between somebody and their work is a cost paid every morning — and it
+ * is, but the greeting is what makes a console somebody's rather than a set of
+ * screens, and the continue control on it is one tap rather than a wall.
  */
 export const HOME_FOR_ROLE: Record<Role, string> = {
+  // Operations have no Home page. They are not an account on the platform and
+  // there is no welcome to give them; the overview is the work.
   admin: "/admin",
-  // Listings, not the market. The market is a catalogue of stock the platform
-  // has already bought and graded, and nothing pools procurement into it yet —
-  // so it is withdrawn until that pipeline exists. Listings is where a buyer
-  // can actually do something today.
-  franchise: "/listings",
-  buyer: "/listings",
-  transport: "/agency",
-  manpower: "/agency",
-  farmer: "/farm",
+  franchise: "/home",
+  buyer: "/home",
+  transport: "/agency/home",
+  manpower: "/agency/home",
+  farmer: "/farm/home",
 };
 
 /**

@@ -335,3 +335,32 @@ export const readFarmerAccounts = cache(function readFarmerAccounts(): Promise<
     documents: documents(data.documents),
   }));
 });
+
+/**
+ * One buying account, for the console's own chrome.
+ *
+ * The rail names whoever is signed in, and a buyer's name lives on their
+ * account document rather than in their claims — claims hold what changes
+ * rarely and a business changes its trading name.
+ *
+ * Returns the id as a last resort rather than an empty header. A rail with a
+ * blank line under the wordmark reads as a page that failed to load.
+ */
+export const readBuyingAccount = cache(async function readBuyingAccount(
+  role: string,
+  accountId: string | undefined,
+): Promise<{ name: string } | null> {
+  if (!accountId || !hasAdminCredentials()) return null;
+
+  const collection = role === "franchise" ? "franchises" : "buyers";
+
+  try {
+    const snapshot = await adminDb().collection(collection).doc(accountId).get();
+    if (!snapshot.exists) return null;
+
+    const name = snapshot.data()?.name;
+    return { name: typeof name === "string" && name ? name : accountId };
+  } catch {
+    return null;
+  }
+});

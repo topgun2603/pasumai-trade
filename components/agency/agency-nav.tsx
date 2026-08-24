@@ -6,24 +6,18 @@ import {
   HardHatIcon,
   HouseIcon,
   PackageIcon,
-  MoonIcon,
   ShieldCheckIcon,
-  SunIcon,
   TruckIcon,
 } from "lucide-react";
-import { useTheme } from "next-themes";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { SessionFooter } from "@/components/auth/session-footer";
+import { ThemeToggle } from "@/components/console/theme-toggle";
+import { LanguageSwitcher } from "@/components/marketing/language-switcher";
+import { getDictionary, type Dictionary } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/config";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import type { AgencyService } from "@/lib/domain/admin";
 import { BrandMark } from "@/components/marketing/brand-mark";
@@ -39,14 +33,15 @@ import { cn } from "@/lib/utils";
  */
 const LINKS: Array<{
   href: string;
-  label: string;
+  /** A dictionary key, so the rail reads in the owner's own language. */
+  key: keyof Dictionary["console"];
   icon: typeof GaugeIcon;
   service?: AgencyService;
   exact?: boolean;
 }> = [
   // Bug 14: reachable from the rail, and not where sign-in lands.
-  { href: "/agency/home", label: "Home", icon: HouseIcon },
-  { href: "/agency", label: "Overview", icon: GaugeIcon, exact: true },
+  { href: "/agency/home", key: "home", icon: HouseIcon },
+  { href: "/agency", key: "overview", icon: GaugeIcon, exact: true },
   {
     /*
       First after the overview: this is the screen an owner keeps open, and a
@@ -57,7 +52,7 @@ const LINKS: Array<{
       the thing a label is for.
     */
     href: "/agency/pickups",
-    label: "Book Transport",
+    key: "bookTransport",
     icon: PackageIcon,
     service: "transport",
   },
@@ -65,7 +60,7 @@ const LINKS: Array<{
     // Bug 25: a manpower agency is not managing a list of workers here, it is
     // taking work.
     href: "/agency/workers",
-    label: "Book Orders",
+    key: "bookOrders",
     icon: HardHatIcon,
     service: "manpower",
   },
@@ -73,13 +68,13 @@ const LINKS: Array<{
     // Bug 25: "Fleet" is a word the platform used; the business calls it
     // transport, and so does every other role's console now.
     href: "/agency/fleet",
-    label: "Transport",
+    key: "transport",
     icon: TruckIcon,
     service: "transport",
   },
   {
     href: "/agency/drivers",
-    label: "Drivers",
+    key: "drivers",
     icon: ShieldCheckIcon,
     service: "transport",
   },
@@ -90,53 +85,29 @@ const LINKS: Array<{
     "My Profile", the same words as every other console — an agency owner and a
     farmer should not have to learn two names for the same place.
   */
-  { href: "/agency/profile", label: "My Profile", icon: BuildingIcon },
+  { href: "/agency/profile", key: "profile", icon: BuildingIcon },
 ];
-
-function ThemeToggle() {
-  const { setTheme } = useTheme();
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="w-full justify-start">
-          <SunIcon className="size-4 scale-100 rotate-0 transition-transform dark:scale-0 dark:-rotate-90" />
-          <MoonIcon className="absolute size-4 scale-0 rotate-90 transition-transform dark:scale-100 dark:rotate-0" />
-          <span className="ml-6">Theme</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
-        <DropdownMenuItem onClick={() => setTheme("light")}>
-          Light
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
-          Dark
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
-          System
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
 
 export function AgencyNav({
   agency,
   service,
+  locale,
   pending,
 }: {
   agency: { name: string; id: string };
+  locale: Locale;
   /** What this login is for. Transport sees fleet and drivers; manpower sees crew. */
   service: AgencyService;
   pending: Record<string, number>;
 }) {
   const pathname = usePathname();
+  const t = getDictionary(locale);
   const links = LINKS.filter((l) => !l.service || l.service === service);
 
   // The same filtered list the rail draws, so a transport-only link never
   // appears in a manpower drawer.
   const drawerGroups = [
-    { links: links.map(({ href, label, exact }) => ({ href, label, exact })) },
+    { links: links.map(({ href, key, exact }) => ({ href, label: t.console[key], exact })) },
   ];
 
   return (
@@ -158,14 +129,15 @@ export function AgencyNav({
             <span className="truncate text-sm font-semibold">
               Pasumai Trade
             </span>
-            <span className="text-faint text-xs">Agency console</span>
+            {/* Whose, not what kind. */}
+            <span className="text-faint truncate text-xs">{agency.name}</span>
           </span>
         </div>
 
         <Separator />
 
         <ul className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2">
-          {links.map(({ href, label, icon: Icon, exact }) => {
+          {links.map(({ href, key, icon: Icon, exact }) => {
             const active = exact
               ? pathname === href
               : pathname === href || pathname.startsWith(`${href}/`);
@@ -185,7 +157,7 @@ export function AgencyNav({
                   )}
                 >
                   <Icon className="size-4 shrink-0" />
-                  {label}
+                  {t.console[key]}
                   {waiting > 0 ? (
                     <Badge
                       variant="outline"
@@ -201,14 +173,14 @@ export function AgencyNav({
         </ul>
 
         <div className="border-sidebar-border flex shrink-0 flex-col gap-3 border-t p-3">
-          <ThemeToggle />
+          <LanguageSwitcher current={locale} label={t.console.language} />
+          <ThemeToggle label={t.console.theme} />
+          {/* The name and id were repeated here, under the same name in the
+            header. Removed on every console, not just the farm one. */}
           <Separator />
-          <div className="flex flex-col leading-tight">
-            <span className="truncate text-sm font-medium">{agency.name}</span>
-            <span className="text-faint font-mono text-xs">{agency.id}</span>
-          </div>
-          <Separator />
-          <SessionFooter />
+          <SessionFooter
+            labels={{ signOut: t.console.signOut, signingOut: t.console.signingOut }}
+          />
         </div>
       </nav>
     </>

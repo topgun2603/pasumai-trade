@@ -5,6 +5,7 @@ import { GateProvider } from "@/components/console/gate-dialog";
 import { AgencyNav } from "@/components/agency/agency-nav";
 import { ConsoleTour } from "@/components/console/tour";
 import { stateNameForDistrict } from "@/lib/domain/india";
+import { consoleLocale } from "@/lib/i18n/console";
 import { requireAgency } from "@/lib/auth/agency";
 import { verifySession } from "@/lib/auth/session";
 import { needsReview } from "@/lib/domain/admin";
@@ -32,6 +33,8 @@ export default async function AgencyLayout({
   children: ReactNode;
 }) {
   const { agency, service } = await requireAgency();
+  // The rail reads in the owner's own language, like the farm one.
+  const locale = await consoleLocale();
   const session = await verifySession();
 
   const mine = <T extends { agencyId: string }>(rows: T[]) =>
@@ -73,6 +76,7 @@ export default async function AgencyLayout({
       <AgencyNav
         agency={{ name: agency.name, id: agency.id }}
         service={service}
+        locale={locale}
         pending={pending}
       />
       <div className="flex min-w-0 flex-1 flex-col">

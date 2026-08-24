@@ -296,6 +296,38 @@ export const hi: Dictionary = {
     writeToUs: "हमें लिखें",
   },
 
+  /**
+   * The rails every non-farm console reads.
+   *
+   * These were hardcoded English on the grounds that buying and agency
+   * are staff surfaces. They are not: a transport owner and a labour
+   * contractor run their own businesses on them, exactly as a farmer
+   * does, and a language switcher with nothing to switch is worse than
+   * no switcher at all.
+   */
+  console: {
+    home: "होम",
+    overview: "अवलोकन",
+    marketplace: "बाज़ार",
+    bargains: "सौदे",
+    orders: "ऑर्डर",
+    profile: "मेरी प्रोफ़ाइल",
+    notifications: "सूचनाएँ",
+    dispatch: "प्रेषण",
+    farmers: "किसान",
+    platformView: "प्लेटफ़ॉर्म दृश्य",
+    buying: "खरीद",
+    yourDistrict: "आपका ज़िला",
+    bookTransport: "वाहन बुक करें",
+    bookOrders: "काम बुक करें",
+    transport: "वाहन",
+    drivers: "चालक",
+    language: "भाषा",
+    theme: "रंग थीम",
+    signOut: "साइन आउट",
+    signingOut: "साइन आउट हो रहा है…",
+  },
+
   farm: {
     nav: {
       home: "होम",

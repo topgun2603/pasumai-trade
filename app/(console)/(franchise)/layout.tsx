@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 
 import { ConsoleNav } from "@/components/franchise/console-nav";
-import { ConsoleTopBar } from "@/components/console/top-bar";
 import { requireConsole } from "@/lib/auth/require";
+import { readBuyingAccount } from "@/lib/firebase/roster-read";
+import { consoleLocale } from "@/lib/i18n/console";
 import { isCapped, readNotifications } from "@/lib/firebase/notifications-read";
 
 /**
@@ -26,6 +27,13 @@ export default async function FranchiseLayout({ children }: { children: ReactNod
   // Operations too: they field the call when a franchise cannot work a screen.
   const session = await requireConsole(["franchise", "admin"]);
 
+  // Whose console this is, and which language they read it in. Both are for
+  // the rail, and both are memoised per request.
+  const [account, locale] = await Promise.all([
+    readBuyingAccount(session.claims.role, session.claims.accountId),
+    consoleLocale(),
+  ]);
+
   // The rail is on every screen, so the unread count belongs here rather than
   // on the notifications page — a count only visible once you have arrived is
   // a count nobody sees.
@@ -34,6 +42,8 @@ export default async function FranchiseLayout({ children }: { children: ReactNod
   return (
     <div className="flex min-h-svh w-full">
       <ConsoleNav
+        account={account ?? { name: session.claims.accountId ?? "Your account" }}
+        locale={locale}
         session={{ email: session.email, role: session.claims.role }}
         pending={{ "/notifications": feed.unread }}
         notifications={{
@@ -43,7 +53,6 @@ export default async function FranchiseLayout({ children }: { children: ReactNod
         }}
       />
       <div className="flex min-w-0 flex-1 flex-col">
-        <ConsoleTopBar session={{ email: session.email, role: session.claims.role }} />
         {children}
       </div>
     </div>

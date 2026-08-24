@@ -306,6 +306,38 @@ export const ta: Dictionary = {
     writeToUs: "எங்களுக்கு எழுதுங்கள்",
   },
 
+  /**
+   * The rails every non-farm console reads.
+   *
+   * These were hardcoded English on the grounds that buying and agency
+   * are staff surfaces. They are not: a transport owner and a labour
+   * contractor run their own businesses on them, exactly as a farmer
+   * does, and a language switcher with nothing to switch is worse than
+   * no switcher at all.
+   */
+  console: {
+    home: "முகப்பு",
+    overview: "மேலோட்டம்",
+    marketplace: "சந்தை",
+    bargains: "பேரங்கள்",
+    orders: "ஆர்டர்கள்",
+    profile: "என் சுயவிவரம்",
+    notifications: "அறிவிப்புகள்",
+    dispatch: "அனுப்புதல்",
+    farmers: "விவசாயிகள்",
+    platformView: "தளக் காட்சி",
+    buying: "வாங்குதல்",
+    yourDistrict: "உங்கள் மாவட்டம்",
+    bookTransport: "வாகனம் பதிவு",
+    bookOrders: "வேலை பதிவு",
+    transport: "வாகனங்கள்",
+    drivers: "ஓட்டுநர்கள்",
+    language: "மொழி",
+    theme: "தோற்றம்",
+    signOut: "வெளியேறு",
+    signingOut: "வெளியேறுகிறது…",
+  },
+
   farm: {
     nav: {
       home: "முகப்பு",
