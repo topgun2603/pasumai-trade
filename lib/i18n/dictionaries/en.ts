@@ -298,7 +298,7 @@ export const en = {
       "Bargain messages come from a fixed list, so each side reads them in their own language.",
 
     languages: "Spoken here",
-    address: "Coimbatore, Tamil Nadu, India",
+    address: "India",
     email: "org@srirealtime.com",
     writeToUs: "Write to us",
   },

@@ -291,7 +291,7 @@ export const hi: Dictionary = {
       "मोल-भाव के संदेश एक तय सूची से आते हैं, ताकि दोनों उन्हें अपनी भाषा में पढ़ें।",
 
     languages: "यहाँ बोली जाने वाली भाषाएँ",
-    address: "कोयंबटूर, तमिलनाडु, भारत",
+    address: "भारत",
     email: "org@srirealtime.com",
     writeToUs: "हमें लिखें",
   },
