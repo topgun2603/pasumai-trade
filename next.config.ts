@@ -52,6 +52,17 @@ const nextConfig: NextConfig = {
         destination: "/agency/profile/subscription",
         permanent: true,
       },
+      /*
+        The price chart moved inside History. It was a rail item, so it is in
+        somebody's history and quite possibly bookmarked — and on an installed
+        console a 404 here looks like the app breaking rather than a page
+        moving.
+      */
+      {
+        source: "/farm/analytics",
+        destination: "/farm/account/history",
+        permanent: true,
+      },
     ];
   },
 };

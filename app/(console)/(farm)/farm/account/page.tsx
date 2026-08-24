@@ -78,7 +78,7 @@ export default async function FarmAccountPage() {
   return (
     <>
       <PageHeader
-        title="Account"
+        title="My Profile"
         description="What the platform holds about you. Ask operations to change anything here."
       />
 

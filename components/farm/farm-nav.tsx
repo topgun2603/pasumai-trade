@@ -2,7 +2,6 @@
 
 import {
   BellIcon,
-  ChartColumnIcon,
   GaugeIcon,
   HandshakeIcon,
   HouseIcon,
@@ -73,7 +72,11 @@ const LINKS = [
   { href: "/farm/bargains", key: "bargains", icon: HandshakeIcon, bar: true },
   // Bug 16: the same business function is called Logistics everywhere else.
   { href: "/farm/sales", key: "logistics", icon: ReceiptIcon, bar: false },
-  { href: "/farm/analytics", key: "prices", icon: ChartColumnIcon, bar: false },
+  /*
+    No Prices item. The chart moved inside History, under My Profile — it is
+    something you consult, not a place you work, and a rail item promises a
+    destination.
+  */
   /*
     Profile second from the bottom, notifications at the very bottom, on every
     console. A badge is something you glance at rather than navigate by, so

@@ -90,7 +90,7 @@ export default async function BuyingAccountPage() {
   return (
     <>
       <PageHeader
-        title="Account"
+        title="My Profile"
         description="What the platform holds about you, and what is still needed."
       />
 
