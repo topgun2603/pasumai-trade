@@ -1,4 +1,9 @@
-import { BadgeCheckIcon, CreditCardIcon, LandmarkIcon } from "lucide-react";
+import {
+  BadgeCheckIcon,
+  CreditCardIcon,
+  HistoryIcon,
+  LandmarkIcon,
+} from "lucide-react";
 import type { Metadata } from "next";
 import { connection } from "next/server";
 
@@ -72,6 +77,12 @@ export default async function AgencyProfilePage() {
               icon: CreditCardIcon,
               label: "Subscription",
               summary: "Taking work needs an active plan",
+            },
+            {
+              href: "/agency/profile/history",
+              icon: HistoryIcon,
+              label: "History",
+              summary: "Every run you have taken, and every change to your agency",
             },
           ]}
         />

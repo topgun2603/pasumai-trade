@@ -1,6 +1,6 @@
 "use client";
 
-import { HandshakeIcon, HistoryIcon, TrendingUpIcon } from "lucide-react";
+import { HandshakeIcon, HistoryIcon, TrendingUpIcon, TruckIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,8 +28,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
  * renders without JavaScript running.
  */
 
+/*
+  Keyed by slot rather than by label, because the first slot holds different
+  work per role — bargains for a farmer or a buyer, runs for an agency — and
+  the icon should say which. The handshake is wrong on a lorry.
+*/
 const ICONS = {
   bargains: HandshakeIcon,
+  runs: TruckIcon,
   revenue: TrendingUpIcon,
   audits: HistoryIcon,
 } as const;

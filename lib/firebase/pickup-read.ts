@@ -183,3 +183,35 @@ export async function readOpenPickups(): Promise<PickupRequest[]> {
     return [];
   }
 }
+
+/**
+ * Every run one agency has taken, newest first.
+ *
+ * Filtered in code rather than queried on `acceptedBy.agencyId`. A nested
+ * field needs its own composite index to sort on, and this collection holds
+ * one document per settled bargain rather than one per message — the scan is
+ * cheaper than the index is to maintain, and it stays cheaper until the
+ * platform is an order of magnitude larger than it is.
+ *
+ * Never throws. An agency's own history failing to load is not a reason to
+ * fail the page it sits on.
+ */
+export async function readAgencyPickups(agencyId: string): Promise<PickupRequest[]> {
+  if (!agencyId || !hasAdminCredentials()) return [];
+
+  try {
+    const snapshot = await adminDb().collection("pickups").get();
+
+    return snapshot.docs
+      .map((doc) => shapePickup(doc.id, doc.data()))
+      .filter((pickup) => pickup.acceptedBy?.agencyId === agencyId)
+      .sort(
+        (a, b) =>
+          (b.acceptedBy?.acceptedAt ?? b.requestedAt).getTime() -
+          (a.acceptedBy?.acceptedAt ?? a.requestedAt).getTime(),
+      );
+  } catch (error) {
+    console.error("agency pickups unreadable", { agencyId, error });
+    return [];
+  }
+}
