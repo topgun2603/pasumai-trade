@@ -1,34 +1,63 @@
 import { cn } from "@/lib/utils";
 
 /**
- * The two buds, as path data.
+ * The three leaves, as path data.
  *
- * Exported because the loader draws the same pair — it animates them, so it
+ * Exported because the loader draws the same set — it animates them, so it
  * cannot reuse the component, and a second copy of the geometry is a second
- * drawing that quietly stops matching the first. `LEAD` is the larger bud.
+ * drawing that quietly stops matching the first. `CENTRE` is the upright leaf;
+ * the other two are its pair, mirrored about x=24.
  */
-export const BRAND_LEAF_LEAD = "M25 32C22.2 22.2 27.2 11 38 5 41.2 16.4 36 27.8 25 32Z";
-export const BRAND_LEAF_TRAIL =
-  "M22.4 33.2C14.2 30.4 8.2 22 7.8 11.4 17 13.8 22.4 21.4 23.2 31.8Z";
+export const BRAND_LEAF_CENTRE = "M24 4C30.5 11.5 32.5 22 24 32 15.5 22 17.5 11.5 24 4Z";
+export const BRAND_LEAF_LEFT = "M24 31.5C18 33.5 10.5 29.5 6.5 18.5 15 18.5 22 23 24 31.5Z";
+export const BRAND_LEAF_RIGHT = "M24 31.5C30 33.5 37.5 29.5 41.5 18.5 33 18.5 26 23 24 31.5Z";
 
 /**
- * The Pasumai Trade mark: two leaf buds on a stem.
+ * The Pasumai Trade mark: a three-leaf sprout, optionally in its dish.
  *
- * The ring is gone. It was a half-circle the leaves grew out of, and it did two
- * things badly — it read as a seal or a badge at any size worth putting in a
- * header, and at sixteen pixels it collapsed into a grey smudge that took the
- * leaves down with it. What is left is the part that meant something.
+ * ## Why three leaves and not two
  *
- * The two buds are deliberately unequal and set in a V. A matched pair reads as
- * a logo made with a mirror tool; one leading bud with a smaller one behind it
- * reads as a plant, and the offset is what makes the shape identifiable in a
- * browser tab rather than merely present.
+ * The mark was two unequal buds in a V. Three leaves — one upright, two swept
+ * down and out — is the shape of a seedling that has actually put out its
+ * first true leaves, which is closer to what the platform is about than a pair
+ * of shoots. It also gives the silhouette a stable base: two leaves in a V
+ * float, three sit.
+ *
+ * ## The dish is opt-in, and that is deliberate
+ *
+ * An earlier version of this mark had a ring, and the ring was removed because
+ * at sixteen pixels it collapsed into a grey smudge and took the leaves down
+ * with it. That lesson still holds, so the dish is not on by default — it is
+ * asked for, and only where the mark is drawn large enough for a hairline to
+ * survive: the header and footer lockups, the installed-app icon. The rails
+ * draw the mark at 16–20px and get the leaves alone.
+ *
+ * One geometry, two dressings. A brand with a container and a bare form is
+ * ordinary; a brand with two different drawings is a mistake waiting to be
+ * noticed.
+ *
+ * ## What is left out
+ *
+ * No bud between the leaves and no midribs. Both are visible in the reference
+ * and neither survives a favicon — and worse, the bud reads *lighter* than the
+ * leaves there, which a single-colour mark taking its fill from `currentColor`
+ * cannot reproduce: a translucent shape drawn over an opaque one comes out
+ * darker, not lighter.
  *
  * Drawn rather than shipped as an image file: an SVG scales from a favicon to a
  * hero from one definition, and it takes its colour from the surrounding text —
  * so the dark theme needs no second asset.
  */
-export function BrandMark({ className }: { className?: string }) {
+export function BrandMark({
+  className,
+  dish = false,
+}: {
+  className?: string;
+  /**
+   * Draw the dish around the sprout. For display sizes only — see above.
+   */
+  dish?: boolean;
+}) {
   return (
     <svg
       viewBox="0 0 48 48"
@@ -37,33 +66,45 @@ export function BrandMark({ className }: { className?: string }) {
       className={cn("shrink-0", className)}
     >
       {/*
-        The stem, short and thick. It was longer when a ring enclosed it; on its
-        own a thin stalk is the first thing to disappear when the mark is scaled
-        down, and a sprout without one reads as two loose leaves.
+        The dish: a hairline, well faded. It is glass in the reference, and
+        glass in a flat mark is a line you can see past rather than a border —
+        at full strength it becomes a badge, and the leaves stop being the
+        subject.
+      */}
+      {dish ? (
+        <circle
+          cx="24"
+          cy="24"
+          r="21.4"
+          stroke="currentColor"
+          strokeWidth="1.3"
+          opacity="0.3"
+        />
+      ) : null}
+
+      {/*
+        The stem, short and thick. A thin stalk is the first thing to disappear
+        when the mark is scaled down, and a sprout without one reads as three
+        loose leaves. Drawn before the leaves so their bases cover where it
+        joins.
       */}
       <path
-        d="M24 43.5V31"
+        d="M24 41.5V30"
         stroke="currentColor"
-        strokeWidth="4.4"
+        strokeWidth="3.5"
         strokeLinecap="round"
       />
 
-      {/* The leading bud, reaching up and to the right. */}
-      <path
-        d={BRAND_LEAF_LEAD}
-        fill="currentColor"
-      />
-
       {/*
-        The second bud, smaller and held back. The lighter fill puts it behind
-        the first rather than beside it, which is what gives a flat mark depth
-        without a second colour.
+        The pair, set behind the upright leaf. The lighter fill is what gives a
+        flat mark depth without a second colour — the same trick the two-bud
+        version used, now doing it for a pair rather than a single trailing bud.
       */}
-      <path
-        d={BRAND_LEAF_TRAIL}
-        fill="currentColor"
-        opacity="0.68"
-      />
+      <path d={BRAND_LEAF_LEFT} fill="currentColor" opacity="0.72" />
+      <path d={BRAND_LEAF_RIGHT} fill="currentColor" opacity="0.72" />
+
+      {/* The upright leaf, in front and at full strength. */}
+      <path d={BRAND_LEAF_CENTRE} fill="currentColor" />
     </svg>
   );
 }
@@ -89,7 +130,9 @@ export function BrandLockup({
 }) {
   return (
     <span className={cn("flex items-center gap-2.5", className)}>
-      <BrandMark className={cn("text-primary size-9", markClassName)} />
+      {/* Big enough for the dish, which is the whole reason it is drawn here
+        and not in the rails. */}
+      <BrandMark dish className={cn("text-primary size-9", markClassName)} />
       <span className="flex flex-col leading-tight">
         <span
           className={cn(

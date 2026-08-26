@@ -1,6 +1,7 @@
 import {
-  BRAND_LEAF_LEAD,
-  BRAND_LEAF_TRAIL,
+  BRAND_LEAF_CENTRE,
+  BRAND_LEAF_LEFT,
+  BRAND_LEAF_RIGHT,
 } from "@/components/marketing/brand-mark";
 import { cn } from "@/lib/utils";
 
@@ -91,13 +92,18 @@ export function Loader({
       </g>
 
       {/*
-        The brand's own two buds, scaled down to sit inside the sweep and
+        The brand's own sprout, scaled down to sit inside the sweep and
         breathing out of phase with it. The paths are imported rather than
         redrawn: a second copy would be a second drawing, and it would stop
         matching the mark the first time either changed.
 
-        Offset in time on purpose — a matched pair pulsing together reads as a
-        loading dot, and the point is that it reads as something growing.
+        The dish is not drawn here. The loader already has a ring — the sweep
+        is one — and two concentric circles would read as a dial rather than
+        as something growing.
+
+        The lower pair is offset in time on purpose. Three leaves pulsing
+        together read as a loading dot; the upright leaf leading and the pair
+        following reads as opening.
       */}
       <g
         className={cn(
@@ -108,13 +114,19 @@ export function Loader({
         {/* Scaled about the centre of the box, so the pair keeps its
             proportions and lands inside the arcs. */}
         <g transform="translate(24 24) scale(0.52) translate(-24 -24)">
-          <path d={BRAND_LEAF_LEAD} fill="currentColor" />
           <path
-            d={BRAND_LEAF_TRAIL}
+            d={BRAND_LEAF_LEFT}
             fill="currentColor"
             opacity="0.6"
             style={{ animationDelay: "-0.8s" }}
           />
+          <path
+            d={BRAND_LEAF_RIGHT}
+            fill="currentColor"
+            opacity="0.6"
+            style={{ animationDelay: "-0.8s" }}
+          />
+          <path d={BRAND_LEAF_CENTRE} fill="currentColor" />
         </g>
       </g>
     </svg>
