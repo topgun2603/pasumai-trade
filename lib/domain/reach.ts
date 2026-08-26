@@ -1,10 +1,14 @@
 /**
  * How far the platform reaches, as the landing page states it.
  *
- * Three numbers under the hero: villages covered, districts, farmers
- * registered. Until now all three were arithmetic over `lib/mock/locations` —
- * seeded coverage that would have gone on saying the same thing however many
- * farmers actually signed up. They come from the database now.
+ * Two numbers under the hero: states and districts.
+ *
+ * There were three, and they were the wrong three — villages, districts and
+ * farmers. Villages and farmers are the bottom of the hierarchy, and a
+ * platform that leads with them is describing how small it is: 13 villages
+ * reads as thirteen villages. States and districts are the level the platform
+ * is actually organised at, they are the level a buyer in another state cares
+ * about, and they are what the reach genuinely is.
  *
  * ## The floor
  *
@@ -23,10 +27,9 @@
  */
 
 export interface Reach {
-  /** Villages the platform collects from. */
-  readonly villages: number;
+  /** States the platform operates in. */
+  readonly states: number;
   readonly districts: number;
-  readonly farmers: number;
 }
 
 /**
@@ -37,9 +40,8 @@ export interface Reach {
  * one and everything on the day the platform overtakes them.
  */
 export const SHOWCASE_FLOOR: Reach = {
-  villages: 12,
+  states: 2,
   districts: 6,
-  farmers: 295,
 };
 
 export interface Figure {
@@ -63,22 +65,15 @@ export function showcase(real: number, floor: number): Figure {
 }
 
 export interface ShownReach {
-  readonly villages: Figure;
+  readonly states: Figure;
   readonly districts: Figure;
-  readonly farmers: Figure;
   /** True when every number on the page is the platform's own. */
   readonly allReal: boolean;
 }
 
 export function reachToShow(real: Reach, floor: Reach = SHOWCASE_FLOOR): ShownReach {
-  const villages = showcase(real.villages, floor.villages);
+  const states = showcase(real.states, floor.states);
   const districts = showcase(real.districts, floor.districts);
-  const farmers = showcase(real.farmers, floor.farmers);
 
-  return {
-    villages,
-    districts,
-    farmers,
-    allReal: villages.isReal && districts.isReal && farmers.isReal,
-  };
+  return { states, districts, allReal: states.isReal && districts.isReal };
 }

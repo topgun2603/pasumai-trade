@@ -29,15 +29,13 @@ import { resolveMedia } from "@/lib/marketing/media";
 export function Hero({
   t,
   locale,
+  states,
   districts,
-  farmers,
-  villages,
 }: {
   t: Dictionary;
   locale: Locale;
+  states: number;
   districts: number;
-  farmers: number;
-  villages: number;
 }) {
   const farmer = resolveMedia("heroFarmer");
   const land = resolveMedia("heroLandscape");
@@ -133,9 +131,8 @@ export function Hero({
           <StaggerItem>
             <dl className="flex flex-wrap gap-x-8 gap-y-3 pt-2">
               {[
-                { value: villages, label: t.hero.statPoints },
+                { value: states, label: t.hero.statStates },
                 { value: districts, label: t.hero.statDistricts },
-                { value: farmers, label: t.hero.statFarmers },
               ].map((stat) => (
                 <div key={stat.label} className="flex flex-col">
                   <dd className="tabular text-primary text-2xl font-semibold">

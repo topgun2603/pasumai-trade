@@ -123,8 +123,14 @@ export default async function LandingPage({
   );
 
   const { reach } = await readReach({
-    villages: places.length,
-    farmers: places.reduce((total, p) => total + p.farmerCount, 0),
+    // The fallback is derived from the seeded geography the page ships with,
+    // so a failed count shows the coverage that was true at build rather than
+    // a platform that suddenly reaches nowhere.
+    states: new Set(
+      places
+        .map((p) => findDistrict(GEOGRAPHY, p.districtId)?.stateId)
+        .filter(Boolean),
+    ).size,
     districts: new Set(places.map((p) => findDistrict(GEOGRAPHY, p.districtId)?.name)).size,
   });
   const shown = reachToShow(reach);
@@ -168,9 +174,8 @@ export default async function LandingPage({
       <Hero
         t={t}
         locale={locale}
+        states={shown.states.value}
         districts={shown.districts.value}
-        farmers={shown.farmers.value}
-        villages={shown.villages.value}
       />
 
       {/* Live prices */}
