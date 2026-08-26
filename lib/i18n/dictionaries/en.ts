@@ -37,8 +37,6 @@ export const en = {
     body: "Pasumai Trade connects farmers and buyers on one trusted platform. Fair trade. Better prices. Sustainable tomorrow.",
     imageAlt:
       "Terraced farmland with a collection shed and a goods vehicle on the road",
-    statStates: "States covered",
-    statDistricts: "Districts covered",
     statGrades: "Grades priced up front",
     statSettlement: "Typical settlement",
   },

@@ -11,6 +11,7 @@ import {
   ClipboardListIcon,
   GaugeIcon,
   HardHatIcon,
+  MegaphoneIcon,
   ShieldCheckIcon,
   SlidersHorizontalIcon,
   StoreIcon,
@@ -101,6 +102,9 @@ const SECTIONS: Array<{ title?: string; links: NavLink[] }> = [
         icon: BanknoteIcon,
       },
       { href: "/admin/listings", label: "Listings", icon: ClipboardListIcon },
+      // Advertising sits under Trade rather than Controls: it is revenue the
+      // platform earns, not reference data the platform runs on.
+      { href: "/admin/ads", label: "Advertising", icon: MegaphoneIcon },
       {
         href: "/admin/controls",
         label: "Controls",

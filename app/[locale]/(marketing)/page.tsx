@@ -14,6 +14,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { BargainDemo } from "@/components/marketing/bargain-demo";
+import { AdSlot } from "@/components/ads/ad-slot";
 import { Hero } from "@/components/marketing/hero";
 import { Journey } from "@/components/marketing/journey";
 import { LanguageBand } from "@/components/marketing/language-band";
@@ -35,9 +36,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { findDistrict } from "@/lib/domain/location";
-import { reachToShow } from "@/lib/domain/reach";
+import { readPlacements } from "@/lib/firebase/ads-read";
 import { readCoverage } from "@/lib/firebase/places-read";
-import { readReach } from "@/lib/firebase/reach-read";
 import { getDictionary, isLocale } from "@/lib/i18n";
 import { resolveMedia } from "@/lib/marketing/media";
 import { GEOGRAPHY } from "@/lib/mock/locations";
@@ -77,6 +77,10 @@ export default async function LandingPage({
 }) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
+
+  // Hoisted out of the render expression: React Compiler forbids a clock read
+  // inside one, and scheduling has to give the same answer server and client.
+  const now = new Date().getTime();
 
   const t = getDictionary(locale);
   // Villages we collect from. Pickup is at the farm, so the village is the
@@ -122,18 +126,10 @@ export default async function LandingPage({
     })),
   );
 
-  const { reach } = await readReach({
-    // The fallback is derived from the seeded geography the page ships with,
-    // so a failed count shows the coverage that was true at build rather than
-    // a platform that suddenly reaches nowhere.
-    states: new Set(
-      places
-        .map((p) => findDistrict(GEOGRAPHY, p.districtId)?.stateId)
-        .filter(Boolean),
-    ).size,
-    districts: new Set(places.map((p) => findDistrict(GEOGRAPHY, p.districtId)?.name)).size,
-  });
-  const shown = reachToShow(reach);
+
+  // The ad book, once for the page. Every slot below is filled from this one
+  // read — see lib/firebase/ads-read.ts on why it is not a query per slot.
+  const placed = await readPlacements({ at: now, surface: "landing", locale });
 
   const harvestMedia = resolveMedia("harvest");
   const consoleMedia = resolveMedia("console");
@@ -171,12 +167,9 @@ export default async function LandingPage({
 
   return (
     <>
-      <Hero
-        t={t}
-        locale={locale}
-        states={shown.states.value}
-        districts={shown.districts.value}
-      />
+      <AdSlot slotId="landing.banner" placed={placed} />
+
+      <Hero t={t} locale={locale} />
 
       {/* Live prices */}
       <section id="prices" className="border-b scroll-mt-20">
@@ -186,6 +179,8 @@ export default async function LandingPage({
           </Reveal>
         </div>
       </section>
+
+      <AdSlot slotId="landing.afterPrices" placed={placed} />
 
       {/* How a price is reached. Sits directly after the prices so the
           obvious question — who decided these? — is answered where it is
@@ -264,6 +259,8 @@ export default async function LandingPage({
       </section>
 
       {/* Buyers */}
+      <AdSlot slotId="landing.afterFarmers" placed={placed} />
+
       <section id="buyers" className="bg-secondary/40 border-b scroll-mt-20">
         <div className="mx-auto grid w-full max-w-6xl items-start gap-12 px-5 py-16 lg:grid-cols-2">
           <Stagger className="lg:order-last">

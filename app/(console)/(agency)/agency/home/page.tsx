@@ -1,15 +1,35 @@
 import { HardHatIcon, TruckIcon, UsersIcon } from "lucide-react";
 import type { Metadata } from "next";
+import { connection } from "next/server";
 
+import { AdSlot } from "@/components/ads/ad-slot";
 import { WelcomeHome } from "@/components/console/welcome-home";
 import { AGENCY_ROLES } from "@/lib/auth/claims";
 import { requireConsole } from "@/lib/auth/require";
+import { readPlacements } from "@/lib/firebase/ads-read";
+import { consoleLocale } from "@/lib/i18n/console";
 
 export const metadata: Metadata = { title: "Home" };
 
 export default async function AgencyHomePage() {
-  const session = await requireConsole([...AGENCY_ROLES, "admin"]);
+  await connection();
+
+  // Hoisted out of the render expression, and passed to the reader rather
+  // than read inside it — see lib/domain/ad.ts.
+  const now = new Date().getTime();
+
+  const [session, locale] = await Promise.all([
+    requireConsole([...AGENCY_ROLES, "admin"]),
+    consoleLocale(),
+  ]);
   const manpower = session.claims.role === "manpower";
+
+  const placed = await readPlacements({
+    at: now,
+    surface: "agency",
+    locale,
+    role: session.claims.role,
+  });
 
   return (
     <WelcomeHome
@@ -56,6 +76,7 @@ export default async function AgencyHomePage() {
               },
             ]
       }
+      sponsored={<AdSlot slotId="agency.home" placed={placed} />}
       continueTo="/agency"
     />
   );

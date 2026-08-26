@@ -42,6 +42,7 @@ export function WelcomeHome({
   highlights,
   continueTo,
   continueLabel = "Go to Overview",
+  sponsored,
 }: {
   /** "Welcome to Pasumai Trade", or "Welcome back". */
   greeting: string;
@@ -52,6 +53,17 @@ export function WelcomeHome({
   highlights: readonly HomeHighlight[];
   continueTo: string;
   continueLabel?: string;
+  /**
+   * A paid placement, or nothing.
+   *
+   * Passed in rather than read here: this component is shared by three
+   * consoles and each one asks for its own slot, and a component that fetched
+   * for itself would make that decision in the wrong place. Below the
+   * highlights on purpose — the first screen of a console is where somebody
+   * learns what the app is for, and an advertisement above that is selling
+   * before explaining.
+   */
+  sponsored?: React.ReactNode;
 }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-10 px-5 py-14">
@@ -94,6 +106,8 @@ export function WelcomeHome({
           ))}
         </ul>
       ) : null}
+
+      {sponsored ? <div className="w-full max-w-3xl">{sponsored}</div> : null}
     </div>
   );
 }

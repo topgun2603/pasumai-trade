@@ -56,6 +56,15 @@ export const AUDIT_ACTIONS = [
   "order.cancelled",
   "account.statusChanged",
   "account.documentReviewed",
+  /*
+    Paid placements. These have no account as their subject, so only operations
+    can read them — which is right: an advertiser's booking is not a farmer's
+    business, and the audit reader already refuses anything a reader is not
+    party to.
+  */
+  "ad.placed",
+  "ad.changed",
+  "ad.removed",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
@@ -77,6 +86,9 @@ export const AUDIT_LABELS: Record<AuditAction, string> = {
   "order.cancelled": "Cancelled the order",
   "account.statusChanged": "Changed an account's standing",
   "account.documentReviewed": "Reviewed a document",
+  "ad.placed": "Booked a placement",
+  "ad.changed": "Changed a placement",
+  "ad.removed": "Removed a placement",
 };
 
 export interface AuditActor {

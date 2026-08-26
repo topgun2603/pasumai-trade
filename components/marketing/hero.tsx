@@ -7,7 +7,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 
-import { CountUp, Stagger, StaggerItem } from "@/components/motion/motion-primitives";
+import { Stagger, StaggerItem } from "@/components/motion/motion-primitives";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Dictionary } from "@/lib/i18n";
@@ -26,17 +26,7 @@ import { resolveMedia } from "@/lib/marketing/media";
  * usual failure of a page like this — and on a platform asking farmers to
  * trust it with a harvest, it is the expensive kind of failure.
  */
-export function Hero({
-  t,
-  locale,
-  states,
-  districts,
-}: {
-  t: Dictionary;
-  locale: Locale;
-  states: number;
-  districts: number;
-}) {
+export function Hero({ t, locale }: { t: Dictionary; locale: Locale }) {
   const farmer = resolveMedia("heroFarmer");
   const land = resolveMedia("heroLandscape");
 
@@ -126,22 +116,6 @@ export function Hero({
             <Button asChild variant="outline" size="lg">
               <Link href={`/${locale}/signin`}>{t.nav.signIn}</Link>
             </Button>
-          </StaggerItem>
-
-          <StaggerItem>
-            <dl className="flex flex-wrap gap-x-8 gap-y-3 pt-2">
-              {[
-                { value: states, label: t.hero.statStates },
-                { value: districts, label: t.hero.statDistricts },
-              ].map((stat) => (
-                <div key={stat.label} className="flex flex-col">
-                  <dd className="tabular text-primary text-2xl font-semibold">
-                    <CountUp value={stat.value} />
-                  </dd>
-                  <dt className="text-muted-foreground text-xs">{stat.label}</dt>
-                </div>
-              ))}
-            </dl>
           </StaggerItem>
         </Stagger>
 

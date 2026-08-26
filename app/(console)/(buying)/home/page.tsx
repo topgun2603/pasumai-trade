@@ -1,15 +1,35 @@
 import { HandshakeIcon, PackageIcon, StoreIcon } from "lucide-react";
 import type { Metadata } from "next";
+import { connection } from "next/server";
 
+import { AdSlot } from "@/components/ads/ad-slot";
 import { WelcomeHome } from "@/components/console/welcome-home";
 import { BUYING_ROLES } from "@/lib/auth/claims";
 import { requireConsole } from "@/lib/auth/require";
+import { readPlacements } from "@/lib/firebase/ads-read";
+import { consoleLocale } from "@/lib/i18n/console";
 
 export const metadata: Metadata = { title: "Home" };
 
 export default async function BuyingHomePage() {
-  const session = await requireConsole([...BUYING_ROLES, "admin"]);
+  await connection();
+
+  // Hoisted out of the render expression, and passed to the reader rather
+  // than read inside it — see lib/domain/ad.ts.
+  const now = new Date().getTime();
+
+  const [session, locale] = await Promise.all([
+    requireConsole([...BUYING_ROLES, "admin"]),
+    consoleLocale(),
+  ]);
   const franchise = session.claims.role === "franchise";
+
+  const placed = await readPlacements({
+    at: now,
+    surface: "buying",
+    locale,
+    role: session.claims.role,
+  });
 
   return (
     <WelcomeHome
@@ -36,6 +56,7 @@ export default async function BuyingHomePage() {
           body: "Once a price is agreed, the collection and the lorry are ours to arrange.",
         },
       ]}
+      sponsored={<AdSlot slotId="buying.home" placed={placed} />}
       continueTo="/overview"
     />
   );

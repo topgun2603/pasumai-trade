@@ -5,10 +5,12 @@ import { GateProvider } from "@/components/console/gate-dialog";
 import { ServiceWorker } from "@/components/console/service-worker";
 import { stateNameForDistrict } from "@/lib/domain/india";
 import { ConsoleTour } from "@/components/console/tour";
+import { AdSlot } from "@/components/ads/ad-slot";
 import { FarmNav } from "@/components/farm/farm-nav";
 import { requireFarmer } from "@/lib/auth/farm";
 import { tourFor } from "@/lib/domain/tour";
 import { consoleDictionary } from "@/lib/i18n/console";
+import { readPlacements } from "@/lib/firebase/ads-read";
 import { isCapped, readNotifications } from "@/lib/firebase/notifications-read";
 import { readSeenTours } from "@/lib/firebase/tour-read";
 import { negotiations } from "@/lib/mock/negotiations";
@@ -52,6 +54,11 @@ export default async function FarmLayout({
     consoleDictionary(),
   ]);
 
+  // The ad book. Its own read rather than joining the batch above: it depends
+  // on the locale that batch resolves, and a farm banner in the wrong language
+  // is worse than none.
+  const placed = await readPlacements({ at: now, surface: "farm", locale, role: "farmer" });
+
   const definition = tourFor("farmer");
   const tour = definition && !seenTours.has(definition.id) ? definition : null;
 
@@ -84,6 +91,12 @@ export default async function FarmLayout({
           locale={locale}
           label={t.farm.nav.prices}
         />
+        {/*
+          Under the price ticker and above the screen itself, so it is the same
+          strip on every farm page rather than something that moves. Renders
+          nothing at all when the slot is empty — see components/ads/ad-slot.tsx.
+        */}
+        <AdSlot slotId="farm.banner" placed={placed} />
         <GateProvider console="farm">{children}</GateProvider>
       </div>
       {/* First run only. `readSeenTours` is one extra document read on a
