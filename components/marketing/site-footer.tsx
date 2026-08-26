@@ -54,7 +54,9 @@ export function SiteFooter({ locale, t }: { locale: Locale; t: Dictionary }) {
       title: t.footer.signIn,
       links: [
         { href: `/${locale}/signin?as=buyer`, label: t.footer.buyerOrFranchise },
-        { href: `/${locale}/signin?as=admin`, label: t.footer.operations },
+        // Off the locale tree and out of the marketing chrome: the console
+        // has its own door, and it is English-only like the console itself.
+        { href: "/admin/login", label: t.footer.operations },
         { href: `/${locale}/signin`, label: t.footer.allOptions },
       ],
     },

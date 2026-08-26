@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { LiveBargains } from "@/components/negotiation/live-bargains";
 import { PageHeader } from "@/components/page-header";
 import { lotBooks } from "@/lib/domain/lot-book";
+import { consoleLocale } from "@/lib/i18n/console";
 import { readBargainVocabulary } from "@/lib/firebase/bargain-vocabulary-read";
 import { readNegotiations } from "@/lib/firebase/negotiations-read";
 import { readLots } from "@/lib/firebase/remaining-read";
@@ -28,6 +29,10 @@ export default async function BargainsPage() {
     the proposal expiry window. Proposals no longer expire, so the round trip
     went with it.
   */
+  // Reads the language cookie rather than the database, so it costs nothing
+  // and somebody who has just switched sees it on this render.
+  const locale = await consoleLocale();
+
   const [{ threads, live }, { vocabulary }] = await Promise.all([
     readNegotiations(negotiations(now)),
     // The same list the farmer's side gets and the same list the endpoint
@@ -109,6 +114,7 @@ export default async function BargainsPage() {
       <LiveBargains
         initial={visible}
         viewer="buyer"
+        locale={locale}
         now={now}
         vocabulary={vocabulary}
         remaining={remaining}

@@ -27,9 +27,10 @@ export default async function SignUpPage({
   if (!isLocale(locale)) notFound();
 
   // `?as=admin` is not a 404 and not a silent default to buyer — it is the one
-  // door this page does not have, and sending them to sign in says so more
-  // usefully than either.
-  if (as === "admin") redirect(`/${locale}/signin?as=admin`);
+  // door this page does not have, and sending them to the operations sign-in
+  // says so more usefully than either. There is no sign-up behind it: those
+  // accounts are issued internally.
+  if (as === "admin") redirect("/admin/login");
 
   const role: SignupRole = canSelfSignup(as ?? "")
     ? (as as SignupRole)

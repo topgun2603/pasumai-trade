@@ -9,6 +9,7 @@ import { useGate } from "@/components/console/gate-dialog";
 
 import { EntityTag } from "@/components/entity-tag";
 import { BargainThread } from "@/components/negotiation/bargain-thread";
+import type { Locale } from "@/lib/i18n/config";
 import type { VocabularyEntry } from "@/lib/domain/bargain-vocabulary";
 import { Badge } from "@/components/ui/badge";
 import { GRADE_LABELS, unitLabel } from "@/lib/domain/enums";
@@ -52,6 +53,7 @@ function buyerStanding(thread: Negotiation): BidLine[] {
 export function BargainConsole({
   threads,
   viewer,
+  locale,
   now,
   vocabulary,
   remaining,
@@ -62,6 +64,13 @@ export function BargainConsole({
 }: {
   threads: Negotiation[];
   viewer: Party;
+  /**
+   * The console language, from the cookie the language switcher sets.
+   *
+   * Threaded from the page rather than guessed from the role — see the note
+   * in components/negotiation/bargain-thread.tsx.
+   */
+  locale: Locale;
   now: number;
   /** What either side may say, from Controls. */
   vocabulary: readonly VocabularyEntry[];
@@ -153,7 +162,11 @@ export function BargainConsole({
         body: JSON.stringify({
           ...draft,
           author: viewer,
-          locale: viewer === "farmer" ? "ta" : "en",
+          // What this was actually written in. It used to be stamped from the
+          // sender's role — every farmer recorded as having written Tamil —
+          // which put the wrong `lang` on the message for a screen reader and
+          // mislabelled a transcript nobody could correct afterwards.
+          locale,
           // Rates and quantities travel as paise and units keyed by grade, not
           // as arrays, so a reordered array cannot quietly reprice or resize
           // the wrong grade.
@@ -288,6 +301,7 @@ export function BargainConsole({
         <div className="min-h-0 flex-1">
           {selected ? (
             <BargainThread
+              locale={locale}
               key={selected.id}
               negotiation={selected}
               viewer={viewer}
@@ -336,7 +350,7 @@ export function BargainConsole({
               ? null
               : `${GRADE_LABELS[openingGrade]} ${formatRate(
                   money(rateFor(opened!.bands ?? [], openingGrade)!),
-                  unitLabel(thread.unit),
+                  unitLabel(thread.unit, locale),
                 )}`;
           const last = thread.messages.at(-1);
           const active = thread.id === selected?.id;
@@ -399,7 +413,7 @@ export function BargainConsole({
                     quantity that read "கிலோ" three lines up.
                   */}
                   <span className="tabular">
-                    {formatQuantity(thread.quantity, thread.unit)}
+                    {formatQuantity(thread.quantity, thread.unit, locale)}
                   </span>
                   {asking ? <span className="tabular font-medium">{asking}</span> : null}
                 </span>
@@ -435,7 +449,7 @@ export function BargainConsole({
                           return (
                             `${who} proposed ${formatRate(
                               money(rateFor(last.bands ?? [], lead)!),
-                              unitLabel(thread.unit),
+                              unitLabel(thread.unit, locale),
                             )} / ${GRADE_LABELS[lead]}` +
                             (priced.length > 1 ? ` +${priced.length - 1}` : "")
                           );
@@ -447,7 +461,7 @@ export function BargainConsole({
 
                 {thread.status === "open" && distance.a !== undefined ? (
                   <span className="text-faint tabular text-xs">
-                    {formatRate(money(distance.a), unitLabel(thread.unit))}{" "}
+                    {formatRate(money(distance.a), unitLabel(thread.unit, locale))}{" "}
                     apart on grade A
                   </span>
                 ) : null}
@@ -460,6 +474,7 @@ export function BargainConsole({
       <div className="max-h-[calc(100svh-4rem)] min-h-0">
         {selected ? (
           <BargainThread
+            locale={locale}
             key={selected.id}
             negotiation={selected}
             viewer={viewer}

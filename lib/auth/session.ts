@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 
 import { adminAuth, hasAdminCredentials } from "@/lib/firebase/admin";
 
-import { readClaims, type Claims, type Role } from "./claims";
+import { readClaims, ROLE_LABELS, type Claims, type Role } from "./claims";
 
 /**
  * Server-side sessions.
@@ -66,9 +66,40 @@ export type SessionStart =
    * account.
    */
   | { ok: true; needsProfile: true }
+  /**
+   * The credentials are good; they are not this door's credentials.
+   *
+   * Kept apart from a plain failure because it is not one — the person typed
+   * the right password, and telling them "that email and password do not
+   * match" would send them round a loop resetting a password that was never
+   * wrong. `role` is the account's actual role, so the caller can name the
+   * door they should have used.
+   *
+   * **No cookie is minted on this branch.** That is the whole point: refusing
+   * to route somebody while leaving them holding a valid session would be a
+   * message rather than a check, and the next URL they typed would work.
+   */
+  | { ok: false; mismatch: true; role: Role; error: string }
   | { ok: false; error: string };
 
-export async function createSession(idToken: string): Promise<SessionStart> {
+export async function createSession(
+  idToken: string,
+  /**
+   * The door this sign-in came through, if it came through one.
+   *
+   * The sign-in page has a tab per console, and it was decoration: whatever
+   * you picked, the account's own role decided where you landed, so farmer
+   * credentials typed on the Buyer tab signed you in and dropped you on the
+   * farm console. Nothing was escalated — you got your own console either way
+   * — but the platform quietly overruled a choice somebody had just made, and
+   * role-mismatch testing across five consoles could not be trusted.
+   *
+   * Checked here rather than in the route handler or the form, because this is
+   * the only place a cookie is created. A check anywhere upstream is a check
+   * that can be skipped by posting the token directly.
+   */
+  expecting?: Role,
+): Promise<SessionStart> {
   if (!hasAdminCredentials()) {
     return {
       ok: false,
@@ -99,8 +130,23 @@ export async function createSession(idToken: string): Promise<SessionStart> {
     return { ok: true, needsProfile: true };
   }
 
+  if (expecting && claims.role !== expecting) {
+    return {
+      ok: false,
+      mismatch: true,
+      role: claims.role,
+      error: `This account is registered as ${article(claims.role)}. Sign in through the ${ROLE_LABELS[claims.role]} console.`,
+    };
+  }
+
   await mint(auth, idToken);
   return { ok: true, role: claims.role };
+}
+
+/** "a farmer", "an admin" — so the sentence above reads. */
+function article(role: Role): string {
+  const label = ROLE_LABELS[role].toLowerCase();
+  return `${/^[aeiou]/.test(label) ? "an" : "a"} ${label}`;
 }
 
 /** The cookie itself. One definition, so the pending and full paths agree. */

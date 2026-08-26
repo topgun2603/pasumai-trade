@@ -9,6 +9,7 @@ import {
   signInWithEmailAndPassword,
   signInWithPhoneNumber,
   signInWithPopup,
+  signOut as firebaseSignOut,
   inMemoryPersistence,
   type ConfirmationResult,
 } from "firebase/auth";
@@ -37,6 +38,14 @@ export interface SignInResult {
   readonly error?: string;
   /** Verified, but nobody has said who they are yet. Send them to register. */
   readonly needsProfile?: boolean;
+  /**
+   * Right credentials, wrong door.
+   *
+   * Distinguished from an ordinary failure so the form can offer the console
+   * the account *does* belong to rather than only saying no. `role` is what
+   * the account actually is.
+   */
+  readonly mismatch?: boolean;
 }
 
 /** Firebase error codes, said in a way that helps without helping an attacker. */
@@ -105,6 +114,8 @@ function readable(code: string): string {
 export async function signIn(
   email: string,
   password: string,
+  /** The console tab that was chosen. See `exchange`. */
+  expecting?: string,
 ): Promise<SignInResult> {
   let idToken: string;
 
@@ -121,23 +132,48 @@ export async function signIn(
     return { ok: false, error: readable(code) };
   }
 
-  return exchange(idToken);
+  return exchange(idToken, expecting);
 }
 
-/** The half both sign-in paths share: token in, session cookie out. */
-async function exchange(idToken: string): Promise<SignInResult> {
+/**
+ * The half every sign-in path shares: token in, session cookie out.
+ *
+ * `expecting` is the console tab that was chosen, and the server refuses to
+ * mint a cookie when the account's role is a different one. It is passed
+ * rather than checked here on purpose: a check in the browser is a check
+ * anybody can post around.
+ *
+ * On a mismatch the Firebase client is signed out as well. The server never
+ * issued a cookie, but the SDK is still holding an authenticated user, and
+ * leaving it there means the next thing to call `getIdToken` quietly succeeds
+ * as somebody who was just refused.
+ */
+async function exchange(
+  idToken: string,
+  expecting?: string,
+): Promise<SignInResult> {
   const response = await fetch("/api/auth/session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ idToken }),
+    body: JSON.stringify({ idToken, as: expecting }),
   });
 
   if (!response.ok) {
-    const detail = await response
-      .json()
-      .then((d: { error?: string }) => d.error)
-      .catch(() => null);
-    return { ok: false, error: detail ?? "Could not start a session." };
+    const detail = (await response.json().catch(() => null)) as {
+      error?: string;
+      code?: string;
+      role?: string;
+    } | null;
+
+    if (detail?.code === "roleMismatch") {
+      await firebaseSignOut(firebaseAuth()).catch(() => {
+        // Already gone, or the SDK never held one. The cookie is what the
+        // platform enforces and none was issued, so this is tidying.
+      });
+      return { ok: false, mismatch: true, role: detail.role, error: detail.error };
+    }
+
+    return { ok: false, error: detail?.error ?? "Could not start a session." };
   }
 
   const body = (await response.json()) as {
@@ -265,6 +301,8 @@ export async function startPhoneSignIn(
 export async function confirmPhoneCode(
   confirmer: ConfirmationResult,
   code: string,
+  /** The console tab that was chosen. See `exchange`. */
+  expecting?: string,
 ): Promise<SignInResult> {
   let idToken: string;
 
@@ -279,7 +317,7 @@ export async function confirmPhoneCode(
     return { ok: false, error: readable(errorCode) };
   }
 
-  return exchange(idToken);
+  return exchange(idToken, expecting);
 }
 
 /* -------------------------------------------------------------------------
@@ -299,7 +337,10 @@ export async function confirmPhoneCode(
  * `app/api/auth/profile/route.ts` about the difference between a number that
  * was proven and one that was typed.
  */
-export async function signInWithGoogle(): Promise<SignInResult> {
+export async function signInWithGoogle(
+  /** The console tab that was chosen. See `exchange`. */
+  expecting?: string,
+): Promise<SignInResult> {
   let idToken: string;
 
   try {
@@ -322,7 +363,7 @@ export async function signInWithGoogle(): Promise<SignInResult> {
     return { ok: false, error: readable(code) };
   }
 
-  return exchange(idToken);
+  return exchange(idToken, expecting);
 }
 
 /* -------------------------------------------------------------------------

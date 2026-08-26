@@ -7,6 +7,7 @@ import { BargainConsole } from "@/components/negotiation/bargain-console";
 import type { VocabularyEntry } from "@/lib/domain/bargain-vocabulary";
 import type { GradeQuantity } from "@/lib/domain/listing-draft";
 import type { LotBook } from "@/lib/domain/lot-book";
+import type { Locale } from "@/lib/i18n/config";
 import type { Negotiation, Party } from "@/lib/domain/negotiation";
 import { fromWire, type WireNegotiation } from "@/lib/domain/negotiation-wire";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ import { cn } from "@/lib/utils";
 export function LiveBargains({
   initial,
   viewer,
+  locale,
   now,
   vocabulary,
   remaining,
@@ -38,6 +40,13 @@ export function LiveBargains({
 }: {
   initial: Negotiation[];
   viewer: Party;
+  /**
+   * The console language, from the cookie the language switcher sets.
+   *
+   * Threaded from the page rather than guessed from the role — see the note
+   * in components/negotiation/bargain-thread.tsx.
+   */
+  locale: Locale;
   now: number;
   /** What either side may say, read from Controls on the server. */
   vocabulary: readonly VocabularyEntry[];
@@ -117,6 +126,7 @@ export function LiveBargains({
       <BargainConsole
         threads={threads}
         viewer={viewer}
+        locale={locale}
         now={now}
         vocabulary={vocabulary}
         remaining={remaining}

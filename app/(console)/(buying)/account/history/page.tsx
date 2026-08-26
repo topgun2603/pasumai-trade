@@ -15,6 +15,7 @@ import {
   readPartyHistory,
   readSubjectHistory,
 } from "@/lib/firebase/audit-read";
+import { consoleLocale } from "@/lib/i18n/console";
 import { readBargainVocabulary } from "@/lib/firebase/bargain-vocabulary-read";
 import { readNegotiations } from "@/lib/firebase/negotiations-read";
 import { negotiations } from "@/lib/mock/negotiations";
@@ -38,6 +39,10 @@ export default async function BuyingHistoryPage() {
 
   const session = await requireConsole([...BUYING_ROLES, "admin"]);
   const accountId = session.claims.accountId ?? "";
+
+  // The buyer's own language. Without it the transcript fell back to English
+  // for everybody, which is the farm console's bug seen from the other side.
+  const locale = await consoleLocale();
 
   const [mine, aboutMe, alsoMine, { threads }, { vocabulary }] = await Promise.all([
     readActorHistory(accountId),
@@ -81,6 +86,7 @@ export default async function BuyingHistoryPage() {
                 <BargainTranscript
                   threads={closed}
                   viewer="buyer"
+                  locale={locale}
                   vocabulary={vocabulary}
                   now={now}
                 />

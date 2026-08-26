@@ -24,6 +24,9 @@ export default async function OperationsLayout({
 }: {
   children: ReactNode;
 }) {
-  await requireConsole(["admin"]);
+  // Same door as the shell above. A franchise who reaches one of these pages
+  // is signed in and simply not allowed, so they are sent to their own console
+  // by `requireConsole`; the path only matters for a session that has lapsed.
+  await requireConsole(["admin"], "/admin/login");
   return children;
 }

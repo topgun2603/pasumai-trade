@@ -35,7 +35,10 @@ export default async function AdminLayout({
 }: {
   children: ReactNode;
 }) {
-  const session = await requireConsole(["admin", "franchise"]);
+  // Second argument: operations and franchises have their own front door at
+  // `/admin/login`, so an expired session here returns to it rather than to the
+  // public sign-in page on the marketing site.
+  const session = await requireConsole(["admin", "franchise"], "/admin/login");
   const now = new Date();
 
   // Decides what the rail offers and whether any row carries an action. The

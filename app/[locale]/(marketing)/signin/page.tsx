@@ -1,6 +1,6 @@
 import { LeafIcon } from "lucide-react";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { SignInForm, type Audience } from "@/components/marketing/signin-form";
 import { ROLES } from "@/lib/auth/claims";
@@ -19,7 +19,16 @@ export async function generateMetadata({
   };
 }
 
-const AUDIENCES: Audience[] = [...ROLES];
+/**
+ * Everything but operations, who have their own page.
+ *
+ * Derived from `ROLES` rather than listed, so a seventh role added to the
+ * platform appears here without anybody remembering to. The filter is what
+ * keeps operations out, and the `Audience` type is what makes it hold.
+ */
+const AUDIENCES: Audience[] = ROLES.filter(
+  (role): role is Audience => role !== "admin",
+);
 
 function parseAudience(value: string | undefined): Audience {
   return AUDIENCES.includes(value as Audience) ? (value as Audience) : "buyer";
@@ -35,6 +44,12 @@ export default async function SignInPage({
 }) {
   const [{ locale }, { as }] = await Promise.all([params, searchParams]);
   if (!isLocale(locale)) notFound();
+
+  // Operations moved out to their own door. Redirected rather than silently
+  // defaulted to buyer: the old link is in bookmarks, in the footer's history
+  // and in whatever internal document told staff where to sign in, and landing
+  // them on a buyer form would look like the console had been taken away.
+  if (as === "admin") redirect("/admin/login");
 
   const t = getDictionary(locale);
 

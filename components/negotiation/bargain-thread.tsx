@@ -3,6 +3,7 @@
 import {
   ArrowRightIcon,
   CheckIcon,
+  ChevronDownIcon,
   HandshakeIcon,
   MessageSquareIcon,
   SendIcon,
@@ -258,6 +259,7 @@ function Bubble({
 export function BargainThread({
   negotiation,
   viewer,
+  locale,
   now,
   vocabulary,
   remaining,
@@ -267,6 +269,14 @@ export function BargainThread({
 }: {
   negotiation: Negotiation;
   viewer: Party;
+  /**
+   * The console language, from the cookie the language switcher sets.
+   *
+   * Passed down rather than read here: this is a client component and the
+   * choice lives in a cookie the server already resolves for every other
+   * translated surface.
+   */
+  locale: Locale;
   now: number;
   /**
    * Everything either side may say, as operations maintain it in Controls.
@@ -329,6 +339,12 @@ export function BargainThread({
     );
   });
   const [countering, setCountering] = useState(false);
+  /*
+    Shut on arrival, and it stays shut per thread rather than being remembered:
+    a bargain is opened to read what the other side said, and reopening the
+    phrase list is one tap for somebody who wants it.
+  */
+  const [phrasesOpen, setPhrasesOpen] = useState(false);
 
   const settled = isSettled(negotiation);
   const acceptCheck = canAccept(negotiation, viewer);
@@ -410,10 +426,20 @@ export function BargainThread({
   const gapGrades = GRADES.filter((g) => distance[g] !== undefined);
   const unitLabel = QUANTITY_UNITS[negotiation.unit].en;
 
-  // A farmer reads their own language; the buyer console is English. Every
-  // phrase exists in both, so the same message renders in whichever the reader
-  // uses rather than in whichever the sender typed.
-  const viewerLocale = viewer === "farmer" ? "ta" : "en";
+  /*
+    The language this reader actually chose.
+
+    It used to be `viewer === "farmer" ? "ta" : "en"` — every farmer assumed to
+    read Tamil and every buyer English. A farmer who switched the console to
+    English still got Tamil phrase buttons and Tamil quantities, on a screen
+    whose own sidebar said English, and the four other languages the platform
+    ships were unreachable here however anybody set their console.
+
+    Every phrase exists in all six, so the same message still renders in
+    whichever language the *reader* uses rather than the one the sender tapped.
+    That part was right; where the reader's language came from was not.
+  */
+  const viewerLocale = locale;
   const sayable = phrasesFor(vocabulary, viewer);
 
   // The reason attached to walking away. Prefers the shipped "this does not
@@ -745,17 +771,49 @@ export function BargainThread({
             scrolls past rather than reads.
           */}
           <div className="flex flex-col gap-2">
-            <span className="text-faint flex items-center gap-1.5 text-xs">
-              <MessageSquareIcon className="size-3.5" />
-              Tap to send. Both of you read these in your own language.
-            </span>
+            {/*
+              Shut by default, and it did not used to be.
 
-            {sayable.length === 0 ? (
+              Four topic groups of buttons, always open, pushed the rates and
+              the last few messages off the top of a phone screen — the two
+              things somebody opens a bargain to look at. The phrases are how
+              you reply, so they have to be one tap away; they are not what you
+              came to read, so they do not get to sit on top of it.
+
+              A button rather than <details>, because the count belongs in the
+              label: "Say something · 14" is a different decision from "Say
+              something", and a farmer deciding whether it is worth opening on
+              a slow handset deserves to know there is something in there.
+            */}
+            <button
+              type="button"
+              onClick={() => setPhrasesOpen((open) => !open)}
+              aria-expanded={phrasesOpen}
+              className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 self-start text-xs transition-colors"
+            >
+              <MessageSquareIcon className="size-3.5" />
+              Say something
+              {sayable.length > 0 ? (
+                <span className="tabular text-faint">· {sayable.length}</span>
+              ) : null}
+              <ChevronDownIcon
+                className={cn(
+                  "size-3.5 transition-transform",
+                  phrasesOpen && "rotate-180",
+                )}
+              />
+            </button>
+
+            {!phrasesOpen ? null : sayable.length === 0 ? (
               <p className="text-warning text-xs">
                 No phrases are set up for your side yet. Rates can still be sent.
               </p>
             ) : (
-              TOPICS.filter((topic) => sayable.some((p) => p.topic === topic)).map(
+              <>
+                <span className="text-faint text-xs">
+                  Tap to send. Both of you read these in your own language.
+                </span>
+                {TOPICS.filter((topic) => sayable.some((p) => p.topic === topic)).map(
                 (topic) => (
                   <div key={topic} className="flex flex-col gap-1">
                     <span className="text-faint text-[11px] tracking-wide uppercase">
@@ -786,8 +844,9 @@ export function BargainThread({
                         })}
                     </div>
                   </div>
-                ),
-              )
+                  ),
+                )}
+              </>
             )}
           </div>
 

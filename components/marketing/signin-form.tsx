@@ -5,7 +5,6 @@ import {
   InfoIcon,
   KeyRoundIcon,
   MailIcon,
-  ShieldCheckIcon,
   HardHatIcon,
   SmartphoneIcon,
   StoreIcon,
@@ -35,8 +34,16 @@ import type { Dictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n/config";
 import type { Role } from "@/lib/auth/claims";
 
-/** One per door on the public rail. Same set as the platform's roles. */
-export type Audience = Role;
+/**
+ * One per door on the public rail — every role except operations.
+ *
+ * Operations sign in at `/admin/login`, a page of their own off the public
+ * site. They were the sixth tab here, which put the one entrance no visitor can
+ * use inside the form five of them do use, and wrapped the console's front door
+ * in marketing chrome. Excluded by the type rather than merely absent from the
+ * array below, so `?as=admin` cannot quietly reintroduce it.
+ */
+export type Audience = Exclude<Role, "admin">;
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -57,6 +64,15 @@ export function SignInForm({
     password?: string;
   }>({});
   const [submitting, setSubmitting] = useState(false);
+  /*
+    Set when the credentials were right and the door was not. Cleared whenever
+    the door changes or anything is retyped, because at that moment it is no
+    longer true.
+  */
+  const [mismatch, setMismatch] = useState<{
+    role?: string;
+    message: string;
+  } | null>(null);
 
   /*
    * Two ways in, one session.
@@ -84,13 +100,6 @@ export function SignInForm({
     destination: string;
     icon: typeof UserRoundIcon;
   }> = [
-    {
-      value: "admin",
-      label: t.doors.admin,
-      blurb: t.signin.adminBlurb,
-      destination: "/admin",
-      icon: ShieldCheckIcon,
-    },
     {
       value: "farmer",
       label: t.doors.farmer,
@@ -161,6 +170,23 @@ export function SignInForm({
     window.location.assign(`/profile?as=${audience}`);
   }
 
+  /**
+   * The right credentials at the wrong door.
+   *
+   * Not a toast and not a red field: those both say "you got something wrong",
+   * and nothing was wrong except which tab was open. This names the console
+   * the account belongs to and puts a button on it, because the person is one
+   * click from where they meant to be and should not have to find it.
+   */
+  function refuse(result: { role?: string; error?: string }) {
+    setSubmitting(false);
+    setErrors({});
+    setMismatch({
+      role: result.role,
+      message: result.error ?? "That account belongs to a different console.",
+    });
+  }
+
   function land(role: string | undefined) {
     const destination =
       role && role in HOME_FOR_ROLE
@@ -213,7 +239,12 @@ export function SignInForm({
     if (!confirmer) return;
 
     setSubmitting(true);
-    const result = await confirmPhoneCode(confirmer, code.trim());
+    const result = await confirmPhoneCode(confirmer, code.trim(), audience);
+
+    if (result.mismatch) {
+      refuse(result);
+      return;
+    }
 
     if (!result.ok) {
       setSubmitting(false);
@@ -234,7 +265,12 @@ export function SignInForm({
     setSubmitting(true);
     setErrors({});
 
-    const result = await signInWithGoogle();
+    const result = await signInWithGoogle(audience);
+
+    if (result.mismatch) {
+      refuse(result);
+      return;
+    }
 
     if (!result.ok) {
       setSubmitting(false);
@@ -269,7 +305,12 @@ export function SignInForm({
     if (Object.values(found).some(Boolean)) return;
 
     setSubmitting(true);
-    const result = await signIn(identifier.trim(), password);
+    const result = await signIn(identifier.trim(), password, audience);
+
+    if (result.mismatch) {
+      refuse(result);
+      return;
+    }
 
     if (!result.ok) {
       setSubmitting(false);
@@ -280,8 +321,6 @@ export function SignInForm({
       return;
     }
 
-    // A buyer who signed in under the operations tab still lands on the market
-    // rather than on a page that would refuse them.
     land(result.role);
   }
 
@@ -299,6 +338,48 @@ export function SignInForm({
           <span className="text-muted-foreground text-sm">{active.blurb}</span>
         </span>
       </div>
+
+      {/*
+        Right credentials, wrong door.
+
+        Directly under the card naming the door, because that card is the thing
+        that turned out to be wrong — and above the form rather than below it,
+        so it is not off the bottom of a handset. It carries the way out: the
+        console this account actually belongs to, as a button.
+      */}
+      {mismatch ? (
+        <div
+          role="alert"
+          className="border-warning/40 bg-warning-soft flex flex-col gap-2.5 rounded-lg border px-3.5 py-3"
+        >
+          <span className="text-warning flex items-start gap-2 text-sm">
+            <InfoIcon className="mt-0.5 size-4 shrink-0" />
+            {mismatch.message}
+          </span>
+
+          {(() => {
+            const door = audiences.find((a) => a.value === mismatch.role);
+            if (!door) return null;
+            return (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="self-start"
+                onClick={() => {
+                  setAudience(door.value);
+                  setMismatch(null);
+                  setErrors({});
+                  setPassword("");
+                }}
+              >
+                <door.icon className="size-4" />
+                Sign in as {door.label.toLowerCase()}
+              </Button>
+            );
+          })()}
+        </div>
+      ) : null}
 
       {method === "otp" ? (
         <form
@@ -525,30 +606,22 @@ export function SignInForm({
       </button>
 
       {/*
-        Anyone can register except operations, whose accounts are still issued
-        internally — so this offers the door when there is one and says why
-        there is not when there is not, rather than showing a link that leads
-        to a redirect.
+        Every door this form now offers can register itself, so the branch that
+        explained why operations could not has gone with the operations tab.
       */}
       <div className="bg-secondary rounded-lg px-3.5 py-3">
         <p className="text-muted-foreground flex items-start gap-2 text-sm">
           <InfoIcon className="mt-0.5 size-4 shrink-0" />
-          {audience === "admin" ? (
-            <span>
-              Operations accounts are issued internally, not by signing up.
-            </span>
-          ) : (
-            <span>
-              No account yet?{" "}
-              <Link
-                href={`/${locale}/signup?as=${audience}`}
-                className="text-primary hover:underline"
-              >
-                Register as {active.label.toLowerCase()}
-              </Link>{" "}
-              — it takes a minute and you can sign in straight away.
-            </span>
-          )}
+          <span>
+            No account yet?{" "}
+            <Link
+              href={`/${locale}/signup?as=${audience}`}
+              className="text-primary hover:underline"
+            >
+              Register as {active.label.toLowerCase()}
+            </Link>{" "}
+            — it takes a minute and you can sign in straight away.
+          </span>
         </p>
       </div>
 
@@ -566,6 +639,7 @@ export function SignInForm({
                 onClick={() => {
                   setAudience(option.value);
                   setErrors({});
+                  setMismatch(null);
                 }}
                 className="border-border hover:bg-secondary focus-visible:ring-ring flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none"
               >

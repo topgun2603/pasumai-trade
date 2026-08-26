@@ -22,12 +22,24 @@ import { readPendingSession, verifySession, type Session } from "./session";
  * the session again for itself, because a route handler is reachable directly
  * and never renders through a layout at all.
  */
-export async function requireConsole(roles: readonly Role[]): Promise<Session> {
+export async function requireConsole(
+  roles: readonly Role[],
+  /**
+   * Where to send somebody who is not signed in.
+   *
+   * Defaults to the public sign-in page, which is right for every console a
+   * member of the public signs into. The admin shell passes `/admin/login`
+   * instead: operations have their own door, and bouncing them onto the
+   * marketing site — chrome, ticker, language rail and all — to type a
+   * password would undo the reason that door exists.
+   */
+  signInPath: string = "/en/signin",
+): Promise<Session> {
   // Nothing can be verified without Admin credentials, and pretending
   // otherwise would leave the console open on a misconfigured deployment. Fail
   // closed, and say which it is.
   if (!hasAdminCredentials()) {
-    redirect("/en/signin?error=unconfigured");
+    redirect(`${signInPath}?error=unconfigured`);
   }
 
   const session = await verifySession();
@@ -46,7 +58,7 @@ export async function requireConsole(roles: readonly Role[]): Promise<Session> {
       handset and saying who you are.
     */
     const pending = await readPendingSession();
-    redirect(pending ? "/profile" : "/en/signin");
+    redirect(pending ? "/profile" : signInPath);
   }
 
   if (!roles.includes(session.claims.role)) {

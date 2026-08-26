@@ -7,6 +7,7 @@ import { LiveBargains } from "@/components/negotiation/live-bargains";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { requireFarmer } from "@/lib/auth/farm";
+import { consoleLocale } from "@/lib/i18n/console";
 import { readBargainVocabulary } from "@/lib/firebase/bargain-vocabulary-read";
 import { lotBooks } from "@/lib/domain/lot-book";
 import { isReady, nextStep } from "@/lib/domain/readiness";
@@ -48,6 +49,10 @@ export default async function FarmBargainsPage({
     a proposal held. Proposals no longer expire, so that round trip is gone —
     which matters most on this page, read on a handset over a rural signal.
   */
+  // Reads the language cookie rather than the database, so it costs nothing
+  // and somebody who has just switched sees it on this render.
+  const locale = await consoleLocale();
+
   const [{ threads }, { vocabulary }] = await Promise.all([
     readNegotiations(negotiations(clock)),
     // What either side may say, as operations maintain it in Controls. Read on
@@ -138,8 +143,9 @@ export default async function FarmBargainsPage({
             // moment, not in the live list.
             filter="open"
             viewer="farmer"
+            locale={locale}
             now={clock}
-                vocabulary={vocabulary}
+            vocabulary={vocabulary}
             remaining={remaining}
             books={books}
             // Arriving from a listing opens that lot's bargain rather than
