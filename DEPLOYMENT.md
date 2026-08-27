@@ -175,9 +175,10 @@ to be refused.
 `vercel.json` pins functions to `bom1` (Mumbai), which is right: every user is
 in India.
 
-**The Firestore database is not.** It is in `nam5`, a US multi-region — this
-document previously said `asia-south1`, and that was wrong. Check it rather
-than trust either claim:
+**So is the Firestore database.** It is in `asia-south1` (Mumbai). Earlier
+revisions of this document said `nam5`, a US multi-region, and built a good
+deal of reasoning on top of that — the project those notes described is not
+the one this repo deploys to. Check it rather than trust any claim here:
 
 ```bash
 npm run check:region
@@ -185,14 +186,14 @@ npm run check:region
 
 That reads the live project and prints the location. It matters twice over:
 
-- **Every server render crosses the Pacific.** A page in Mumbai reading a
-  database in Iowa pays roughly 250 ms per round trip, and the consoles make
-  several. This is the cost the paragraph above believed it had avoided.
+- **A server render stays in region.** The consoles make several round trips
+  per page; against a US database each one crossed the Pacific for roughly
+  250 ms. In `asia-south1` that cost is not paid at all.
 - **It decides where the notification triggers can run.** See below.
 
-A Firestore location is fixed for the life of the database. Moving to
-`asia-south1` means creating a database there and migrating the data — not a
-setting to flip, and worth planning rather than discovering.
+A Firestore location is fixed for the life of the database, so if this is ever
+wrong it is not a setting to flip: it means creating a database in the right
+place and migrating the data. Worth planning rather than discovering.
 
 ---
 
@@ -243,9 +244,9 @@ Cloud Run and use the Compute Engine default service account as their runtime
 identity), then
 
 ```bash
-gcloud services enable compute.googleapis.com --project=pasumai-trade
-gcloud beta services identity create --service=pubsub.googleapis.com   --project=pasumai-trade
-gcloud beta services identity create --service=eventarc.googleapis.com --project=pasumai-trade
+gcloud services enable compute.googleapis.com --project=pasumai-trade-7c83a
+gcloud beta services identity create --service=pubsub.googleapis.com   --project=pasumai-trade-7c83a
+gcloud beta services identity create --service=eventarc.googleapis.com --project=pasumai-trade-7c83a
 ```
 
 `services identity create` is the part with no Console equivalent: enabling an
@@ -255,7 +256,7 @@ fail. Then deploy as an Owner and the CLI writes the bindings itself.
 
 gcloud is not a dependency of this repo and is often not installed. Rather than
 download it, run those three in
-[Cloud Shell](https://shell.cloud.google.com/?project=pasumai-trade) — it is
+[Cloud Shell](https://shell.cloud.google.com/?project=pasumai-trade-7c83a) — it is
 already signed in as whoever opens it and has gcloud built in.
 
 A second, unrelated cause of the same message: the CLI resolves the project
@@ -264,7 +265,7 @@ identify the project and reports *that* as an IAM problem too. `npx
 firebase-tools functions:list` with no `--project` flag tells you in one
 command whether resolution works.
 
-### The region, and why it is not Mumbai
+### The region, and why it is Mumbai
 
 A 2nd-gen Firestore trigger is an [Eventarc](https://firebase.google.com/docs/functions/firestore-events)
 trigger, and Eventarc delivers a Firestore event **in the database's own
@@ -276,14 +277,17 @@ location**. Multi-regions are not supported directly; each maps to one region:
 | `eur3` (EU multi) | `europe-west1` |
 | `asia-south1` (Mumbai) | `asia-south1` |
 
-So while `asia-south1` is a perfectly good Cloud Functions region — Tier 2,
-2nd-gen only, which is all these need — a trigger cannot be put there while the
-data it watches is in `nam5`. Deploying it there does not run slowly; it fails.
+This project's database is in `asia-south1`, so the triggers are there too —
+which is also where we want them: Tier 2, 2nd-gen only, which is all these
+need, and next to the people using the platform. A trigger cannot be put
+anywhere else while the data it watches is in Mumbai. Deploying it elsewhere
+does not run slowly; it fails.
 
 The region lives in one place, [`functions/src/region.ts`](functions/src/region.ts),
-with `INTENDED` recording where we want to be. When the database moves, change
-`REGION` and every trigger follows. `npm run check:region` fails loudly if the
-two disagree.
+with `INTENDED` recording where we want to be and `REGION` where the database
+puts us. They agree today. If the database ever moves, change `REGION` and
+every trigger follows. `npm run check:region` fails loudly if the two
+disagree.
 
 ### What the handlers must guarantee
 

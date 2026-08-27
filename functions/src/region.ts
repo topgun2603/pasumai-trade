@@ -13,17 +13,16 @@
  *     asia-south1 (Mumbai)      asia-south1
  *     any other single region   the same region
  *
- * **This project's database is `nam5`.** So the triggers below run in
- * `us-central1`, not in `asia-south1` as we would like. `asia-south1` is a
- * perfectly good Cloud Functions region — it is Tier 2 and 2nd-gen only, which
- * is all these functions need — but a Firestore trigger cannot be put there
- * while the data it watches lives in North America. Deploying it there does not
- * degrade; it fails.
+ * **This project's database is `asia-south1`.** So the triggers below run in
+ * `asia-south1` as well — which is where we wanted them: Tier 2, 2nd-gen only,
+ * which is all these functions need, and next to the people using this. So
+ * `REGION` and `INTENDED` agree today. They have not always, and the pair is
+ * kept precisely so that the day they diverge is visible rather than silent.
  *
- * A Firestore location is fixed for the life of the database, so getting the
- * triggers into Mumbai means creating a database in `asia-south1` and moving
- * the data to it. When that happens, change `INTENDED` below to `asia-south1`
- * and the deploy follows — every trigger reads this one constant.
+ * A Firestore location is fixed for the life of the database, so if the data
+ * ever moves, change `REGION` to whatever the table above gives for the new
+ * location and every trigger follows — they all read this one constant.
+ * Putting a trigger anywhere else does not degrade; it fails.
  *
  * `npm run check:region` reads the live database location and tells you which
  * region is required, so this comment cannot quietly go stale.
@@ -41,13 +40,13 @@ export type TriggerRegion = "asia-south1" | "us-central1" | "europe-west1";
 export const INTENDED: TriggerRegion = "asia-south1";
 
 /**
- * Where the database forces us to be today.
+ * Where the database puts us today.
  *
  * Read `scripts/check-functions-region.ts` before editing this by hand: a
  * mismatch is a deploy-time error, not a runtime one, so it fails loudly — but
  * it fails after you have waited for a build.
  */
-export const REGION: TriggerRegion = "us-central1";
+export const REGION: TriggerRegion = "asia-south1";
 
 /**
  * Shared options for every trigger.

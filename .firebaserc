@@ -1,7 +1,7 @@
 {
   "projects": {
-    "default": "pasumai-trade",
-    "dev": "pasumai-trade"
+    "default": "pasumai-trade-7c83a",
+    "dev": "pasumai-trade-7c83a"
   },
   "targets": {},
   "etags": {}
