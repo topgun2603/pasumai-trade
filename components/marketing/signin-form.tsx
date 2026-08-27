@@ -77,15 +77,26 @@ export function SignInForm({
   /*
    * Two ways in, one session.
    *
-   * OTP is offered first to farmers, who have a phone and often no email
-   * habit, and offered second to everyone else. Both paths end at the same
-   * exchange: a Firebase ID token posted once to /api/auth/session. Signup
-   * puts the mobile on the same user record as the email, so the token an SMS
-   * sign-in produces already carries the role and accountId claims.
+   * OTP is offered first to everyone. It used to be first for farmers — who
+   * have a phone and often no email habit — and second for every other door,
+   * which meant the same person met a different form depending on which tab
+   * they arrived through. A buyer and a franchise have a phone in hand too.
+   * The password is still there, one control away.
+   *
+   * Both paths end at the same exchange: a Firebase ID token posted once to
+   * /api/auth/session. Signup puts the mobile on the same user record as the
+   * email, so the token an SMS sign-in produces already carries the role and
+   * accountId claims.
+   *
+   * That last sentence is a condition rather than a guarantee, and it is the
+   * thing to check if SMS sign-in starts failing for one kind of account:
+   * `npm run grant` creates a user *without* a phone number, and Firebase
+   * matches an SMS to a user by phone number alone. Signing in by SMS as an
+   * account whose number never reached its auth record mints a second user
+   * carrying no claims, which the session exchange then refuses — correctly,
+   * and confusingly. `scripts/link-mobiles.ts` is the repair.
    */
-  const [method, setMethod] = useState<"password" | "otp">(
-    initial === "farmer" ? "otp" : "password",
-  );
+  const [method, setMethod] = useState<"password" | "otp">("otp");
   const [mobile, setMobile] = useState("");
   const [code, setCode] = useState("");
   const [confirmer, setConfirmer] =
@@ -142,12 +153,16 @@ export function SignInForm({
   /*
    * Every door takes an email and a password, farmers included.
    *
-   * This form used to show farmers a mobile-and-OTP flow that was wired to
-   * nothing: it validated the number, then said the farmer app did not exist.
-   * Phone sign-in needs Firebase Phone auth, a reCAPTCHA and a billing
-   * account, none of which are set up — and signup already issues farmers an
-   * email and a password. Mobile OTP is worth having; refusing the credential
-   * they already hold was not the way to wait for it.
+   * This form once showed farmers a mobile-and-OTP flow wired to nothing: it
+   * validated the number, then said the farmer app did not exist. That is no
+   * longer true — the verifier is real, in `startPhoneSignIn` — which is why
+   * OTP now leads for every door rather than for one.
+   *
+   * Whether an SMS can actually be sent is project configuration rather than
+   * code, and it fails as a bare 400 with the reason only in a response body:
+   * `npx tsx scripts/check-auth-config.ts` reports the three settings that
+   * decide it. The password path is what stands up when they are wrong, and it
+   * is what `npm run grant` issues in the first place.
    */
 
   /** Land where the account is entitled to go, not where the tab said. */
