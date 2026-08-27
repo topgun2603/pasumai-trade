@@ -378,6 +378,46 @@ functions in the first place.
 
 `npm run check:deploy` looks for this agent alongside the other three.
 
+### "missing permission on the build service account"
+
+The upload succeeds, three builds start, and all three fail with that sentence
+— which names neither the permission nor the account.
+
+A 2nd-gen function is built by Cloud Build, and on a project created since
+Google's **Secure by Default** enforcement the builder is the Compute Engine
+default service account, not the legacy `<number>@cloudbuild.gserviceaccount.com`
+one. The compute default account no longer receives `roles/editor`
+automatically, and nothing grants it the builder role in its place. So the
+account exists, is perfectly healthy, and simply cannot build — which is why
+the service-agent checks above all pass while every build fails.
+
+```bash
+gcloud projects add-iam-policy-binding pasumai-trade-7c83a \
+  --member="serviceAccount:447458551837-compute@developer.gserviceaccount.com" \
+  --role="roles/cloudbuild.builds.builder"
+```
+
+`npm run check:deploy` reports this under **build identity**.
+
+### "Changing from an HTTPS function to a background triggered function"
+
+Seen when a previous deploy created the functions while the Pub/Sub and
+Eventarc service agents were still missing: the Cloud Run services were made,
+the Eventarc bindings were not, and what is left registers as an HTTPS function.
+It is inert — nothing calls it, and no Firestore write reaches it.
+
+A trigger type cannot be changed in place. Delete and redeploy:
+
+```bash
+firebase functions:delete onProduceListed onBargainActivity onOrderPlaced \
+  --region asia-south1 --force
+firebase deploy --only functions
+```
+
+Nothing is lost: these functions hold no state, and in that condition they were
+doing nothing. Check `firebase functions:list` afterwards — the Trigger column
+should read the Firestore event type, never `https`.
+
 ### The region, and why it is Mumbai
 
 A 2nd-gen Firestore trigger is an [Eventarc](https://firebase.google.com/docs/functions/firestore-events)

@@ -195,7 +195,10 @@ async function main() {
   if (absent.length > 0) {
     fixes.push(
       "Provision the missing service agents — they are created lazily, and\n" +
-        "propagation takes a few minutes:\n" +
+        "propagation takes a few minutes. Google-managed agents are not always\n" +
+        "readable through the IAM API even once they exist, so this can report a\n" +
+        "healthy one as missing; the command is idempotent, so run it either way\n" +
+        "and believe the deploy over this line:\n" +
         absent
           .map((a) => `  gcloud beta services identity create --service=${a.api} --project=${projectId}`)
           .join("\n"),
@@ -236,6 +239,39 @@ async function main() {
               `    --member="${b.member}" --role="${b.role}"`,
           )
           .join("\n"),
+    );
+  }
+
+  /* The build identity ------------------------------------------------------ */
+
+  // A 2nd-gen function is built by Cloud Build, and on projects created since
+  // Google's "secure by default" enforcement the builder is the Compute Engine
+  // default service account rather than the legacy `@cloudbuild` one — which
+  // no longer receives roles/editor automatically. Without the builder role the
+  // upload succeeds, the build starts, and it fails with "missing permission on
+  // the build service account", naming no permission and no account.
+  //
+  // Checked separately from AGENTS above because the account exists and is
+  // correctly provisioned; it is only under-privileged, which the agent
+  // existence check cannot see.
+  const BUILD_SA = `${number}-compute@developer.gserviceaccount.com`;
+  const BUILD_ROLE = "roles/cloudbuild.builds.builder";
+
+  console.log("\nbuild identity:");
+  const buildMember = `serviceAccount:${BUILD_SA}`;
+  const buildRoles = bindings
+    .filter((b) => (b.members ?? []).includes(buildMember))
+    .map((b) => b.role);
+  const canBuild = buildRoles.includes(BUILD_ROLE) || buildRoles.includes("roles/editor");
+  console.log(`  ${canBuild ? "ok     " : "MISSING"}  ${BUILD_ROLE}`);
+  console.log(`           ${BUILD_SA}`);
+  if (!canBuild) {
+    fixes.push(
+      "Let the build service account build. It is the Compute Engine default\n" +
+        "account, and on a project created under Secure by Default it is not\n" +
+        "granted this automatically:\n" +
+        `  gcloud projects add-iam-policy-binding ${projectId} \\\n` +
+        `    --member="${buildMember}" --role="${BUILD_ROLE}"`,
     );
   }
 
