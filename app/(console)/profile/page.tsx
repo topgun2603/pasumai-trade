@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 
-import { BrandMark } from "@/components/marketing/brand-mark";
+import { BrandLogo } from "@/components/marketing/brand-mark";
 import { ProfileForm } from "@/components/marketing/profile-form";
 import { HOME_FOR_ROLE } from "@/lib/auth/claims";
 import { readPendingSession, verifySession } from "@/lib/auth/session";
@@ -65,8 +65,8 @@ export default async function ProfilePage({
         to rather than like marketing.
       */}
       <header className="bg-sidebar border-sidebar-border flex h-12 shrink-0 items-center gap-2.5 border-b px-4">
-        <span className="bg-primary text-primary-foreground flex size-7 items-center justify-center rounded-md">
-          <BrandMark className="size-4" />
+        <span className="bg-white flex size-7 items-center justify-center rounded-full">
+          <BrandLogo className="size-4" />
         </span>
         <span className="flex flex-col leading-tight">
           <span className="text-sm font-semibold">Pasumai Trade</span>

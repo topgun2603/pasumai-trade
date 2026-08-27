@@ -4,7 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 
-import { BrandMark } from "@/components/marketing/brand-mark";
+import { BrandLogo } from "@/components/marketing/brand-mark";
 import { Button } from "@/components/ui/button";
 import { verifySession } from "@/lib/auth/session";
 import { readRenewalToken, renewalDestination } from "@/lib/domain/renewal-link";
@@ -74,8 +74,8 @@ export default async function RenewPage({
   return (
     <main className="flex min-h-svh flex-col items-center justify-center gap-6 p-6">
       <span className="flex items-center gap-2.5">
-        <span className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-md">
-          <BrandMark className="size-5" />
+        <span className="bg-white flex size-8 items-center justify-center rounded-full">
+          <BrandLogo className="size-5" />
         </span>
         <span className="text-sm font-semibold">Pasumai Trade</span>
       </span>

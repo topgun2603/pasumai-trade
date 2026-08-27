@@ -97,9 +97,17 @@ export default async function AdminLoginPage({
         />
 
         <div className="relative flex items-center gap-2.5 px-10 pt-10">
-          {/* The leaves are bright against the panel, so the photograph needs
-            no treatment here — which is the whole reason it can be used. */}
-          <BrandLogo className="size-9" />
+          {/* The white circle, as everywhere else.
+
+            The leaves are bright enough to read straight against this panel,
+            and did for a while — but "readable here" is a weaker reason than
+            "the same mark everywhere", and an operator moving between this door
+            and the console rail behind it should meet one lockup, not two. It
+            is the loudest circle on the platform, sitting on the dark panel;
+            that is the cost of it being the same one. */}
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white">
+            <BrandLogo className="size-6" />
+          </span>
           <span className="font-heading text-rail-foreground text-[17px] font-semibold tracking-tight">
             Pasumai Trade
           </span>
@@ -138,7 +146,12 @@ export default async function AdminLoginPage({
           {/* The mark rides above the heading on a phone, where the panel that
               would otherwise carry it is not drawn. */}
           <div className="flex flex-col gap-4 lg:gap-3">
-            <BrandLogo priority className="size-12 lg:hidden" />
+            {/* `lg:hidden` belongs on the circle, not on the mark inside it —
+              hiding only the mark would leave a bare white disc on desktop,
+              where the panel beside it already carries the lockup. */}
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-white lg:hidden">
+              <BrandLogo priority className="size-8" />
+            </span>
             <div className="flex flex-col gap-1.5">
               <span className="text-primary flex items-center gap-1.5 text-xs font-medium tracking-[0.14em] uppercase">
                 <ShieldCheckIcon className="size-3.5" />

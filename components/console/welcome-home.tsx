@@ -1,7 +1,7 @@
 import { ArrowRightIcon, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 
-import { BrandMark } from "@/components/marketing/brand-mark";
+import { BrandLogo } from "@/components/marketing/brand-mark";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -68,8 +68,8 @@ export function WelcomeHome({
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-10 px-5 py-14">
       <div className="flex max-w-xl flex-col items-center gap-5 text-center">
-        <span className="bg-primary text-primary-foreground flex size-14 items-center justify-center rounded-2xl">
-          <BrandMark className="size-8" />
+        <span className="bg-white flex size-14 items-center justify-center rounded-full">
+          <BrandLogo className="size-8" />
         </span>
 
         <div className="flex flex-col gap-2.5">

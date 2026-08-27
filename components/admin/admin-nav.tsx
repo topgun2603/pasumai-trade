@@ -25,7 +25,7 @@ import { SessionFooter } from "@/components/auth/session-footer";
 import { Badge } from "@/components/ui/badge";
 import type { Role } from "@/lib/auth/claims";
 import { Separator } from "@/components/ui/separator";
-import { BrandMark } from "@/components/marketing/brand-mark";
+import { BrandLogo } from "@/components/marketing/brand-mark";
 import { MobileNav } from "@/components/console/mobile-nav";
 import { cn } from "@/lib/utils";
 
@@ -175,8 +175,8 @@ export function AdminNav({
       */}
       <nav className="bg-sidebar border-sidebar-border sticky top-0 hidden h-svh w-60 shrink-0 flex-col border-r md:flex">
         <div className="flex items-center gap-2.5 px-4 py-4">
-          <span className="bg-foreground text-background flex size-8 items-center justify-center rounded-md">
-            <BrandMark className="size-5" />
+          <span className="bg-white flex size-8 items-center justify-center rounded-full">
+            <BrandLogo className="size-5" />
           </span>
           <span className="flex min-w-0 flex-col leading-tight">
             <span className="truncate text-sm font-semibold">

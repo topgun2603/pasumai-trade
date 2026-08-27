@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
-import { BrandMark } from "@/components/marketing/brand-mark";
+import { BrandLogo } from "@/components/marketing/brand-mark";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -81,8 +81,8 @@ export function MobileNav({
         <SheetContent side="left" className="w-72 p-0">
           <SheetHeader className="border-b px-4 py-3 text-left">
             <SheetTitle className="flex items-center gap-2.5">
-              <span className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-md">
-                <BrandMark className="size-5" />
+              <span className="bg-white flex size-8 items-center justify-center rounded-full">
+                <BrandLogo className="size-5" />
               </span>
               <span className="flex flex-col leading-tight">
                 <span className="text-sm font-semibold">Pasumai Trade</span>

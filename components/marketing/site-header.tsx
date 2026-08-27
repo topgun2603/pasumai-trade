@@ -99,6 +99,7 @@ export function SiteHeader({
           className="focus-visible:ring-ring shrink-0 rounded-md focus-visible:ring-2 focus-visible:outline-none"
         >
           <BrandLockup
+            name={t.brand.name}
             tagline={t.brand.tagline}
             markClassName="size-8"
             nameClassName="text-[15px]"

@@ -1,65 +1,85 @@
 /**
- * Render the installed-app icons from the same three paths the component uses.
+ * Render the installed-app icons from the same image the application draws.
  *
  * These are the one place the mark has to exist as pixels — Android and iOS
- * will not take an SVG — so they are generated rather than drawn, and the
- * geometry is pasted from components/marketing/brand-mark.tsx. Re-run after
- * redrawing the mark.
+ * will not take an SVG — so they are generated rather than drawn.
+ *
+ * The source used to be three path strings pasted from
+ * components/marketing/brand-mark.tsx, which meant the home-screen icon was a
+ * flat green sprout while every screen behind it showed the photograph. Two
+ * drawings of one mark is two marks. It reads from public/logo-mark.png now:
+ * the same file `BrandLogo` renders, so the icon a phone shows on its home
+ * screen is the icon the app shows when it opens.
+ *
+ * Re-run after replacing that file:  node scripts/build-icons.mjs
  */
 import sharp from "sharp";
 import { writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const GREEN = "#1c5b3e";
+// Resolved from this file rather than from the working directory, and never
+// written out as an absolute path: the previous version hardcoded `f:/` and so
+// only ran on the machine it was written on.
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const SOURCE = join(ROOT, "public", "logo-mark.png");
+
 const BG = "#f6f8f4"; // manifest background_color
-
-const CENTRE = "M24 4C30.5 11.5 32.5 22 24 32 15.5 22 17.5 11.5 24 4Z";
-const LEFT = "M24 31.5C18 33.5 10.5 29.5 6.5 18.5 15 18.5 22 23 24 31.5Z";
-const RIGHT = "M24 31.5C30 33.5 37.5 29.5 41.5 18.5 33 18.5 26 23 24 31.5Z";
 
 /**
  * The mark fills 68% of the tile. `purpose: "any"` means the launcher does not
  * crop, but it may still round the corners, and a mark that runs to the edge
  * loses its leaf tips to the rounding on exactly the phones least able to
  * spare them.
+ *
+ * The ground is opaque rather than transparent. The mark was cut out of its
+ * white background so it could sit on a dark theme, which is right in the
+ * application and wrong here — a launcher, a tab strip and an iOS home screen
+ * each supply their own backdrop, and dark leaves on a dark one disappear.
  */
-function tile(size) {
-  const inset = size * 0.16;
+async function tile(size) {
+  const inset = Math.round(size * 0.16);
   const span = size - inset * 2;
-  const radius = size * 0.22;
+  const radius = Math.round(size * 0.22);
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+  const ground = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
   <rect width="${size}" height="${size}" rx="${radius}" fill="${BG}"/>
-  <g transform="translate(${inset} ${inset}) scale(${span / 48})">
-    <circle cx="24" cy="24" r="21.4" stroke="${GREEN}" stroke-width="1.3" opacity="0.3" fill="none"/>
-    <path d="M24 41.5V30" stroke="${GREEN}" stroke-width="3.5" stroke-linecap="round"/>
-    <path d="${LEFT}" fill="${GREEN}" opacity="0.72"/>
-    <path d="${RIGHT}" fill="${GREEN}" opacity="0.72"/>
-    <path d="${CENTRE}" fill="${GREEN}"/>
-  </g>
 </svg>`;
+
+  const mark = await sharp(SOURCE)
+    .resize(span, span, {
+      fit: "contain",
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .toBuffer();
+
+  return sharp(Buffer.from(ground))
+    .composite([{ input: mark, top: inset, left: inset }])
+    .png({ compressionLevel: 9 })
+    .toBuffer();
 }
 
 for (const size of [192, 512]) {
-  const out = `f:/pasumai-trade/public/icon-${size}.png`;
-  await sharp(Buffer.from(tile(size))).png({ compressionLevel: 9 }).toFile(out);
+  writeFileSync(join(ROOT, "public", `icon-${size}.png`), await tile(size));
   console.log(`wrote icon-${size}.png`);
 }
 
 // iOS home screens. Apple does not round-trip an SVG and does not read the
 // manifest, so this file is the only mark an installed-to-homescreen iPhone
-// ever sees. It carries the dish: 180px is plenty for a hairline.
-await sharp(Buffer.from(tile(180))).png({ compressionLevel: 9 })
-  .toFile("f:/pasumai-trade/app/apple-icon.png");
+// ever sees.
+writeFileSync(join(ROOT, "app", "apple-icon.png"), await tile(180));
 console.log("wrote apple-icon.png");
 
-// The .ico the browser asks for by name. 32px is what tab strips render at,
-// and the dish is dropped there for the same reason it is dropped in icon.svg.
-const favicon = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 48 48">
-  <path d="M24 41.5V30" stroke="${GREEN}" stroke-width="3.5" stroke-linecap="round" fill="none"/>
-  <path d="${LEFT}" fill="${GREEN}" opacity="0.72"/>
-  <path d="${RIGHT}" fill="${GREEN}" opacity="0.72"/>
-  <path d="${CENTRE}" fill="${GREEN}"/>
-</svg>`;
+/*
+  The browser-tab mark.
+
+  This replaces app/icon.svg, which was the drawn sprout written out by hand.
+  A photograph cannot be an SVG, and Next takes app/icon.png just as happily —
+  so the tab now shows the same mark as everything else. 64px covers the 32px
+  a tab strip renders at on a 2x display.
+*/
+writeFileSync(join(ROOT, "app", "icon.png"), await tile(64));
+console.log("wrote icon.png");
 
 /*
   An .ico wrapping a 32px PNG. The format has allowed a PNG payload since
@@ -68,10 +88,10 @@ const favicon = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" 
   bitmap encoder. sharp has no .ico writer; hand-assembling the container is
   less machinery than adding a dependency for one file.
 
-  It exists at all because Safari on older macOS will not take icon.svg, and
-  Next serves app/favicon.ico ahead of app/icon.svg when both are present.
+  It exists at all because Safari on older macOS will not take a PNG icon, and
+  Next serves app/favicon.ico ahead of app/icon.png when both are present.
 */
-const png32 = await sharp(Buffer.from(favicon)).resize(32, 32).png().toBuffer();
+const png32 = await tile(32);
 const ico = Buffer.alloc(22 + png32.length);
 ico.writeUInt16LE(0, 0); // reserved
 ico.writeUInt16LE(1, 2); // type: icon
@@ -85,5 +105,5 @@ ico.writeUInt16LE(32, 12); // bits per pixel
 ico.writeUInt32LE(png32.length, 14);
 ico.writeUInt32LE(22, 18); // payload offset
 png32.copy(ico, 22);
-writeFileSync("f:/pasumai-trade/app/favicon.ico", ico);
+writeFileSync(join(ROOT, "app", "favicon.ico"), ico);
 console.log("wrote favicon.ico");

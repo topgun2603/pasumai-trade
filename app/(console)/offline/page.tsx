@@ -1,7 +1,7 @@
 import { CloudOffIcon } from "lucide-react";
 import type { Metadata } from "next";
 
-import { BrandMark } from "@/components/marketing/brand-mark";
+import { BrandLogo } from "@/components/marketing/brand-mark";
 
 export const metadata: Metadata = {
   title: "No connection",
@@ -21,8 +21,8 @@ export const metadata: Metadata = {
 export default function OfflinePage() {
   return (
     <div className="flex min-h-svh flex-col items-center justify-center gap-6 px-6 text-center">
-      <span className="bg-primary text-primary-foreground flex size-12 items-center justify-center rounded-xl">
-        <BrandMark className="size-6" />
+      <span className="bg-white flex size-12 items-center justify-center rounded-full">
+        <BrandLogo className="size-6" />
       </span>
 
       <div className="flex max-w-sm flex-col gap-2">

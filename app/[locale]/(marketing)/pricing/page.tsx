@@ -24,8 +24,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   if (!isLocale(locale)) return {};
+  const t = getDictionary(locale);
   return {
-    title: "Pricing · Pasumai Trade",
+    title: `${t.nav.pricing} · ${t.brand.name}`,
     description:
       "Looking is free — every listing, every settled price. From ₹199 a month to trade, or ₹4,999 once and never again.",
   };

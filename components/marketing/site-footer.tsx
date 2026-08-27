@@ -105,6 +105,7 @@ export function SiteFooter({ locale, t }: { locale: Locale; t: Dictionary }) {
       <div className="mx-auto grid w-full max-w-6xl gap-x-8 gap-y-10 px-5 py-12 sm:grid-cols-2 lg:grid-cols-12">
         <div className="flex flex-col gap-4 lg:col-span-4">
           <BrandLockup
+            name={t.brand.name}
             tagline={t.brand.tagline}
             markClassName="size-10"
             nameClassName="text-base"

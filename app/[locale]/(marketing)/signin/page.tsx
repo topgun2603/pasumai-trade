@@ -56,10 +56,14 @@ export default async function SignInPage({
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-8 px-5 py-16">
       <div className="flex flex-col items-center gap-3 text-center">
-      {/* The mark itself, not a chip with a stock leaf in it — this page used
-        lucide's LeafIcon, which was never the brand. Larger than the 44px chip
-        it replaces, because losing the filled square costs it visual weight. */}
-      <BrandLogo priority className="size-14" />
+        {/* The mark itself, in the white circle the header and the console
+          rails wear. This page once drew lucide's LeafIcon in a green square,
+          which was never the brand; the square came back as a circle only once
+          there was a real mark to put in it. The circle keeps the size-14
+          footprint the bare mark had, so the heading below it has not moved. */}
+        <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-white">
+          <BrandLogo priority className="size-9" />
+        </span>
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">{t.signin.title}</h1>
           <p className="text-muted-foreground text-sm">{t.signin.subtitle}</p>

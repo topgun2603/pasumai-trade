@@ -24,7 +24,7 @@ import type { Notification } from "@/lib/domain/notification";
 import type { Role } from "@/lib/auth/claims";
 import { getDictionary, type Dictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n/config";
-import { BrandMark } from "@/components/marketing/brand-mark";
+import { BrandLogo } from "@/components/marketing/brand-mark";
 import { cn } from "@/lib/utils";
 
 /**
@@ -182,8 +182,8 @@ export function ConsoleNav({
       */}
       <nav className="bg-sidebar border-sidebar-border sticky top-0 hidden h-svh w-60 shrink-0 flex-col border-r md:flex">
         <div className="flex items-center gap-2.5 px-4 py-4">
-          <span className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-md">
-            <BrandMark className="size-5" />
+          <span className="bg-white flex size-8 items-center justify-center rounded-full">
+            <BrandLogo className="size-5" />
           </span>
           <span className="flex min-w-0 flex-1 flex-col leading-tight">
             <span className="truncate text-sm font-semibold">

@@ -13,7 +13,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   if (!isLocale(locale)) return {};
-  return { title: "Create an account", robots: { index: false } };
+  // The tab title too, not only what is on the page. A reader with several tabs
+  // open picks this one out by its title, and an English one on a Tamil page is
+  // the hardest of the six to pick out.
+  return { title: getDictionary(locale).signup.title, robots: { index: false } };
 }
 
 export default async function SignUpPage({
@@ -40,14 +43,14 @@ export default async function SignUpPage({
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-8 px-5 py-16">
       <div className="flex flex-col items-center gap-3 text-center">
-      <BrandLogo priority className="size-14" />
+        <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-white">
+          <BrandLogo priority className="size-9" />
+        </span>
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">
-            Create an account
+            {t.signup.title}
           </h1>
-          <p className="text-muted-foreground text-sm">
-            Takes a minute. You can sign in and look around straight away.
-          </p>
+          <p className="text-muted-foreground text-sm">{t.signup.subtitle}</p>
         </div>
       </div>
 

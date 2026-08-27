@@ -66,7 +66,7 @@ export async function generateMetadata({
   return {
     title: `${t.hero.titleLine1} ${t.hero.titleLine2}`,
     description: t.hero.body,
-    openGraph: { title: "Pasumai Trade", description: t.hero.body, type: "website" },
+    openGraph: { title: t.brand.name, description: t.hero.body, type: "website" },
   };
 }
 

@@ -40,9 +40,11 @@ export async function generateMetadata({
   const dictionary = getDictionary(locale);
 
   return {
+    // Every page under this layout inherits the template, so the name in the
+    // tab is set once, here, in the reader's script.
     title: {
-      default: "Pasumai Trade",
-      template: "%s · Pasumai Trade",
+      default: dictionary.brand.name,
+      template: `%s · ${dictionary.brand.name}`,
     },
     description: dictionary.footer.tagline,
     alternates: {

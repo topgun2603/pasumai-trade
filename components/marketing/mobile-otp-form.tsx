@@ -14,6 +14,7 @@ import {
   type SignInResult,
 } from "@/lib/auth/sign-in";
 import { checkMobile, toE164 } from "@/lib/domain/registration";
+import { fill } from "@/lib/i18n";
 
 /**
  * A mobile number and the code sent to it.
@@ -42,6 +43,18 @@ export function MobileOtpForm({
    */
   containerId: string;
   onDone: (result: SignInResult) => void;
+  /**
+   * Every string this form can show, including the ones it only shows when
+   * something goes wrong.
+   *
+   * The failure messages used to be English literals in the body, on the
+   * reasoning that the caller supplies the labels and the component supplies
+   * its own errors. That split is invisible to a reader: a Tamil form that
+   * answers a mistyped number in English is a Tamil form with an English error
+   * on it, which is the moment somebody most needs to understand what is being
+   * said. Passing them in costs the caller six lines and it has the dictionary
+   * open anyway.
+   */
   labels: {
     mobile: string;
     code: string;
@@ -49,6 +62,13 @@ export function MobileOtpForm({
     sending: string;
     submit: string;
     submitting: string;
+    differentNumber: string;
+    mobileRequired: string;
+    badMobile: string;
+    enterCode: string;
+    codeSent: string;
+    couldNotSend: string;
+    couldNotSignIn: string;
   };
 }) {
   const [mobile, setMobile] = useState("");
@@ -63,9 +83,11 @@ export function MobileOtpForm({
   async function send(event: React.FormEvent) {
     event.preventDefault();
 
-    const problem = checkMobile(mobile);
-    if (problem) {
-      setError(problem);
+    // `checkMobile` decides what counts as valid; which sentence says so is
+    // decided here, because the domain layer has no locale and should not grow
+    // one to describe a text box.
+    if (checkMobile(mobile)) {
+      setError(mobile.trim() === "" ? labels.mobileRequired : labels.badMobile);
       return;
     }
 
@@ -73,7 +95,7 @@ export function MobileOtpForm({
     // non-null assertion, because the two checks could drift.
     const e164 = toE164(mobile);
     if (!e164) {
-      setError("That is not a valid mobile number.");
+      setError(labels.badMobile);
       return;
     }
 
@@ -83,20 +105,20 @@ export function MobileOtpForm({
 
     if (!result.ok || !result.confirmer) {
       setError(result.error);
-      toast.error(result.error ?? "Could not send a code.");
+      toast.error(result.error ?? labels.couldNotSend);
       return;
     }
 
     setConfirmer(result.confirmer);
     setError(undefined);
-    toast.success(`Code sent to ${mobile}`);
+    toast.success(fill(labels.codeSent, { mobile }));
   }
 
   async function verify(event: React.FormEvent) {
     event.preventDefault();
 
     if (code.trim().length < 6) {
-      setError("Enter the six-digit code.");
+      setError(labels.enterCode);
       return;
     }
     if (!confirmer) return;
@@ -107,7 +129,7 @@ export function MobileOtpForm({
     if (!result.ok) {
       setBusy(false);
       setError(result.error);
-      toast.error(result.error ?? "Could not sign in.");
+      toast.error(result.error ?? labels.couldNotSignIn);
       return;
     }
 
@@ -170,7 +192,7 @@ export function MobileOtpForm({
             }}
             className="text-muted-foreground hover:text-foreground self-start text-xs underline-offset-2 hover:underline"
           >
-            Use a different number
+            {labels.differentNumber}
           </button>
         </div>
       ) : null}

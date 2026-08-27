@@ -28,55 +28,38 @@ import {
   type SignupForm,
   type SignupRole,
 } from "@/lib/domain/signup";
-import type { Dictionary } from "@/lib/i18n";
+import { fill, type Dictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n/config";
 
-const DOORS: Record<
-  SignupRole,
-  {
-    label: string;
-    blurb: string;
-    nameLabel: string;
-    placeLabel: string;
-    icon: typeof UserRoundIcon;
-  }
-> = {
-  farmer: {
-    label: "Farmer",
-    blurb: "List what you grow, and bargain on your own price.",
-    nameLabel: "Your name",
-    placeLabel: "Village",
-    icon: SmartphoneIcon,
-  },
-  franchise: {
-    label: "Franchise",
-    blurb: "Buy graded produce for a franchise outlet.",
-    nameLabel: "Business name",
-    placeLabel: "Town",
-    icon: StoreIcon,
-  },
-  buyer: {
-    label: "Buyer",
-    blurb: "Buy direct from farmers — hotels, caterers, retailers.",
-    nameLabel: "Business name",
-    placeLabel: "Town",
-    icon: UserRoundIcon,
-  },
-  transport: {
-    label: "Transportation",
-    blurb: "Register a fleet, then add your vehicles and drivers.",
-    nameLabel: "Agency name",
-    placeLabel: "Town",
-    icon: TruckIcon,
-  },
-  manpower: {
-    label: "Manpower",
-    blurb: "Register an agency, then add the crew you supply.",
-    nameLabel: "Agency name",
-    placeLabel: "Town",
-    icon: HardHatIcon,
-  },
+/*
+  The mark each door gets, and nothing else.
+
+  The label and the blurb used to sit beside the icon as English literals, which
+  is how a Tamil page came to name its doors "Farmer" and "Transportation" — the
+  dictionary had those five blurbs translated the whole time and no one read
+  them. They come from `t` now. An icon is the only part of a door that does not
+  change with the language.
+
+  `nameLabel` and `placeLabel` are dropped rather than moved: the name and place
+  fields left this form for the profile step, and the labels have had nothing to
+  label since.
+*/
+const DOOR_ICONS: Record<SignupRole, typeof UserRoundIcon> = {
+  farmer: SmartphoneIcon,
+  franchise: StoreIcon,
+  buyer: UserRoundIcon,
+  transport: TruckIcon,
+  manpower: HardHatIcon,
 };
+
+/** Which blurb each door reads — the dictionary names them per role. */
+const DOOR_BLURB = {
+  farmer: "blurbFarmer",
+  franchise: "blurbFranchise",
+  buyer: "blurbBuyer",
+  transport: "blurbTransport",
+  manpower: "blurbManpower",
+} as const satisfies Record<SignupRole, keyof Dictionary["signup"]>;
 
 const ORDER: SignupRole[] = [
   "farmer",
@@ -123,6 +106,7 @@ function Field({
 export function SignUpForm({
   initial,
   locale,
+  t,
 }: {
   initial: SignupRole;
   locale: Locale;
@@ -146,6 +130,16 @@ export function SignUpForm({
   >({});
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState(false);
+  /*
+    The account id the server hands back, which the confirmation screen names.
+
+    It was being read off the response and thrown away, and the line that quotes
+    it was interpolating `created` — a boolean, which React renders as nothing
+    at all. Kept separate from `created` rather than folded into it so the
+    screen still appears when the server answers without an id: a confirmation
+    that does not show is worse than one missing its reference number.
+  */
+  const [reference, setReference] = useState<string | null>(null);
   const [verificationSent, setVerificationSent] = useState(false);
   /*
     Mobile is the default door for everybody, as it is on sign-in.
@@ -162,7 +156,7 @@ export function SignUpForm({
   */
   const [method, setMethod] = useState<"otp" | "password">("otp");
 
-  const door = DOORS[initial];
+  const DoorIcon = DOOR_ICONS[initial];
   const isFarmer = initial === "farmer";
 
   function set<K extends keyof SignupForm>(key: K, value: SignupForm[K]) {
@@ -198,9 +192,7 @@ export function SignUpForm({
       });
     } catch {
       setSubmitting(false);
-      toast.error(
-        "Could not reach the server. Check your connection and try again.",
-      );
+      toast.error(t.signup.unreachable);
       return;
     }
 
@@ -217,7 +209,7 @@ export function SignUpForm({
       // person has to map back themselves.
       if (data.fields)
         setErrors(data.fields as Partial<Record<keyof SignupForm, string>>);
-      toast.error(data.error ?? "Could not create the account.");
+      toast.error(data.error ?? t.signup.couldNotCreate);
       return;
     }
 
@@ -247,6 +239,7 @@ export function SignUpForm({
     }
 
     setSubmitting(false);
+    setReference(data.accountId ?? null);
     setVerificationSent(sent);
     setCreated(true);
 
@@ -269,12 +262,16 @@ export function SignUpForm({
         <div className="border-success/30 bg-success-soft flex items-start gap-3 rounded-lg border px-4 py-4">
           <CheckCircle2Icon className="text-success mt-0.5 size-5 shrink-0" />
           <div className="flex flex-col gap-1.5">
-            <span className="font-medium">Account created</span>
-            <p className="text-muted-foreground text-sm">
-              Your reference is <span className="font-mono">{created}</span>.
-              Worth keeping — it is what operations ask for if you ever phone
-              them.
-            </p>
+            <span className="font-medium">{t.signup.createdTitle}</span>
+            {/* One string with the reference inside it rather than a sentence
+                assembled from fragments: where the number falls in the line is
+                not the same in all six languages, and splitting it would fix
+                English word order onto the other five. */}
+            {reference ? (
+              <p className="text-muted-foreground text-sm">
+                {fill(t.signup.reference, { ref: reference })}
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -286,22 +283,9 @@ export function SignUpForm({
         <div className="bg-secondary flex items-start gap-3 rounded-lg px-4 py-3.5">
           <MailIcon className="text-muted-foreground mt-0.5 size-4 shrink-0" />
           <p className="text-muted-foreground text-sm">
-            {verificationSent ? (
-              <>
-                We have sent a link to{" "}
-                <span className="text-foreground font-medium">
-                  {values.email}
-                </span>
-                . Open it to confirm the address is yours — you can sign in and
-                look around before you do.
-              </>
-            ) : (
-              <>
-                We could not send the confirmation email just now. Nothing is
-                wrong with the account — sign in and ask for it again from your
-                account page.
-              </>
-            )}
+            {verificationSent
+              ? fill(t.signup.verifySent, { email: values.email })
+              : t.signup.verifyFailed}
           </p>
         </div>
 
@@ -321,22 +305,18 @@ export function SignUpForm({
           in like everybody else.
         */}
         <div className="bg-secondary flex flex-col gap-2 rounded-lg px-4 py-3.5">
-          <span className="text-sm font-medium">What happens now</span>
+          <span className="text-sm font-medium">{t.signup.whatNow}</span>
           <ol className="text-muted-foreground flex list-decimal flex-col gap-1 pl-4 text-sm">
-            <li>Sign in now — your account is ready.</li>
-            <li>Looking around is free: prices, listings and who is buying.</li>
-            <li>
-              {isFarmer
-                ? "Take a plan when you want to post produce and bargain."
-                : "Take a plan when you want to bargain and order."}
-            </li>
-            <li>Verification is in your console, and most of it is instant.</li>
+            <li>{t.signup.now1}</li>
+            <li>{t.signup.now2}</li>
+            <li>{isFarmer ? t.signup.now3Farmer : t.signup.now3Other}</li>
+            <li>{t.signup.now4}</li>
           </ol>
         </div>
 
         <Button asChild>
           <Link href={`/${locale}/signin?as=${initial}`}>
-            Sign in
+            {t.signup.signIn}
             <ArrowRightIcon className="size-4" />
           </Link>
         </Button>
@@ -348,11 +328,13 @@ export function SignUpForm({
     <div className="flex flex-col gap-6">
       <div className="border-primary/25 bg-accent flex items-start gap-3 rounded-lg border px-3.5 py-3">
         <span className="bg-primary text-primary-foreground mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full">
-          <door.icon className="size-4" />
+          <DoorIcon className="size-4" />
         </span>
         <span className="flex flex-col gap-0.5">
-          <span className="font-medium">{door.label}</span>
-          <span className="text-muted-foreground text-sm">{door.blurb}</span>
+          <span className="font-medium">{t.doors[initial]}</span>
+          <span className="text-muted-foreground text-sm">
+            {t.signup[DOOR_BLURB[initial]]}
+          </span>
         </span>
       </div>
 
@@ -366,7 +348,7 @@ export function SignUpForm({
       */}
       <div className="flex flex-col gap-2">
         <span className="text-muted-foreground text-xs">
-          Registering as something else?
+          {t.signup.registeringElse}
         </span>
         <div className="flex flex-wrap gap-1.5">
           {ORDER.filter((r) => r !== initial).map((r) => (
@@ -376,10 +358,10 @@ export function SignUpForm({
               className="border-border hover:bg-secondary focus-visible:ring-ring flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none"
             >
               {(() => {
-                const Icon = DOORS[r].icon;
+                const Icon = DOOR_ICONS[r];
                 return <Icon className="size-3" />;
               })()}
-              {DOORS[r].label}
+              {t.doors[r]}
             </Link>
           ))}
         </div>
@@ -399,12 +381,19 @@ export function SignUpForm({
         <MobileOtpForm
           containerId="signup-recaptcha"
           labels={{
-            mobile: "Mobile number",
-            code: "Six-digit code",
-            send: "Send one-time code",
-            sending: "Sending…",
-            submit: "Verify and continue",
-            submitting: "Checking…",
+            mobile: t.signup.mobile,
+            code: t.signup.code,
+            send: t.signup.send,
+            sending: t.signup.sending,
+            submit: t.signup.verify,
+            submitting: t.signup.checking,
+            differentNumber: t.signup.differentNumber,
+            mobileRequired: t.signup.mobileRequired,
+            badMobile: t.signup.badMobile,
+            enterCode: t.signup.enterCode,
+            codeSent: t.signup.codeSent,
+            couldNotSend: t.signup.couldNotSend,
+            couldNotSignIn: t.signup.couldNotSignIn,
           }}
           onDone={(result) => {
             if (result.needsProfile || !result.role) {
@@ -432,13 +421,13 @@ export function SignUpForm({
           registration abandoned halfway leaves a login they can come back to
           rather than nothing at all.
         */}
-          <Field id="email" label="Email" error={errors.email}>
+          <Field id="email" label={t.signup.email} error={errors.email}>
             <Input
               id="email"
               type="email"
               inputMode="email"
               autoComplete="email"
-              placeholder="you@company.in"
+              placeholder={t.signup.emailPlaceholder}
               value={values.email}
               onChange={(e) => set("email", e.target.value)}
               aria-invalid={Boolean(errors.email)}
@@ -447,9 +436,9 @@ export function SignUpForm({
 
           <Field
             id="password"
-            label="Password"
+            label={t.signup.password}
             error={errors.password}
-            hint="At least 8 characters, with a capital letter, a number and a symbol."
+            hint={t.signup.passwordHint}
           >
             <PasswordInput
               id="password"
@@ -467,7 +456,7 @@ export function SignUpForm({
           */}
           <Field
             id="confirmPassword"
-            label="Confirm password"
+            label={t.signup.confirmPassword}
             error={errors.confirmPassword}
           >
             <PasswordInput
@@ -480,7 +469,7 @@ export function SignUpForm({
           </Field>
 
           <Button type="submit" disabled={submitting} className="mt-1">
-            {submitting ? "Creating account…" : "Create account"}
+            {submitting ? t.signup.creating : t.signup.create}
             {!submitting ? <ArrowRightIcon className="size-4" /> : null}
           </Button>
         </form>
@@ -489,7 +478,7 @@ export function SignUpForm({
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-3">
           <span className="bg-border h-px flex-1" />
-          <span className="text-faint text-xs">or</span>
+          <span className="text-faint text-xs">{t.signup.or}</span>
           <span className="bg-border h-px flex-1" />
         </div>
 
@@ -501,24 +490,24 @@ export function SignUpForm({
           {method === "otp" ? (
             <>
               <MailIcon className="size-4" />
-              Use email and password instead
+              {t.signup.useEmail}
             </>
           ) : (
             <>
               <SmartphoneIcon className="size-4" />
-              Register with your mobile instead
+              {t.signup.useMobile}
             </>
           )}
         </button>
       </div>
 
       <p className="text-muted-foreground text-center text-sm">
-        Already registered?{" "}
+        {t.signup.alreadyRegistered}{" "}
         <Link
           href={`/${locale}/signin?as=${initial}`}
           className="text-primary hover:underline"
         >
-          Sign in
+          {t.signup.signIn}
         </Link>
       </p>
     </div>
