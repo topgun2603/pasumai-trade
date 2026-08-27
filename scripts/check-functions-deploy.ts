@@ -129,6 +129,15 @@ async function main() {
 
   const AGENTS: Array<{ email: string; api: string; role?: string }> = [
     {
+      // Cloud Functions' own agent, and the one a first deploy trips over
+      // before it gets anywhere near Eventarc. Its absence is not reported as
+      // a missing agent: generateUploadUrl answers 404 `Could not
+      // authenticate 'service-<number>@gcf-admin-robot...': Gaia id not
+      // found`, which reads like the API is missing rather than the identity.
+      email: `service-${number}@gcf-admin-robot.iam.gserviceaccount.com`,
+      api: "cloudfunctions.googleapis.com",
+    },
+    {
       email: `${number}-compute@developer.gserviceaccount.com`,
       api: "compute.googleapis.com",
       role: "roles/eventarc.eventReceiver",

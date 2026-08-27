@@ -265,6 +265,30 @@ identify the project and reports *that* as an IAM problem too. `npx
 firebase-tools functions:list` with no `--project` flag tells you in one
 command whether resolution works.
 
+### "Gaia id not found for email service-...@gcf-admin-robot..."
+
+A 404 from `cloudfunctions.googleapis.com/.../functions:generateUploadUrl`,
+naming `service-<project number>@gcf-admin-robot.iam.gserviceaccount.com`.
+
+The same cause as above, a different agent: this is Cloud Functions' own
+service agent, and a first deploy trips over it long before it reaches
+Eventarc. "Gaia id not found" means the account **does not exist** — not that
+a permission was refused, and not that the API is switched off. Enabling
+`cloudfunctions.googleapis.com` is supposed to provision it, and sometimes has
+not.
+
+```bash
+gcloud beta services identity create --service=cloudfunctions.googleapis.com \
+  --project=pasumai-trade-7c83a
+```
+
+Propagation takes a few minutes, so an immediate retry can still fail. If the
+account still does not appear, check the plan before anything else: on Spark
+no agent is provisioned at all, because the project cannot run 2nd-gen
+functions in the first place.
+
+`npm run check:deploy` looks for this agent alongside the other three.
+
 ### The region, and why it is Mumbai
 
 A 2nd-gen Firestore trigger is an [Eventarc](https://firebase.google.com/docs/functions/firestore-events)
