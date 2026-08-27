@@ -5,7 +5,6 @@ import {
   CheckCircle2Icon,
   MailIcon,
   HardHatIcon,
-  ShieldCheckIcon,
   SmartphoneIcon,
   StoreIcon,
   TruckIcon,
@@ -352,6 +351,35 @@ export function SignUpForm({
       </div>
 
       {/*
+        The other doors, above the form rather than below it.
+
+        Which door you are at decides what the account becomes, so it belongs
+        with the badge that names it and ahead of the first field — not after
+        the number has been typed and an OTP sent, which is where it used to
+        sit and where changing it threw that work away.
+      */}
+      <div className="flex flex-col gap-2">
+        <span className="text-muted-foreground text-xs">
+          Registering as something else?
+        </span>
+        <div className="flex flex-wrap gap-1.5">
+          {ORDER.filter((r) => r !== initial).map((r) => (
+            <Link
+              key={r}
+              href={`/${locale}/signup?as=${r}`}
+              className="border-border hover:bg-secondary focus-visible:ring-ring flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            >
+              {(() => {
+                const Icon = DOORS[r].icon;
+                return <Icon className="size-3" />;
+              })()}
+              {DOORS[r].label}
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/*
         Mobile first, for the same reason sign-in leads with it: a farmer has a
         handset and often no email habit, and an OTP proves the number rather
         than merely collecting it.
@@ -477,36 +505,6 @@ export function SignUpForm({
           )}
         </button>
       </div>
-
-      <div className="flex flex-col gap-2">
-        <span className="text-muted-foreground text-xs">
-          Registering as something else?
-        </span>
-        <div className="flex flex-wrap gap-1.5">
-          {ORDER.filter((r) => r !== initial).map((r) => (
-            <Link
-              key={r}
-              href={`/${locale}/signup?as=${r}`}
-              className="border-border hover:bg-secondary focus-visible:ring-ring flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none"
-            >
-              {(() => {
-                const Icon = DOORS[r].icon;
-                return <Icon className="size-3" />;
-              })()}
-              {DOORS[r].label}
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* Operations is not on this page and cannot be. The account that can
-          verify everyone else is not one anyone grants themselves. */}
-      <p className="text-muted-foreground flex items-start gap-2 text-xs">
-        <ShieldCheckIcon className="mt-0.5 size-3.5 shrink-0" />
-        <span>
-          Operations accounts are not created here — they are issued internally.
-        </span>
-      </p>
 
       <p className="text-muted-foreground text-center text-sm">
         Already registered?{" "}
