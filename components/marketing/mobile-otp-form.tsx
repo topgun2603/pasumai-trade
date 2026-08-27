@@ -129,7 +129,7 @@ export function MobileOtpForm({
           inputMode="numeric"
           autoComplete="tel"
           maxLength={10}
-          placeholder="98430 11204"
+          placeholder="9876543210"
           value={mobile}
           onChange={(e) => {
             setMobile(e.target.value);

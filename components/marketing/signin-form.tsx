@@ -396,7 +396,7 @@ export function SignInForm({
               type="tel"
               inputMode="tel"
               autoComplete="tel"
-              placeholder="98430 11204"
+              placeholder="9876543210"
               value={mobile}
               // Locked once a code is on its way. Changing the number while
               // holding a code for the old one is how somebody ends up typing

@@ -177,7 +177,7 @@ export function DriverRegistrationForm({
             value={values.mobile}
             onChange={(e) => set("mobile", e.target.value)}
             inputMode="tel"
-            placeholder="98404 22190"
+            placeholder="9876543210"
           />
         </Field>
 

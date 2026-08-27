@@ -192,7 +192,7 @@ export function WorkerRegistrationForm({
             value={values.mobile}
             onChange={(e) => set("mobile", e.target.value)}
             inputMode="tel"
-            placeholder="90031 44872"
+            placeholder="9876543210"
           />
         </Field>
 

@@ -325,7 +325,7 @@ export function ProfileForm({
             id="mobile"
             inputMode="numeric"
             maxLength={10}
-            placeholder="98430 11204"
+            placeholder="9876543210"
             value={values.mobile}
             onChange={(e) => set("mobile", e.target.value)}
             aria-invalid={Boolean(errors.mobile)}
