@@ -42,17 +42,44 @@ const TRIGGER_REGION: Record<string, string> = {
   eur3: "europe-west1",
 };
 
-function serviceAccount(): { project_id: string } & Record<string, unknown> {
+type Credentials = { client_email: string; private_key: string };
+
+/**
+ * Credentials for reading the live project, and the project to read.
+ *
+ * The service account key when there is one. Under the
+ * `iam.disableServiceAccountKeyCreation` org policy there cannot be, so fall
+ * back to Application Default Credentials — what `gcloud auth
+ * application-default login` leaves behind, which the SDK finds unprompted.
+ * The project id then has to come from somewhere else, and the public config
+ * already names it.
+ */
+function credentials(): { projectId: string; credentials?: Credentials } {
   const env = { ...loadEnv(resolve(process.cwd(), ".env.local")), ...process.env };
   const raw = env.FIREBASE_SERVICE_ACCOUNT_KEY ?? "";
-  if (!raw) {
+
+  if (raw) {
+    const account = JSON.parse(
+      raw.trim().startsWith("{") ? raw : Buffer.from(raw, "base64").toString("utf8"),
+    );
+    return {
+      projectId: account.project_id as string,
+      credentials: {
+        client_email: account.client_email as string,
+        private_key: account.private_key as string,
+      },
+    };
+  }
+
+  const projectId = env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "";
+  if (!projectId) {
     throw new Error(
-      "FIREBASE_SERVICE_ACCOUNT_KEY is not set. This reads the live project, so it needs the service account.",
+      "Neither FIREBASE_SERVICE_ACCOUNT_KEY nor NEXT_PUBLIC_FIREBASE_PROJECT_ID is " +
+        "set, so there is no project to read. Set the latter, and authenticate " +
+        "with `gcloud auth application-default login`.",
     );
   }
-  return JSON.parse(
-    raw.trim().startsWith("{") ? raw : Buffer.from(raw, "base64").toString("utf8"),
-  );
+  return { projectId };
 }
 
 /** What `functions/src/region.ts` currently declares. */
@@ -68,13 +95,12 @@ function declared(): { intended: string; region: string } {
 }
 
 async function main() {
-  const account = serviceAccount();
+  const { projectId, credentials: creds } = credentials();
 
   const auth = new GoogleAuth({
-    credentials: {
-      client_email: account.client_email as string,
-      private_key: account.private_key as string,
-    },
+    // Omitted entirely rather than passed as undefined: that is what makes the
+    // library go looking for Application Default Credentials.
+    ...(creds ? { credentials: creds } : {}),
     scopes: ["https://www.googleapis.com/auth/cloud-platform"],
   });
   const client = await auth.getClient();
@@ -82,13 +108,13 @@ async function main() {
   const response = await client.request<{
     databases?: Array<{ name: string; locationId: string; type: string }>;
   }>({
-    url: `https://firestore.googleapis.com/v1/projects/${account.project_id}/databases`,
+    url: `https://firestore.googleapis.com/v1/projects/${projectId}/databases`,
   });
 
   const databases = response.data.databases ?? [];
   if (databases.length === 0) throw new Error("No Firestore database on this project.");
 
-  console.log(`project  ${account.project_id}\n`);
+  console.log(`project  ${projectId}\n`);
 
   const { intended, region } = declared();
   let wrong = false;

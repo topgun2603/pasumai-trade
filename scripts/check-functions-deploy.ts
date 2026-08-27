@@ -58,15 +58,39 @@ const APIS = [
 async function main() {
   const env = { ...loadEnv(resolve(process.cwd(), ".env.local")), ...process.env };
   const raw = env.FIREBASE_SERVICE_ACCOUNT_KEY;
-  if (!raw) throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY is not set.");
 
-  const account = JSON.parse(
-    raw.trim().startsWith("{") ? raw : Buffer.from(raw, "base64").toString("utf8"),
-  );
-  const projectId = account.project_id as string;
+  // A key when there is one. Under `iam.disableServiceAccountKeyCreation` there
+  // cannot be, and a diagnostic that refuses to run without the very thing the
+  // organisation forbids is no diagnostic at all — so fall back to Application
+  // Default Credentials, which `gcloud auth application-default login` leaves
+  // where the library looks.
+  const account = raw
+    ? JSON.parse(
+        raw.trim().startsWith("{") ? raw : Buffer.from(raw, "base64").toString("utf8"),
+      )
+    : null;
+
+  const projectId = (account?.project_id ??
+    env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) as string;
+  if (!projectId) {
+    throw new Error(
+      "Neither FIREBASE_SERVICE_ACCOUNT_KEY nor NEXT_PUBLIC_FIREBASE_PROJECT_ID is " +
+        "set, so there is no project to check. Set the latter, and authenticate " +
+        "with `gcloud auth application-default login`.",
+    );
+  }
 
   const auth = new GoogleAuth({
-    credentials: { client_email: account.client_email, private_key: account.private_key },
+    // Omitted rather than passed as undefined: that is what sends the library
+    // looking for Application Default Credentials.
+    ...(account
+      ? {
+          credentials: {
+            client_email: account.client_email,
+            private_key: account.private_key,
+          },
+        }
+      : {}),
     scopes: ["https://www.googleapis.com/auth/cloud-platform"],
   });
   const client = await auth.getClient();

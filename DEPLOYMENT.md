@@ -153,6 +153,95 @@ happily run after a failed `quality` job is skipped.
 
 ---
 
+## Workload Identity Federation
+
+The Admin SDK needs credentials, and this organisation forbids the obvious
+kind. `iam.disableServiceAccountKeyCreation` is enforced, so the service
+account JSON that `FIREBASE_SERVICE_ACCOUNT_KEY` wants cannot be downloaded at
+all. That is the right policy: a downloaded key is long-lived, rotates only
+when somebody remembers to, and bypasses every Security Rule if it leaks.
+
+Federation replaces it. Vercel issues each deployment a short-lived OIDC token
+saying which project and environment it is. Google trusts that issuer and
+exchanges the token for an access token impersonating a service account. No key
+exists at any point, and the credential expires within the hour.
+
+Enable it on the Vercel side first — Project → Settings → **Secure Backend
+Access (OIDC)**. Without it no token is issued and the exchange has nothing to
+present. That page also shows the issuer URL and audience for your team; use
+what it shows rather than the placeholders below, which differ by team slug and
+have changed before.
+
+Then, as an Owner, in [Cloud Shell](https://shell.cloud.google.com/?project=pasumai-trade-7c83a):
+
+```bash
+PROJECT=pasumai-trade-7c83a
+NUMBER=447458551837
+TEAM=sri-real-time-erp
+SA=pasumai-trade-runtime@$PROJECT.iam.gserviceaccount.com
+
+# The identity a deployment acts as. Firestore, Auth and Storage, nothing else
+# — this is not the place for roles/editor.
+gcloud iam service-accounts create pasumai-trade-runtime \
+  --project=$PROJECT --display-name="Pasumai Trade runtime"
+
+for ROLE in roles/datastore.user roles/firebaseauth.admin roles/storage.objectAdmin; do
+  gcloud projects add-iam-policy-binding $PROJECT \
+    --member="serviceAccount:$SA" --role="$ROLE"
+done
+
+# The pool, holding the trust in Vercel's issuer.
+gcloud iam workload-identity-pools create vercel \
+  --project=$PROJECT --location=global --display-name="Vercel"
+
+gcloud iam workload-identity-pools providers create-oidc vercel \
+  --project=$PROJECT --location=global --workload-identity-pool=vercel \
+  --issuer-uri="https://oidc.vercel.com/$TEAM" \
+  --allowed-audiences="https://vercel.com/$TEAM" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.project=assertion.project_id,attribute.environment=assertion.environment"
+
+# Only this project's deployments may impersonate it. Without the attribute
+# scope, every deployment on the team could — including someone else's.
+gcloud iam service-accounts add-iam-policy-binding $SA --project=$PROJECT \
+  --role=roles/iam.workloadIdentityUser \
+  --member="principalSet://iam.googleapis.com/projects/$NUMBER/locations/global/workloadIdentityPools/vercel/attribute.project/prj_foxtfXJrUwFUECBwhSl7juBoGAlX"
+```
+
+Then set these in Vercel → Settings → Environment Variables, leaving
+`FIREBASE_SERVICE_ACCOUNT_KEY` unset — where a key is present it wins, so a
+leftover one silently keeps federation switched off:
+
+| Variable | Value |
+| --- | --- |
+| `GCP_WORKLOAD_IDENTITY_AUDIENCE` | `//iam.googleapis.com/projects/447458551837/locations/global/workloadIdentityPools/vercel/providers/vercel` |
+| `GCP_SERVICE_ACCOUNT_EMAIL` | `pasumai-trade-runtime@pasumai-trade-7c83a.iam.gserviceaccount.com` |
+
+`VERCEL_OIDC_TOKEN` is injected by Vercel at runtime. Do not set it by hand.
+
+### On a development machine
+
+`vercel env pull` writes a `VERCEL_OIDC_TOKEN` into `.env.local` and the same
+path works locally. It is short-lived, so pull again when it expires.
+
+Simpler for day-to-day work, and what `npm run check:region` and
+`npm run check:deploy` fall back to when no key is set:
+
+```bash
+gcloud auth application-default login
+```
+
+That leaves Application Default Credentials in a well-known file, which the SDK
+finds by itself — no key, no token, no variable to set. Those two read the
+project id from `NEXT_PUBLIC_FIREBASE_PROJECT_ID` when there is no key to take
+it from, so that has to be in `.env.local`.
+
+The rest of [`scripts/`](scripts/) — `grant`, `seed`, `link-mobiles`,
+`restore-listings`, `set-storage-cors` — still expects
+`FIREBASE_SERVICE_ACCOUNT_KEY` and has not been moved across. They write rather
+than read, so they are worth converting deliberately rather than in passing.
+
+---
+
 ## Firestore rules and indexes
 
 **Vercel does not deploy these.** They live in the Firebase project, and a
