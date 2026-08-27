@@ -192,7 +192,8 @@ export default async function PricingPage({
         <p className="text-muted-foreground max-w-2xl text-sm">
           A franchise runs outlets, sources across an area and onboards farmers, so it is
           priced as a relationship rather than a subscription. The first year covers the work of
-          coming on — connecting outlets, training staff, covering an area — which happens once.
+          coming on — connecting outlets, training staff, covering an area — which happens any
+          required time.
         </p>
         <div className="flex flex-wrap items-end gap-8 pt-1">
           <div className="flex flex-col">
