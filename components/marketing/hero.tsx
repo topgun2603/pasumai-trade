@@ -75,12 +75,20 @@ export function Hero({ t, locale }: { t: Dictionary; locale: Locale }) {
         <div className="from-background absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t to-transparent" />
       </div>
 
-      <div className="mx-auto grid w-full max-w-6xl items-end gap-8 px-5 pt-14 lg:grid-cols-[1.1fr_0.9fr] lg:pt-20">
+      {/* `items-start`, not `items-end`. Bottom-aligning the two columns meant
+          the text was pushed down by however much taller the photograph was —
+          a gap of its own height, opening under the sign-in rail and varying
+          with the viewport. The photograph keeps its own `self-end`, so it
+          still sits on the baseline; only the words stopped waiting for it. */}
+      <div className="mx-auto grid w-full max-w-6xl items-start gap-8 px-5 pt-10 lg:grid-cols-[1.1fr_0.9fr] lg:pt-12">
         <Stagger immediate className="flex flex-col items-start gap-6 pb-12 lg:pb-20">
           <StaggerItem>
+            {/* Bigger than the default badge: this one is a standalone label
+                above a heading rather than a chip inside a dense row, and at
+                `h-5 text-xs` it read as a stray caption. */}
             <Badge
               variant="outline"
-              className="border-primary/30 bg-accent text-accent-foreground"
+              className="border-primary/30 bg-accent text-accent-foreground h-7 px-3 text-sm"
             >
               {/* The reach, not the tally. The counts still carry the claim
                 below, where they have room to be read as figures rather than
