@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 
-import { BankPanel } from "@/components/account/bank-panel";
+import { BankSection } from "@/components/account/bank-section";
 import { PageHeader } from "@/components/page-header";
 import { requireAgency } from "@/lib/auth/agency";
 
@@ -15,10 +15,10 @@ export default async function AgencyBankPage() {
     <>
       <PageHeader
         title="Bank details"
-        description="Where payment for a completed run is sent. Held by operations — anything wrong here is a phone call to change, because it decides where the money lands."
+        description="Where payment for a completed run is sent. Add an account, verify it with a one rupee check, and choose which one is paid."
       />
       <div className="flex max-w-2xl flex-col gap-6 p-5">
-        <BankPanel details={{}} />
+        <BankSection />
       </div>
     </>
   );
