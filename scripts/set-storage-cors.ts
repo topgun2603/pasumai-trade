@@ -37,6 +37,13 @@ const ORIGINS = [
   // preflight that looks nothing like a port problem.
   "http://localhost:3001",
   "https://pasumai-trade.vercel.app",
+  // The live site, which was missing and is the whole reason uploads failed in
+  // production while working everywhere they were tested. Both hosts: which of
+  // the apex and the www name actually serves the app is a DNS setting this
+  // repo does not control, and a redirect between them still leaves the
+  // preflight coming from whichever one the browser started at.
+  "https://www.pasumaitrade.com",
+  "https://pasumaitrade.com",
 ];
 
 const POLICY = [

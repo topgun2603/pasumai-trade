@@ -114,7 +114,12 @@ async function main() {
   console.log(`  authorised domains: ${domains.join(", ")}`);
   // reCAPTCHA refuses to run on a host that is not listed, and the SDK reports
   // that as a captcha failure rather than as the configuration problem it is.
-  for (const needed of ["localhost", "pasumai-trade.vercel.app"]) {
+  for (const needed of [
+    "localhost",
+    "pasumai-trade.vercel.app",
+    "www.pasumaitrade.com",
+    "pasumaitrade.com",
+  ]) {
     if (!domains.includes(needed)) {
       console.log(`✗ ${needed} is not authorised — reCAPTCHA will refuse to run there`);
       problems.push(`Add ${needed} to Authentication → Settings → Authorized domains.`);
