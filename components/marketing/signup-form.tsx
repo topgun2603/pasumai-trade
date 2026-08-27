@@ -148,13 +148,19 @@ export function SignUpForm({
   const [created, setCreated] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
   /*
-    Mobile is the default door for a farmer and the second one for everybody
-    else — a business registering has an email and expects to use it, a grower
-    has a handset.
+    Mobile is the default door for everybody, as it is on sign-in.
+
+    It used to be first for a farmer and second for the rest, on the reasoning
+    that a business registering has an email and expects to use it. Registering
+    and signing in then disagreed about which came first for the same person,
+    and the door they walked through decided which form they met. A number is
+    what every one of them has; the email and password are one control away.
+
+    An OTP also *proves* the number rather than collecting it, which matters
+    more at registration than at sign-in — this is where the number that later
+    carries the account gets set.
   */
-  const [method, setMethod] = useState<"otp" | "password">(
-    initial === "farmer" ? "otp" : "password",
-  );
+  const [method, setMethod] = useState<"otp" | "password">("otp");
 
   const door = DOORS[initial];
   const isFarmer = initial === "farmer";
