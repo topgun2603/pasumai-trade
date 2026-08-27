@@ -78,10 +78,20 @@ export async function requireConsole(
 /**
  * True when whoever is reading the admin console may not act in it.
  *
- * A franchise sees most of these screens and none of their buttons. The
- * layout has already admitted them by the time a page renders, so this is
- * about what to draw rather than whether to draw anything — the refusal, if it
- * comes to one, comes from the endpoint.
+ * Nobody, at the moment. This was written for a franchise, who saw most of
+ * these screens and none of their buttons; the shell no longer admits them,
+ * so the predicate is correct and its set is empty.
+ *
+ * Kept rather than deleted, and deliberately: it is a *correct* answer to
+ * "may this reader act", not a stale one, and it is what eight admin pages
+ * ask before drawing an action. Ripping it out would hardcode "everybody who
+ * gets here may write" into each of them — which is true today only because
+ * of a decision made in one layout, and would be the expensive thing to undo
+ * the next time a read-only reader is admitted.
+ *
+ * The layout has already admitted the reader by the time a page renders, so
+ * this is about what to draw rather than whether to draw anything — the
+ * refusal, if it comes to one, comes from the endpoint.
  *
  * Free to call from as many pages as like it: `verifySession` is memoised per
  * request, so this costs one cookie verification for the whole render however

@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ArrowLeftRightIcon,
   BellIcon,
   GaugeIcon,
   HandshakeIcon,
@@ -121,19 +120,8 @@ export function ConsoleNav({
     ...(session.role === "franchise" || session.role === "admin"
       ? [
           {
-            label: t.console.yourDistrict,
+            label: t.console.yourArea,
             links: FRANCHISE_LINKS.map(({ href, key }) => ({ href, label: t.console[key] })),
-          },
-        ]
-      : []),
-    // The way into the platform view. On a phone there is no rail footer to
-    // put it in, so it goes in the drawer as a group of one rather than being
-    // unreachable below `md`.
-    ...(session.role === "franchise"
-      ? [
-          {
-            label: "Platform",
-            links: [{ href: "/admin", label: t.console.platformView, exact: true }],
           },
         ]
       : []),
@@ -149,7 +137,7 @@ export function ConsoleNav({
     two names.
 
     A franchise does two jobs, and now the rail says so. Buying is the work
-    they share with every buyer; Franchise is the district — dispatch and the
+    they share with every buyer; Franchise is the area — dispatch and the
     growers on it — which no buyer has. A buyer sees one ungrouped list,
     because a heading over a list with nothing to distinguish it from is
     decoration.
@@ -166,7 +154,7 @@ export function ConsoleNav({
   }> = sectioned
     ? [
         { title: t.console.buying, links: BUYING_LINKS },
-        { title: t.console.yourDistrict, links: FRANCHISE_LINKS },
+        { title: t.console.yourArea, links: FRANCHISE_LINKS },
       ]
     : [{ links: BUYING_LINKS }];
 
@@ -257,24 +245,6 @@ export function ConsoleNav({
             </ul>
           ))}
         </div>
-
-        {session.role === "franchise" ? (
-          /*
-            Read-only sight of the whole platform — every farmer, buyer and
-            agency on it, without the buttons. Put in the footer rather than
-            the list above because it is a different console, not another page
-            of this one, and crossing between the two is a full navigation.
-          */
-          <div className="border-sidebar-border shrink-0 border-t p-3">
-            <Link
-              href="/admin"
-              className="text-muted-foreground hover:text-foreground focus-visible:ring-ring flex items-center gap-2 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
-            >
-              <ArrowLeftRightIcon className="size-4 shrink-0" />
-              {t.console.platformView}
-            </Link>
-          </div>
-        ) : null}
 
         {/*
           Bug 16: Sign out sits bottom-left on every console. It was in the top

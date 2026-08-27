@@ -27,7 +27,7 @@ export default async function AdminFranchisesPage() {
     <>
       <AdminPageHeader
         title="Franchises"
-        description="Contracted franchises. They buy produce like any buyer, and unlike a buyer they onboard farmers and dispatch vehicles in their districts."
+        description="Contracted franchises. They buy produce like any buyer, and unlike a buyer they onboard farmers and dispatch vehicles in their areas."
       />
       <BuyersTable
         kind="franchises"

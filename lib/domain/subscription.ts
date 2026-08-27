@@ -423,7 +423,7 @@ export const STANDARD_TERMS: readonly TermOption[] = [
  * A franchise pays yearly, and the first year costs more.
  *
  * ₹1,25,000 to come on, ₹99,000 every year after. The gap is onboarding: a
- * franchise arrives with outlets to connect, staff to train and a district to
+ * franchise arrives with outlets to connect, staff to train and an area to
  * cover, and that work happens once. Charging it as a separate fee would be
  * more honest still, but a single number is what a franchise agreement is
  * negotiated against.

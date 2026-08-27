@@ -22,7 +22,7 @@ export default async function FarmersPage() {
   const now = new Date();
   const listings = openListings(now);
 
-  // A buyer sees farmers in the districts they are allowed to source from —
+  // A buyer sees farmers in the areas they are allowed to source from —
   // not the whole platform. Sourcing scope is an account setting, and this is
   // one of the places it has to be honoured.
   const accounts = (await readFarmerAccounts()).filter((f) =>
@@ -48,7 +48,7 @@ export default async function FarmersPage() {
     <>
       <PageHeader
         title="Farmers"
-        description="Growers in the districts you source from. Records are read-only — farmer accounts belong to whoever onboarded them, and bank details are only ever changed in person."
+        description="Growers in the areas you source from. Records are read-only — farmer accounts belong to whoever onboarded them, and bank details are only ever changed in person."
       />
 
       <div className="grid grid-cols-2 gap-3 border-b p-4 lg:grid-cols-4">
@@ -57,7 +57,7 @@ export default async function FarmersPage() {
           value={accounts.length}
           icon={UsersIcon}
           tone="default"
-          hint={`Across ${CURRENT_BUYER.districts.length} districts`}
+          hint={`Across ${CURRENT_BUYER.districts.length} areas`}
         />
         <StatTile
           label="Verified"
@@ -84,7 +84,7 @@ export default async function FarmersPage() {
 
       <SuppliersTable
         suppliers={suppliers}
-        districts={[...DISTRICTS]}
+        areas={[...DISTRICTS]}
         now={now.getTime()}
       />
     </>

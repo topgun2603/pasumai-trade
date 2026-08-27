@@ -33,19 +33,27 @@ export interface Supplier {
  */
 export function SuppliersTable({
   suppliers,
-  districts,
+  areas,
   now,
 }: {
   suppliers: Supplier[];
-  districts: string[];
+  /**
+   * The patches this franchise sources from.
+   *
+   * "Area" here, `district` on the account underneath. A franchise holds an
+   * area; the platform's geography still calls the same shape a district, and
+   * renaming the stored field to match a label would be a migration bought for
+   * a word.
+   */
+  areas: string[];
   now: number;
 }) {
-  const [district, setDistrict] = useState("all");
+  const [area, setArea] = useState("all");
 
   const rows =
-    district === "all"
+    area === "all"
       ? suppliers
-      : suppliers.filter((s) => s.account.district === district);
+      : suppliers.filter((s) => s.account.district === area);
 
   const tabs: FilterTab<Supplier>[] = [
     { value: "all", label: "All" },
@@ -160,15 +168,15 @@ export function SuppliersTable({
         `${s.account.name} ${s.account.village} ${s.account.district} ${s.crops.join(" ")}`
       }
       toolbar={
-        <Select value={district} onValueChange={setDistrict}>
-          <SelectTrigger className="w-44" aria-label="Filter by district">
+        <Select value={area} onValueChange={setArea}>
+          <SelectTrigger className="w-44" aria-label="Filter by area">
             <SelectValue>
-              {district === "all" ? "All districts" : district}
+              {area === "all" ? "All areas" : area}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All districts</SelectItem>
-            {districts.map((d) => (
+            <SelectItem value="all">All areas</SelectItem>
+            {areas.map((d) => (
               <SelectItem key={d} value={d}>
                 {d}
               </SelectItem>

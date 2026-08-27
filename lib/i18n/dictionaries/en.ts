@@ -19,6 +19,10 @@ export const en = {
     language: "Language",
     theme: "Colour theme",
   },
+  brand: {
+    tagline: "Empowering Farmers",
+  },
+
 
   doors: {
     label: "Sign in as",
@@ -222,10 +226,45 @@ export const en = {
     q6: "Which languages does it work in?",
     a6: "English, Tamil, Telugu, Kannada, Malayalam and Hindi. Crop names are held per language and per district because they vary regionally — what is one crop in Erode may be called something else in Thanjavur.",
   },
+  signup: {
+    title: "Create an account",
+    subtitle: "Takes a minute. You can sign in and look around straight away.",
+    blurbFarmer: "List what you grow, and bargain on your own price.",
+    blurbFranchise: "Buy graded produce for a franchise outlet.",
+    blurbBuyer: "Buy direct from farmers — hotels, caterers, retailers.",
+    blurbTransport: "Register a fleet, then add your vehicles and drivers.",
+    blurbManpower: "Register an agency, then add the crew you supply.",
+    yourName: "Your name",
+    businessName: "Business name",
+    agencyName: "Agency name",
+    village: "Village",
+    town: "Town",
+    mobile: "Mobile number",
+    code: "Six-digit code",
+    send: "Send one-time code",
+    sending: "Sending…",
+    verify: "Verify and continue",
+    checking: "Checking…",
+    useEmail: "Use email and password instead",
+    registeringElse: "Registering as something else?",
+    opsNote: "Operations accounts are not created here — they are issued internally.",
+    alreadyRegistered: "Already registered?",
+    signIn: "Sign in",
+  },
 
 
   signin: {
-    franchiseBlurb: "Contracted franchises. Same console and same capabilities as an independent buyer.",
+    google: "Continue with Google",
+    useEmail: "Use email and password instead",
+    useSms: "Send me a code by SMS instead",
+    codeLabel: "Six-digit code",
+    wrongNumber: "Wrong number, or no code arrived?",
+    noAccountYet: "No account yet?",
+    registerAs: "Register as {role}",
+    takesAMinute: "— it takes a minute and you can sign in straight away.",
+    badMobile: "That is not a valid mobile number.",
+    enterCode: "Enter the six-digit code.",
+    franchiseBlurb: "Contracted regional partners, overseeing the areas they hold.",
     transportBlurb: "Transport contractors. Register your vehicles and drivers; operations verifies them.",
     manpowerBlurb: "Labour contractors. Register your loading, grading and weighing crew.",
     otherDoors: "Signing in as someone else?",
@@ -237,7 +276,7 @@ export const en = {
     operations: "Operations",
     farmer: "Farmer",
     buyerBlurb:
-      "Franchises and independent bulk buyers. Browse graded stock, place orders and track dispatch.",
+      "Independent bulk buyers, sourcing produce on their own account.",
     adminBlurb:
       "Platform administration. Approve accounts, manage the fleet and watch document expiry.",
     farmerBlurb:
@@ -329,7 +368,7 @@ export const en = {
     farmers: "Farmers",
     platformView: "Platform view",
     buying: "Buying",
-    yourDistrict: "Your district",
+    yourArea: "Your area",
     bookTransport: "Book Transport",
     bookOrders: "Book Orders",
     transport: "Transport",

@@ -3,7 +3,6 @@
 import {
   MessageCircleIcon,
   BadgeCheckIcon,
-  ArrowLeftRightIcon,
   BanknoteIcon,
   BuildingIcon,
   ChartColumnIcon,
@@ -24,7 +23,6 @@ import { usePathname } from "next/navigation";
 
 import { SessionFooter } from "@/components/auth/session-footer";
 import { Badge } from "@/components/ui/badge";
-import { franchiseMayRead } from "@/lib/auth/admin-access";
 import type { Role } from "@/lib/auth/claims";
 import { Separator } from "@/components/ui/separator";
 import { BrandMark } from "@/components/marketing/brand-mark";
@@ -133,22 +131,19 @@ export function AdminNav({
   /** Which login is in use. Operations often share a machine. */
   email?: string;
   /**
-   * Operations sees the whole rail. A franchise sees the read-only part of it,
-   * filtered from the same allow-list the `(operations)` route group enforces,
-   * so a link cannot appear here for a page that would then refuse them.
+   * Only ever `admin` now.
+   *
+   * A franchise used to reach this console read-only, and the rail filtered
+   * itself down to the pages they were allowed. The shell admits operations
+   * alone, so there is nothing left to filter — kept as a prop because the
+   * footer still names the account, and because a rail that hardcoded its own
+   * audience would be the wrong place to discover a policy change.
    */
   role: Role;
 }) {
   const pathname = usePathname();
 
-  const sections = (
-    role === "admin"
-      ? SECTIONS
-      : SECTIONS.map((section) => ({
-          ...section,
-          links: section.links.filter((link) => franchiseMayRead(link.href)),
-        }))
-  ).filter((section) => section.links.length > 0);
+  const sections = SECTIONS.filter((section) => section.links.length > 0);
 
   /*
     The rail's own sections, reused. Sixteen links is far too many for a bottom
@@ -167,7 +162,7 @@ export function AdminNav({
   return (
     <>
       <MobileNav
-        console={role === "admin" ? "Platform admin" : "Platform view"}
+        console="Platform admin"
         groups={drawerGroups}
         pending={pending}
       />
@@ -188,7 +183,7 @@ export function AdminNav({
               Pasumai Trade
             </span>
             <span className="text-faint text-xs">
-              {role === "admin" ? "Platform admin" : "Platform view"}
+              Platform admin
             </span>
           </span>
         </div>
@@ -242,16 +237,6 @@ export function AdminNav({
         </div>
 
         <div className="border-sidebar-border shrink-0 border-t p-3 flex flex-col gap-3">
-          {/* The way back. A franchise arrived from their own console and this
-            is the only thing on screen that returns them to it. */}
-          <Link
-            href="/listings"
-            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring flex items-center gap-2 rounded-md px-2.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
-          >
-            <ArrowLeftRightIcon className="size-4 shrink-0" />
-            {role === "admin" ? "Buyer console" : "Franchise console"}
-          </Link>
-
           {/* Bug 16: bottom-left, the same as every other console. */}
           <SessionFooter email={email} role={role} />
         </div>

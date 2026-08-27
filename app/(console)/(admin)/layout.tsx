@@ -24,21 +24,28 @@ import { openListings } from "@/lib/mock/listings";
  * shows the same queue depth from wherever you are standing. Once Firestore
  * lands these become aggregation reads, not a scan.
  *
- * Two roles reach it. Operations, and a franchise — a regional partner who gets
- * the same console read-only, minus Controls, Subscriptions, the franchise
- * roster and the KYC documents. Those four live under `(operations)`, whose
- * layout admits operations alone; this one only has to let a franchise as far
- * as the shell. See `lib/auth/admin-access.ts` for what that leaves them.
+ * Operations only.
+ *
+ * A franchise used to reach it too — a regional partner given the whole
+ * console read-only, on the reasoning that they are an admin without the
+ * ability to change anything. They are not. A franchise is a contracted
+ * partner who runs an area, and the platform view showed them every farmer,
+ * buyer and agency on the platform, including the ones in a neighbouring
+ * partner's area and the ones they compete with for stock. "Read-only" limits
+ * what they can change; it does not limit what they can learn.
+ *
+ * So the door is shut rather than narrowed. `requireConsole` sends a franchise
+ * to their own console, which is where the work is.
  */
 export default async function AdminLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  // Second argument: operations and franchises have their own front door at
-  // `/admin/login`, so an expired session here returns to it rather than to the
-  // public sign-in page on the marketing site.
-  const session = await requireConsole(["admin", "franchise"], "/admin/login");
+  // Second argument: operations have their own front door at `/admin/login`,
+  // so an expired session here returns to it rather than to the public sign-in
+  // page on the marketing site.
+  const session = await requireConsole(["admin"], "/admin/login");
   const now = new Date();
 
   // Decides what the rail offers and whether any row carries an action. The

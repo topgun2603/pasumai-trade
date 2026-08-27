@@ -36,7 +36,7 @@ export default async function BuyingHomePage() {
       greeting="Welcome to Pasumai Trade"
       blurb={
         franchise
-          ? "Buy direct from growers across India, and run the collection for your district."
+          ? "Buy direct from growers across India, and run the collection for your area."
           : "Buy produce direct from the people who grew it, at a price the two of you agree between yourselves."
       }
       highlights={[

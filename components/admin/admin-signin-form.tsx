@@ -44,7 +44,9 @@ export function AdminSignInForm() {
    * page against a cache taken before the cookie existed.
    */
   function land(role: string | undefined) {
-    if (role === "admin" || role === "franchise") {
+    // Operations alone — a franchise signing in here is a real account that
+    // simply belongs elsewhere, and falls through to the branch below.
+    if (role === "admin") {
       // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.assign("/admin");
       return;

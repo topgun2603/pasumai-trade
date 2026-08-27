@@ -15,18 +15,19 @@ import { requireConsole } from "@/lib/auth/require";
  * `(admin)` layout above, which is what keeps a closed page looking like the
  * rest of the console rather than like a different application.
  *
- * There is nothing stopping somebody adding a page in the wrong folder, so
- * `lib/auth/admin-access.test.ts` walks the tree and fails if a route is
- * neither here nor in the franchise allow-list.
+ * The group is now a distinction without a difference: the `(admin)` shell
+ * above admits operations alone, so a page either side of this boundary is
+ * equally closed to everybody else. It is kept because the boundary is where
+ * a second reader would go if one is ever admitted again, and collapsing it
+ * would mean rediscovering which pages were sensitive.
  */
 export default async function OperationsLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  // Same door as the shell above. A franchise who reaches one of these pages
-  // is signed in and simply not allowed, so they are sent to their own console
-  // by `requireConsole`; the path only matters for a session that has lapsed.
+  // Same door as the shell above, which already refused everybody who is not
+  // operations. The path only matters for a session that has lapsed.
   await requireConsole(["admin"], "/admin/login");
   return children;
 }

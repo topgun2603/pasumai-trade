@@ -77,20 +77,24 @@ function OfferStatus({ listing, now }: { listing: Listing; now: number }) {
 
 export function ListingsTable({
   listings,
-  districts,
+  areas,
   now,
 }: {
   listings: Listing[];
-  districts: string[];
+  /**
+   * The patches this franchise sources from. "Area" to the reader, `district`
+   * on the record — see the note in suppliers-table.tsx.
+   */
+  areas: string[];
   now: number;
 }) {
-  const [district, setDistrict] = useState("all");
+  const [area, setArea] = useState("all");
   const [quoting, setQuoting] = useState<Listing | null>(null);
 
   const rows =
-    district === "all"
+    area === "all"
       ? listings
-      : listings.filter((l) => l.farmer.district === district);
+      : listings.filter((l) => l.farmer.district === area);
 
   const tabs: FilterTab<Listing>[] = [
     { value: "all", label: "All" },
@@ -138,8 +142,8 @@ export function ListingsTable({
       ),
     },
     {
-      key: "district",
-      header: "District",
+      key: "area",
+      header: "Area",
       className: "min-w-32",
       sortValue: (l) => l.farmer.district,
       cell: (l) => (
@@ -234,15 +238,15 @@ export function ListingsTable({
           `${Object.values(l.produce.names).join(" ")} ${l.farmer.name} ${l.farmer.village} ${l.id}`
         }
         toolbar={
-          <Select value={district} onValueChange={setDistrict}>
-            <SelectTrigger className="w-44" aria-label="Filter by district">
+          <Select value={area} onValueChange={setArea}>
+            <SelectTrigger className="w-44" aria-label="Filter by area">
               <SelectValue>
-                {district === "all" ? "All districts" : district}
+                {area === "all" ? "All areas" : area}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All districts</SelectItem>
-              {districts.map((d) => (
+              <SelectItem value="all">All areas</SelectItem>
+              {areas.map((d) => (
                 <SelectItem key={d} value={d}>
                   {d}
                 </SelectItem>

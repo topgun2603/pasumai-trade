@@ -5,7 +5,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AdminSignInForm } from "@/components/admin/admin-signin-form";
-import { BrandMark } from "@/components/marketing/brand-mark";
+import { BrandLogo } from "@/components/marketing/brand-mark";
 import { HOME_FOR_ROLE } from "@/lib/auth/claims";
 import { verifySession } from "@/lib/auth/session";
 import { resolveMedia } from "@/lib/marketing/media";
@@ -55,7 +55,10 @@ export default async function AdminLoginPage({
   const session = await verifySession();
   if (session) {
     const role = session.claims.role;
-    redirect(role === "admin" || role === "franchise" ? "/admin" : HOME_FOR_ROLE[role]);
+    // Operations alone. A franchise used to be sent here too; the shell no
+    // longer admits them, so sending them would be one redirect on the way to
+    // another.
+    redirect(role === "admin" ? "/admin" : HOME_FOR_ROLE[role]);
   }
 
   // The landscape already in the repository, at the one slot shot wide enough
@@ -94,7 +97,9 @@ export default async function AdminLoginPage({
         />
 
         <div className="relative flex items-center gap-2.5 px-10 pt-10">
-          <BrandMark dish className="text-rail-foreground size-8" />
+          {/* The leaves are bright against the panel, so the photograph needs
+            no treatment here — which is the whole reason it can be used. */}
+          <BrandLogo className="size-9" />
           <span className="font-heading text-rail-foreground text-[17px] font-semibold tracking-tight">
             Pasumai Trade
           </span>
@@ -133,9 +138,7 @@ export default async function AdminLoginPage({
           {/* The mark rides above the heading on a phone, where the panel that
               would otherwise carry it is not drawn. */}
           <div className="flex flex-col gap-4 lg:gap-3">
-            <span className="bg-primary text-primary-foreground flex size-11 items-center justify-center rounded-xl lg:hidden">
-              <BrandMark className="size-6" />
-            </span>
+            <BrandLogo priority className="size-12 lg:hidden" />
             <div className="flex flex-col gap-1.5">
               <span className="text-primary flex items-center gap-1.5 text-xs font-medium tracking-[0.14em] uppercase">
                 <ShieldCheckIcon className="size-3.5" />

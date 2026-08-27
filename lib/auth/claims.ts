@@ -18,7 +18,6 @@
  * No React and no Firebase imports here on purpose: this is shared by the
  * server that mints claims and the client that reads a session.
  */
-import { franchiseMayRead } from "./admin-access";
 
 /**
  * Six roles, one per door on the public site.
@@ -149,13 +148,10 @@ export function readClaims(token: Record<string, unknown>): Claims | null {
 export function mayAccess(role: Role, pathname: string): boolean {
   if (role === "admin") return true;
 
-  // Ahead of the buying check, which would otherwise answer for a franchise:
-  // they buy produce like a buyer *and* read the admin console, which a buyer
-  // may not. See `admin-access.ts` for how much of it.
-  if (role === "franchise") {
-    return pathname.startsWith("/admin") ? franchiseMayRead(pathname) : true;
-  }
-
+  // A franchise used to be excepted here — they read the admin console, which
+  // a buyer may not. They no longer do, so franchise and buyer answer the same
+  // way and the exception has gone rather than being left as a branch that
+  // reads like a rule and matches nothing.
   if (isBuyingRole(role)) return !pathname.startsWith("/admin");
   if (isAgencyRole(role)) return pathname.startsWith("/agency");
   if (role === "farmer") return pathname.startsWith("/farm");
