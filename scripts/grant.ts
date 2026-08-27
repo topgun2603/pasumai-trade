@@ -2,6 +2,7 @@
  * Creates a sign-in and gives it a role.
  *
  *   npm run grant -- admin ops@srirealtime.com
+ *   npm run grant -- admin ops@srirealtime.com --reset-password
  *   npm run grant -- buyer  purchasing@kongu.in  B-1001
  *   npm run grant -- agency ops@kaverilabour.in  AG-101
  *   npm run grant -- farmer murugan@example.in   F-201
@@ -17,8 +18,17 @@
  * account whose claims and document have drifted apart. Both need Admin
  * credentials, which is why it stays a script rather than a page.
  *
- * Idempotent: run it again to change a role, reset a password, or re-point an
- * account id. It never deletes a user.
+ * Idempotent: run it again to change a role or re-point an account id. It never
+ * deletes a user.
+ *
+ * A password is issued when the account is created, and after that only when
+ * `--reset-password` asks for one. Not on every run: the usual reason to
+ * re-run this is to change a role or repair an account id, and silently
+ * replacing the password each time would lock out whoever was using it —
+ * refresh tokens are revoked below, so they would not find out until their next
+ * sign-in. Losing the printed password is what the flag is for, and it is the
+ * only way back in short of the Firebase console, because the password is shown
+ * once and stored nowhere.
  */
 import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -96,11 +106,18 @@ function usage(message: string): never {
   );
   console.error("             because every rule scoped to 'your own records'");
   console.error("             compares against it. Omit for admin.\n");
+  console.error("  --reset-password   issue a new password for an account that");
+  console.error("                     already exists. Printed once, like the first.");
+  console.error("");
   process.exit(1);
 }
 
 async function main() {
-  const [role, email, accountId] = process.argv.slice(2);
+  const argv = process.argv.slice(2);
+  // Pulled out before the positionals are read, so the flag can sit anywhere on
+  // the line rather than only at the end.
+  const resetPassword = argv.includes("--reset-password");
+  const [role, email, accountId] = argv.filter((a) => !a.startsWith("--"));
 
   if (!role || !email) usage("Missing arguments.");
   if (!(ROLES as readonly string[]).includes(role)) {
@@ -137,6 +154,12 @@ async function main() {
     const existing = await auth.getUserByEmail(email);
     uid = existing.uid;
     console.log(`Found existing user ${email}`);
+
+    if (resetPassword) {
+      password = generatePassword();
+      await auth.updateUser(uid, { password });
+      console.log("Issued a new password");
+    }
   } catch {
     password = generatePassword();
     const created = await auth.createUser({
@@ -175,9 +198,10 @@ async function main() {
   if (password) {
     console.log(`\n  password   ${password}`);
     console.log("\n  Shown once. Send it over a channel you trust and have them");
-    console.log("  change it. Re-run this command to issue a new one.");
+    console.log("  change it. Re-run with --reset-password to issue another.");
   } else {
     console.log("\n  Password unchanged. Any signed-in sessions have been ended.");
+    console.log("  Lost it? Re-run with --reset-password to issue a new one.");
   }
   console.log();
 }

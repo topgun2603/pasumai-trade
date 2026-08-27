@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import { cn } from "@/lib/utils";
 
 /**
@@ -110,19 +112,73 @@ export function BrandMark({
 }
 
 /**
+ * The photograph the drawn mark was traced from.
+ *
+ * Both marks are kept, and which one a place gets is decided by size and by
+ * colour rather than by preference:
+ *
+ *  - This one wherever the mark is drawn at roughly 24px or larger on a surface
+ *    it can sit on unaltered — the lockups, and the doors people sign in at.
+ *  - {@link BrandMark} in the console rails and on the profile page, at 16–20px,
+ *    where a photograph collapses into a green smudge, and inside anything that
+ *    needs the mark to take its colour from the text around it. A PNG cannot do
+ *    `currentColor`, and no amount of exporting will make it.
+ *
+ * The white ground and the grey glass interior were cut out of the supplied
+ * file, so the leaves sit on whatever is behind them and the dark theme needs
+ * no second asset. `public/logo.png` is the untouched original.
+ *
+ * 256px and palette-encoded, which is 11 KB rather than the 1.1 MB the original
+ * weighs — the largest this is ever drawn is 44px, so 256 covers even a 5x
+ * display with room to spare.
+ */
+export function BrandLogo({
+  className,
+  priority = false,
+}: {
+  className?: string;
+  /** For the mark above the fold — the site header, and the sign-in doors. */
+  priority?: boolean;
+}) {
+  return (
+    <Image
+      src="/logo-mark.png"
+      alt=""
+      // Decorative in every place it is used: the name is set beside it in the
+      // lockups and carried by the heading on the sign-in pages.
+      aria-hidden
+      width={256}
+      height={256}
+      priority={priority}
+      className={cn("shrink-0 object-contain", className)}
+    />
+  );
+}
+
+/**
  * The full lockup: mark, name and tagline.
  *
- * The tagline is not translated. A tagline is part of the mark rather than
- * part of the copy — it is set once, in one language, the way the wordmark is,
- * and swapping it per locale would give six different logos. Everything the
- * page actually has to *say* is translated; this is the thing it is called.
+ * The tagline *is* translated, and the name is not.
+ *
+ * The two were treated alike at first, on the argument that a tagline is part
+ * of the mark rather than part of the copy. That holds for "Pasumai Trade",
+ * which is what the thing is called and reads the same on every page. It does
+ * not hold for "Empowering Farmers", which is a sentence making a promise — and
+ * a promise a farmer cannot read is not one they have been made.
+ *
+ * So the tagline arrives as a prop rather than being set here: this component
+ * has no locale of its own, and every place that draws the lockup has a
+ * dictionary already.
  */
 export function BrandLockup({
+  tagline,
   className,
   markClassName,
   nameClassName,
   taglineClassName,
 }: {
+  /** `t.brand.tagline`, in the reader's language. */
+  tagline: string;
   className?: string;
   markClassName?: string;
   nameClassName?: string;
@@ -130,9 +186,10 @@ export function BrandLockup({
 }) {
   return (
     <span className={cn("flex items-center gap-2.5", className)}>
-      {/* Big enough for the dish, which is the whole reason it is drawn here
-        and not in the rails. */}
-      <BrandMark dish className={cn("text-primary size-9", markClassName)} />
+      {/* The photograph, not the drawing. The lockup is the one place the mark
+        is given room, and it sits on the page background rather than inside a
+        coloured chip — which is exactly the condition a photograph needs. */}
+      <BrandLogo priority className={cn("size-9", markClassName)} />
       <span className="flex flex-col leading-tight">
         <span
           className={cn(
@@ -148,7 +205,7 @@ export function BrandLockup({
             taglineClassName,
           )}
         >
-          Empowering Farmers
+          {tagline}
         </span>
       </span>
     </span>

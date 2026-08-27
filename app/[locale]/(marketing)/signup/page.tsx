@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
-import { BrandMark } from "@/components/marketing/brand-mark";
+import { BrandLogo } from "@/components/marketing/brand-mark";
 import { SignUpForm } from "@/components/marketing/signup-form";
 import { canSelfSignup, type SignupRole } from "@/lib/domain/signup";
 import { getDictionary, isLocale } from "@/lib/i18n";
@@ -40,9 +40,7 @@ export default async function SignUpPage({
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-8 px-5 py-16">
       <div className="flex flex-col items-center gap-3 text-center">
-        <span className="bg-primary text-primary-foreground flex size-11 items-center justify-center rounded-xl">
-          <BrandMark className="size-6" />
-        </span>
+      <BrandLogo priority className="size-14" />
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">
             Create an account

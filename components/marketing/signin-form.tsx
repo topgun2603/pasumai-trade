@@ -210,7 +210,7 @@ export function SignInForm({
     // rather than a non-null assertion, because the two checks could drift.
     const e164 = toE164(mobile);
     if (!e164) {
-      setErrors({ identifier: "That is not a valid mobile number." });
+      setErrors({ identifier: t.signin.badMobile });
       return;
     }
 
@@ -233,7 +233,7 @@ export function SignInForm({
     event.preventDefault();
 
     if (code.trim().length < 6) {
-      setErrors({ password: "Enter the six-digit code." });
+      setErrors({ password: t.signin.enterCode });
       return;
     }
     if (!confirmer) return;
@@ -423,7 +423,7 @@ export function SignInForm({
           {confirmer ? (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="code" className="text-sm">
-                Six-digit code
+                {t.signin.codeLabel}
               </Label>
               <Input
                 id="code"
@@ -461,7 +461,7 @@ export function SignInForm({
                 }}
                 className="text-muted-foreground hover:text-foreground self-start text-xs underline-offset-2 hover:underline"
               >
-                Wrong number, or no code arrived?
+                {t.signin.wrongNumber}
               </button>
             </div>
           ) : null}
@@ -576,7 +576,7 @@ export function SignInForm({
         className="border-border hover:bg-secondary focus-visible:ring-ring flex items-center justify-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:opacity-60"
       >
         <GoogleMark />
-        Continue with Google
+        {t.signin.google}
       </button>
 
       <div id="recaptcha-holder" />
@@ -595,12 +595,12 @@ export function SignInForm({
         {method === "otp" ? (
           <>
             <MailIcon className="size-4" />
-            Use email and password instead
+            {t.signin.useEmail}
           </>
         ) : (
           <>
             <KeyRoundIcon className="size-4" />
-            Send me a code by SMS instead
+            {t.signin.useSms}
           </>
         )}
       </button>
@@ -613,14 +613,17 @@ export function SignInForm({
         <p className="text-muted-foreground flex items-start gap-2 text-sm">
           <InfoIcon className="mt-0.5 size-4 shrink-0" />
           <span>
-            No account yet?{" "}
+            {t.signin.noAccountYet}{" "}
             <Link
               href={`/${locale}/signup?as=${audience}`}
               className="text-primary hover:underline"
             >
-              Register as {active.label.toLowerCase()}
+              {/* The role is substituted rather than concatenated: word order
+                  around it differs by language, and "Register as {role}" is not
+                  a sentence every script builds left to right. */}
+              {t.signin.registerAs.replace("{role}", active.label.toLowerCase())}
             </Link>{" "}
-            — it takes a minute and you can sign in straight away.
+            {t.signin.takesAMinute}
           </span>
         </p>
       </div>

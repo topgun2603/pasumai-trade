@@ -305,6 +305,18 @@ export function isSafeHref(href: string): boolean {
   }
 }
 
+/**
+ * Said when the link is not one we are willing to render.
+ *
+ * Exported because the editor hides this one message while the field still has
+ * focus. `https://` is not a valid address — and it is also the halfway point
+ * of typing every valid one, so reporting it on each keystroke is a form
+ * arguing with somebody mid-sentence. Matching on the message text is how the
+ * two would drift apart; one constant is how they cannot.
+ */
+export const HREF_PROBLEM =
+  "The link must be an https address or a path on this site.";
+
 export interface AdValidation {
   readonly ok: boolean;
   readonly errors: readonly string[];
@@ -343,8 +355,7 @@ export function validateAd(input: {
   if (text(input.headline) === "") errors.push("A placement needs a headline.");
 
   const href = text(input.href);
-  if (href !== "" && !isSafeHref(href))
-    errors.push("The link must be an https address or a path on this site.");
+  if (href !== "" && !isSafeHref(href)) errors.push(HREF_PROBLEM);
   if (text(input.ctaLabel) !== "" && href === "")
     errors.push("A button with no link goes nowhere. Add the address.");
 

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { findSlot, type Ad, type AdFormat } from "@/lib/domain/ad";
+import { findSlot, isSafeHref, type Ad, type AdFormat } from "@/lib/domain/ad";
 import type { Placements } from "@/lib/firebase/ads-read";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +28,10 @@ import { cn } from "@/lib/utils";
  * `rel="sponsored noopener"` on every outbound link: `sponsored` because
  * search engines are entitled to know a link was paid for, `noopener` because
  * an advertiser's page should not get a handle on the tab it was opened from.
- * The href itself was validated when it was saved — see `isSafeHref`.
+ * The href is checked here rather than trusted from the record. It is
+ * validated on save too, but this component also renders live in the admin
+ * editor's preview, where by definition it is whatever has been typed so far —
+ * so "it was valid when stored" is not a property this can rely on.
  */
 
 export interface AdSlotProps {
@@ -102,7 +105,22 @@ function Clickable({
   className?: string;
   children: React.ReactNode;
 }) {
-  if (!href) return <div className={className}>{children}</div>;
+  /*
+    No href, or not one a browser can follow.
+
+    An ad with nothing to click is legitimate — see above. An ad with half an
+    address is what the editor's preview holds while somebody types one, and
+    `https:` is the case that matters: truthy, so the old `!href` guard let it
+    through, and not convertible to a URL, so next/link threw building the
+    prefetch. That crashed the whole editor on a keystroke.
+
+    Both land here and render the same plain container. Rejecting rather than
+    patching it up: a paid placement pointing somewhere we could not parse
+    should be inert, not guessed at.
+  */
+  if (!href || !isSafeHref(href)) {
+    return <div className={className}>{children}</div>;
+  }
 
   const external = !href.startsWith("/");
 

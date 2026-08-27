@@ -174,6 +174,22 @@ describe("links an ad may point at", () => {
     expect(isSafeHref("")).toBe(false);
     expect(isSafeHref("   ")).toBe(false);
   });
+
+  /*
+    Every one of these is a real keystroke on the way to a valid address, and
+    the ad editor previews the placement live — so `Clickable` in
+    components/ads/ad-slot.tsx asks this function before it builds a <Link>.
+    `https:` is the one that cost something: truthy, so a bare `if (!href)`
+    let it through, and not convertible to a URL, so next/link threw building
+    the prefetch and took the editor down on a keystroke.
+  */
+  it("refuses an address that is still being typed", () => {
+    expect(isSafeHref("h")).toBe(false);
+    expect(isSafeHref("https")).toBe(false);
+    expect(isSafeHref("https:")).toBe(false);
+    expect(isSafeHref("https:/")).toBe(false);
+    expect(isSafeHref("https://")).toBe(false);
+  });
 });
 
 describe("what operations may save", () => {

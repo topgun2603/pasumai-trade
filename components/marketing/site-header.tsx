@@ -98,7 +98,11 @@ export function SiteHeader({
           href={`/${locale}`}
           className="focus-visible:ring-ring shrink-0 rounded-md focus-visible:ring-2 focus-visible:outline-none"
         >
-          <BrandLockup markClassName="size-8" nameClassName="text-[15px]" />
+          <BrandLockup
+            tagline={t.brand.tagline}
+            markClassName="size-8"
+            nameClassName="text-[15px]"
+          />
         </Link>
 
         {/*

@@ -30,7 +30,14 @@ import { getStorage } from "firebase-admin/storage";
  * Preview deployments each get their own hostname and are deliberately not
  * covered; add one here while testing if you need it.
  */
-const ORIGINS = ["http://localhost:3000", "https://pasumai-trade.vercel.app"];
+const ORIGINS = [
+  "http://localhost:3000",
+  // Next picks the next free port when 3000 is taken, which on a machine
+  // running two of these is routine — and the failure it causes is a blocked
+  // preflight that looks nothing like a port problem.
+  "http://localhost:3001",
+  "https://pasumai-trade.vercel.app",
+];
 
 const POLICY = [
   {

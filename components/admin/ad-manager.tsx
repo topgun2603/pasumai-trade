@@ -37,6 +37,7 @@ import {
   findSlot,
   MAX_WEIGHT,
   MIN_WEIGHT,
+  HREF_PROBLEM,
   validateAd,
   type Ad,
   type AdFormat,
@@ -383,6 +384,14 @@ function AdForm({
 }) {
   const [draft, setDraft] = useState(initial);
   const [uploading, setUploading] = useState(false);
+  /*
+    Whether the reader is still typing the link.
+
+    Every other field is complained about the moment it is empty, and that reads
+    as a checklist. The link cannot work that way: it is empty, then briefly
+    malformed, then right, and the malformed stretch is most of the typing.
+  */
+  const [typingLink, setTypingLink] = useState(false);
   const [pending, start] = useTransition();
 
   const slot = findSlot(draft.slotId);
@@ -394,6 +403,18 @@ function AdForm({
     startsAt: draft.startsAt || undefined,
     endsAt: draft.endsAt || undefined,
   });
+
+  /*
+    What the list under the preview actually says.
+
+    The half-typed link is dropped from it, and from it only — `problems.ok`
+    is untouched, so Save stays disabled until the address is one we will
+    render. Hiding the complaint is not the same as accepting the value, and
+    this is deliberately the former.
+  */
+  const listed = typingLink
+    ? problems.errors.filter((error) => error !== HREF_PROBLEM)
+    : problems.errors;
 
   async function upload(file: File) {
     setUploading(true);
@@ -426,6 +447,23 @@ function AdForm({
       // A local preview: the stored object is not public, and its signed read
       // URL only exists after a save. This is the same bytes either way.
       setDraft((d) => ({ ...d, imagePath: path, imagePreview: URL.createObjectURL(file) }));
+    } catch {
+      /*
+        A blocked or dropped request, not a refusal.
+
+        The PUT goes to the bucket rather than to this origin, so a bucket with
+        no CORS entry for wherever this is running rejects the preflight and
+        `fetch` *rejects* — it does not come back with `ok: false`. Without
+        this branch that TypeError left the dialog by way of an unhandled
+        rejection: the spinner cleared and nothing was said, which reads as the
+        upload silently doing nothing.
+
+        See scripts/set-storage-cors.ts for the allow-list. A dev server on a
+        port that is not on it lands here every time.
+      */
+      toast.error(
+        "Could not reach storage. If this is a dev server, check the bucket's CORS origins.",
+      );
     } finally {
       setUploading(false);
     }
@@ -484,7 +522,29 @@ function AdForm({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+      {/* `sm:` and not a bare `max-w-4xl`: the base DialogContent ends with
+          `sm:max-w-sm`, and tailwind-merge keeps a responsive variant and an
+          unprefixed utility side by side rather than treating one as an
+          override — so above 640px the base won and this dialog rendered at
+          24rem with its two columns crushed into it. Every other dialog in the
+          codebase prefixes it for the same reason. */}
+      <DialogContent
+        className="max-h-[90vh] overflow-y-auto sm:max-w-4xl"
+        /*
+          A stray click on the page behind must not discard this.
+
+          By the time somebody is in here they may have typed a headline, a body
+          and an advertiser, and uploaded a creative — and the upload is already
+          in the bucket, so closing does not merely lose keystrokes. Escape and
+          the X still close it, which is what keeps this from being a trap; only
+          the accidental dismissal goes.
+
+          `onInteractOutside` rather than `onPointerDownOutside`: it covers the
+          focus-leaving case too, so a tab out of the last field cannot do what
+          the click no longer does.
+        */
+        onInteractOutside={(event) => event.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>{draft.id ? "Edit placement" : "New placement"}</DialogTitle>
           <DialogDescription>{slot?.label}</DialogDescription>
@@ -536,6 +596,8 @@ function AdForm({
                 <Input
                   value={draft.href}
                   onChange={(e) => set("href", e.target.value)}
+                  onFocus={() => setTypingLink(true)}
+                  onBlur={() => setTypingLink(false)}
                   placeholder="https://…"
                 />
               </Field>
@@ -675,9 +737,9 @@ function AdForm({
               )}
             </div>
 
-            {problems.errors.length > 0 ? (
+            {listed.length > 0 ? (
               <ul className="text-muted-foreground flex list-disc flex-col gap-1 pl-4 text-xs">
-                {problems.errors.map((error) => (
+                {listed.map((error) => (
                   <li key={error}>{error}</li>
                 ))}
               </ul>

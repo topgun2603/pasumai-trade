@@ -1,7 +1,7 @@
-import { LeafIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
+import { BrandLogo } from "@/components/marketing/brand-mark";
 import { SignInForm, type Audience } from "@/components/marketing/signin-form";
 import { ROLES } from "@/lib/auth/claims";
 import { getDictionary, isLocale } from "@/lib/i18n";
@@ -56,9 +56,10 @@ export default async function SignInPage({
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-8 px-5 py-16">
       <div className="flex flex-col items-center gap-3 text-center">
-        <span className="bg-primary text-primary-foreground flex size-11 items-center justify-center rounded-xl">
-          <LeafIcon className="size-5" />
-        </span>
+      {/* The mark itself, not a chip with a stock leaf in it — this page used
+        lucide's LeafIcon, which was never the brand. Larger than the 44px chip
+        it replaces, because losing the filled square costs it visual weight. */}
+      <BrandLogo priority className="size-14" />
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">{t.signin.title}</h1>
           <p className="text-muted-foreground text-sm">{t.signin.subtitle}</p>
