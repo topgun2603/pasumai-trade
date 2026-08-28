@@ -176,7 +176,9 @@ export function AdminNav({
   return (
     <>
       <MobileNav
-        console="Platform admin"
+        // Operations are not an account on the platform, so there is no name
+        // to show — the same label the rail carries.
+        subtitle="Platform admin"
         groups={drawerGroups}
         pending={pending}
         locale={locale}
@@ -184,6 +186,12 @@ export function AdminNav({
         homeHref={HOME_FOR_ROLE.admin}
         languageLabel={t.console.language}
         themeLabel={t.console.theme}
+        session={{ email, role }}
+        sessionLabels={{
+          signedInAs: t.console.signedInAs,
+          signOut: t.console.signOut,
+          signingOut: t.console.signingOut,
+        }}
       />
       {/*
         Pinned to the viewport rather than stretched to the page. Without this

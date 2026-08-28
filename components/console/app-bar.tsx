@@ -73,7 +73,19 @@ export function ConsoleAppBar({
   children?: ReactNode;
 }) {
   return (
-    <header className="bg-sidebar border-sidebar-border sticky top-0 z-40 flex h-12 shrink-0 items-center gap-2 border-b px-3 md:hidden">
+    /*
+      `fixed`, not `sticky`.
+
+      Every console shell is `<div class="flex min-h-svh w-full">` with the nav
+      and the page as its two children — a flex *row*. A sticky header returned
+      from the nav is therefore a row item, and a row item is only as wide as
+      its content: the bar stopped halfway across the screen with the page
+      beginning beside it, which is what it looked like on a phone. Taking it
+      out of flow is the fix, and it is the same one the farm console's bottom
+      bar already uses for the same reason. Each shell pads its content column
+      by `pt-12` to leave the room back.
+    */
+    <header className="bg-sidebar border-sidebar-border fixed inset-x-0 top-0 z-40 flex h-12 items-center gap-2 border-b px-3 md:hidden">
       {leading}
 
       {/*
@@ -105,8 +117,14 @@ export function ConsoleAppBar({
 
       {/*
         `gap-0.5` rather than the bar's `gap-2`: these are icon buttons with
-        their own padding, and at the wider gap three of them plus a bell push
-        the name into truncation on a 320px screen.
+        their own padding, and at the wider gap they push the name into
+        truncation on a 320px screen.
+
+        No account icon. The profile link and the way out live at the foot of
+        the drawer instead — where the rail has always kept them, and where a
+        thumb reaches more easily than the far top corner. Four icons across the
+        top of a phone was one more than the bar could carry without the
+        business name losing its second half.
       */}
       <span className="ml-auto flex shrink-0 items-center gap-0.5">
         {children}

@@ -92,7 +92,10 @@ export default async function AgencyLayout({
         locale={locale}
         pending={pending}
       />
-      <div className="flex min-w-0 flex-1 flex-col">
+      {/* `pt-12` for the fixed app bar, which is out of flow — see
+        components/console/app-bar.tsx. Dropped at `md`, where the bar is
+        hidden and the rail takes over. */}
+      <div className="flex min-w-0 flex-1 flex-col pt-12 md:pt-0">
         <TickerSlot state={stateNameForDistrict(agency.district)} />
         <GateProvider console="agency">{children}</GateProvider>
       </div>

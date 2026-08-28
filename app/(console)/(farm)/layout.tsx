@@ -79,7 +79,10 @@ export default async function FarmLayout({
         locale={locale}
         t={t}
       />
-      <div className="flex min-w-0 flex-1 flex-col pb-20 md:pb-0">
+      {/* `pt-12` for the fixed app bar, which is out of flow — see
+        components/console/app-bar.tsx. Dropped at `md`, where the bar is
+        hidden and the rail takes over. */}
+      <div className="flex min-w-0 flex-1 flex-col pt-12 pb-20 md:pt-0 md:pb-0">
         {/*
           Scoped to wherever this farmer is, and read in their language. The
           district is the only geography on the account, so the state comes

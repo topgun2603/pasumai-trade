@@ -8,7 +8,6 @@ import {
   PackageIcon,
   StoreIcon,
   TruckIcon,
-  UserRoundIcon,
   UsersIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -49,15 +48,14 @@ const BUYING_LINKS = [
   */
   { href: "/orders", key: "orders", icon: PackageIcon },
   /*
-    Profile second from the bottom, notifications at the very bottom — the same
-    two positions on every console, so somebody moving between roles finds them
-    without looking.
+    No Profile item. It sits behind the person icon now — in the phone's account
+    menu and in the rail's account block — beside the address it describes,
+    rather than two rows above it on a list of places to work.
 
     Verification and Subscription live under Profile rather than on the rail,
     which is where the rest of what the platform holds about somebody already
     is.
   */
-  { href: "/account", key: "profile", icon: UserRoundIcon },
   { href: "/notifications", key: "notifications", icon: BellIcon },
 ] satisfies ReadonlyArray<{
   href: string;
@@ -160,10 +158,9 @@ export function ConsoleNav({
 
   return (
     <>
+      {/* Whose, not what kind — the same line the rail below shows. */}
       <MobileNav
-        console={
-          session.role === "franchise" ? "Franchise console" : "Buying console"
-        }
+        subtitle={account.name}
         groups={drawerGroups}
         pending={pending}
         locale={locale}
@@ -171,6 +168,13 @@ export function ConsoleNav({
         homeHref={HOME_FOR_ROLE[session.role]}
         languageLabel={t.console.language}
         themeLabel={t.console.theme}
+        session={session}
+        profile={{ href: "/account", label: t.console.profile }}
+        sessionLabels={{
+          signedInAs: t.console.signedInAs,
+          signOut: t.console.signOut,
+          signingOut: t.console.signingOut,
+        }}
       >
         <NotificationBell
           notifications={notifications.rows}
@@ -270,6 +274,7 @@ export function ConsoleNav({
           <Separator />
           <SessionFooter
             email={session.email}
+            profile={{ href: "/account", label: t.console.profile }}
             role={session.role}
             labels={{
               signedInAs: t.console.signedInAs,

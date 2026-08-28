@@ -7,7 +7,6 @@ import {
   HouseIcon,
   ReceiptIcon,
   SproutIcon,
-  UserRoundIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -19,7 +18,7 @@ import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Separator } from "@/components/ui/separator";
 import type { Notification } from "@/lib/domain/notification";
 import { BrandLogo } from "@/components/marketing/brand-mark";
-import { ConsoleAppBar } from "@/components/console/app-bar";
+import { MobileNav } from "@/components/console/mobile-nav";
 import { ThemeToggle } from "@/components/console/theme-toggle";
 import { LanguageSwitcher } from "@/components/marketing/language-switcher";
 import type { Dictionary } from "@/lib/i18n";
@@ -71,11 +70,17 @@ const LINKS = [
     destination.
   */
   /*
-    Profile second from the bottom, notifications at the very bottom, on every
-    console. A badge is something you glance at rather than navigate by, so
-    sitting it mid-list drags the eye past the work on the way down.
+    No Profile item. It sits behind the person icon in the app bar and in the
+    rail's account block, beside the address it describes.
+
+    On a phone that matters twice over: the bottom bar has five thumb-sized
+    slots and Profile was spending one of them on a page somebody opens rarely,
+    while the account menu it belongs in was two centimetres above it.
+
+    A badge is something you glance at rather than navigate by, so notifications
+    stay at the end rather than sitting mid-list and dragging the eye past the
+    work.
   */
-  { href: "/farm/account", key: "account", icon: UserRoundIcon, bar: true },
   {
     href: "/farm/notifications",
     key: "notifications",
@@ -123,32 +128,67 @@ export function FarmNav({
 }) {
   const pathname = usePathname();
 
+  /*
+    The rail's links, as the drawer wants them. Every one of them, not the
+    `bar` subset: the bottom bar is a shortlist chosen for thumb reach, and a
+    drawer that repeated only the shortlist would leave Home and Logistics
+    unreachable on a phone — which is what they were.
+  */
+  const drawerLinks = LINKS.map(({ href, key, exact }) => ({
+    href,
+    label: t.farm.nav[key],
+    exact,
+  }));
+
   return (
     <>
       {/*
-        The phone's top bar.
+        The phone's top bar, and the drawer behind it.
 
-        This console had none. Its rail is `hidden md:flex` and the only thing
-        replacing it below that width was the bottom link bar — so on a handset
-        a farmer lost the mark, the name, the language control and the theme
-        control at the moment they signed in, having had all four on the public
-        site a second earlier.
+        This console had neither. Its rail is `hidden md:flex` and the only
+        thing replacing it below that width was the bottom link bar — so on a
+        handset a farmer lost the mark, the name, the language control and the
+        theme control at the moment they signed in, having had all four on the
+        public site a second earlier. The language control is the one that
+        mattered: it lives at the foot of the rail, which a farmer on a phone
+        never sees, so somebody who picked the wrong language on the way in had
+        no way back out of it.
 
-        The language control is the one that mattered. It sits at the foot of
-        the rail, which a farmer on a phone never sees, so somebody who picked
-        the wrong language on the way in had no way back out of it.
+        The drawer is here so this console matches the other three rather than
+        being the one that is nearly the same. The bottom bar stays: it holds
+        the four places a farmer works, at thumb height, and the drawer holds
+        everything including the two that never earned a slot — Home and
+        Logistics — which were reachable on a phone from nowhere at all.
 
-        No bell here: notifications already have a place on the bottom bar, and
-        the same badge twice on one screen is not twice as informative.
+        The subtitle is the farmer's own name rather than "Farm console". Same
+        position and same shape as the others; a farmer recognises their name,
+        and they only have the one console to be told about.
       */}
-      <ConsoleAppBar
+      <MobileNav
+        subtitle={farmer.name}
+        groups={[{ links: drawerLinks }]}
+        pending={pending}
         locale={locale}
         brandName={t.brand.name}
         homeHref={HOME_FOR_ROLE.farmer}
-        subtitle={farmer.name}
         languageLabel={t.farm.nav.language}
         themeLabel={t.farm.nav.theme}
-      />
+        session={{ email: session.email, role: "farmer" }}
+        profile={{ href: "/farm/account", label: t.console.profile }}
+        sessionLabels={{
+          signedInAs: t.console.signedInAs,
+          signOut: t.console.signOut,
+          signingOut: t.console.signingOut,
+        }}
+      >
+        <NotificationBell
+          notifications={notifications.rows}
+          unread={notifications.unread}
+          capped={notifications.capped}
+          locale={locale}
+          href="/farm/notifications"
+        />
+      </MobileNav>
 
       <nav className="bg-sidebar border-sidebar-border sticky top-0 hidden h-svh w-60 shrink-0 flex-col border-r md:flex">
         <div className="flex items-center gap-2.5 px-4 py-4">
@@ -224,6 +264,7 @@ export function FarmNav({
           <SessionFooter
             email={session.email}
             role="farmer"
+            profile={{ href: "/farm/account", label: t.console.profile }}
             labels={{
               signedInAs: t.console.signedInAs,
               signOut: t.farm.page.signOut,

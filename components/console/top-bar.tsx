@@ -95,7 +95,14 @@ export function ConsoleTopBar({
   }
 
   return (
-    <header className="bg-background/95 border-border sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 border-b px-4 backdrop-blur">
+    /*
+      `top-12` on a phone, `top-0` from `md`.
+
+      The mobile app bar is fixed across the top, so a header sticking to 0
+      would slide underneath it. Above `md` that bar is hidden and this one is
+      the top of the page again.
+    */
+    <header className="bg-background/95 border-border sticky top-12 z-30 flex h-12 shrink-0 items-center gap-3 border-b px-4 backdrop-blur md:top-0">
       <div className="min-w-0 flex-1">{children}</div>
 
       {consoles && consoles.length > 0 ? (
@@ -178,7 +185,14 @@ export function ConsoleTopBar({
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon-sm" aria-label="Theme">
+          {/* Hidden on a phone: the app bar carries the theme control there,
+            and two of the same control on one screen is one too many. */}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Theme"
+            className="hidden md:inline-flex"
+          >
             <SunIcon className="size-4 scale-100 rotate-0 transition-transform dark:scale-0 dark:-rotate-90" />
             <MoonIcon className="absolute size-4 scale-0 rotate-90 transition-transform dark:scale-100 dark:rotate-0" />
           </Button>
@@ -201,7 +215,9 @@ export function ConsoleTopBar({
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="gap-2">
+          {/* Hidden on a phone for the same reason as the theme control: the
+            app bar's account menu is the one that signs you out there. */}
+          <Button variant="ghost" size="sm" className="hidden gap-2 md:inline-flex">
             <UserRoundIcon className="size-4" />
             {/* The role always, the address only where there is room — on a
                 phone the email is what gets cut, because two operators sharing

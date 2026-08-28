@@ -1,6 +1,7 @@
 "use client";
 
-import { LogOutIcon } from "lucide-react";
+import { LogOutIcon, UserRoundIcon } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -19,7 +20,20 @@ export function SessionFooter({
   email,
   role,
   labels,
+  profile,
 }: {
+  /**
+   * The account's own page, if this console has one.
+   *
+   * It used to be a rail item, two rows above this block, which put "My
+   * Profile" and "Signed in as <address>" in different parts of the same
+   * panel while describing the same account. Behind the person icon is where
+   * somebody looks for it, and on a phone it was costing the bottom bar a slot
+   * out of five.
+   *
+   * Absent for operations, who are not an account on the platform.
+   */
+  profile?: { href: string; label: string };
   /** The login itself. A mobile-OTP account has no address; the role stands in. */
   email?: string;
   role: Role;
@@ -71,6 +85,26 @@ export function SessionFooter({
           {email ?? ROLE_LABELS[role]}
         </span>
       </div>
+
+      {/* The same link the phone's account menu carries, so the rail does not
+        lose the page when it stops being a rail item. */}
+      {profile ? (
+        <Button
+          asChild
+          variant="outline"
+          size="sm"
+          className="w-full justify-start"
+        >
+          {/* `data-tour`, like every rail link. A tour step points at an href
+            and is dropped silently when nothing on screen carries it — moving
+            Profile out of the link list would otherwise have taken one step
+            out of three consoles' tours without a word. */}
+          <Link href={profile.href} data-tour={profile.href}>
+            <UserRoundIcon className="size-4" />
+            {profile.label}
+          </Link>
+        </Button>
+      ) : null}
 
       <Button
         variant="outline"

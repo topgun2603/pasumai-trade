@@ -127,7 +127,10 @@ export default async function AdminLayout({
         locale={locale}
         t={t}
       />
-      <div className="flex min-w-0 flex-1 flex-col">
+      {/* `pt-12` for the fixed app bar, which is out of flow — see
+        components/console/app-bar.tsx. Dropped at `md`, where the bar is
+        hidden and the rail takes over. */}
+      <div className="flex min-w-0 flex-1 flex-col pt-12 md:pt-0">
         <ConsoleTopBar
           session={{ email: session.email, role: session.claims.role }}
           /*

@@ -2,7 +2,6 @@
 
 import {
   BellIcon,
-  BuildingIcon,
   GaugeIcon,
   HardHatIcon,
   HouseIcon,
@@ -89,7 +88,6 @@ const LINKS: Array<{
     "My Profile", the same words as every other console — an agency owner and a
     farmer should not have to learn two names for the same place.
   */
-  { href: "/agency/profile", key: "profile", icon: BuildingIcon },
   /*
     The console had no notifications at all. An agency learned a load was
     waiting by opening the board and looking, and learned its papers had been
@@ -129,10 +127,9 @@ export function AgencyNav({
 
   return (
     <>
+      {/* Whose, not what kind — the same line the rail below shows. */}
       <MobileNav
-        console={
-          service === "manpower" ? "Manpower console" : "Transport console"
-        }
+        subtitle={agency.name}
         groups={drawerGroups}
         pending={pending}
         locale={locale}
@@ -140,6 +137,16 @@ export function AgencyNav({
         homeHref={HOME_FOR_ROLE[service === "manpower" ? "manpower" : "transport"]}
         languageLabel={t.console.language}
         themeLabel={t.console.theme}
+        session={{
+          email: session.email,
+          role: service === "manpower" ? "manpower" : "transport",
+        }}
+        profile={{ href: "/agency/profile", label: t.console.profile }}
+        sessionLabels={{
+          signedInAs: t.console.signedInAs,
+          signOut: t.console.signOut,
+          signingOut: t.console.signingOut,
+        }}
       />
 
       <nav className="bg-sidebar border-sidebar-border sticky top-0 hidden h-svh w-60 shrink-0 flex-col border-r md:flex">
@@ -209,6 +216,7 @@ export function AgencyNav({
           <Separator />
           <SessionFooter
             email={session.email}
+            profile={{ href: "/agency/profile", label: t.console.profile }}
             role={role}
             labels={{
               signedInAs: t.console.signedInAs,

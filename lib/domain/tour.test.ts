@@ -56,6 +56,21 @@ function hrefsIn(block: string): string[] {
   return [...block.matchAll(/href: "([^"]+)"/g)].map((match) => match[1]);
 }
 
+/**
+ * The account page, which is on the rail without being in its link list.
+ *
+ * Profile moved out of every rail's `LINKS` and into the account block at the
+ * foot of it — one place for it, beside the address it describes, and on a
+ * phone it was costing the bottom bar one of five slots. It is still a link,
+ * still on the rail and still carries `data-tour`, so a step aimed at it is
+ * still shown. This test would not know that from the link list alone, and
+ * would have concluded three tours were pointing at nothing.
+ */
+function profileHrefIn(source: string): string[] {
+  const match = /profile=\{\{ href: "([^"]+)"/.exec(source);
+  return match ? [match[1]] : [];
+}
+
 /** href → the agency service that gates it, or null when every agency sees it. */
 function agencyGates(): Map<string, string | null> {
   const block = arrayBlock(railSource("agency/agency-nav.tsx"), "LINKS");
@@ -78,26 +93,38 @@ function visibleTo(role: Role): Set<string> {
   const buying = railSource("franchise/console-nav.tsx");
 
   if (role === "farmer") {
+    const farm = railSource("farm/farm-nav.tsx");
     // The farm rail has no gating: everything on it belongs to the farmer.
     return new Set([
-      ...hrefsIn(arrayBlock(railSource("farm/farm-nav.tsx"), "LINKS")),
-      ...[...railSource("farm/farm-nav.tsx").matchAll(/href="(\/farm[^"]*)"/g)].map((m) => m[1]),
+      ...hrefsIn(arrayBlock(farm, "LINKS")),
+      ...[...farm.matchAll(/href="(\/farm[^"]*)"/g)].map((m) => m[1]),
+      ...profileHrefIn(farm),
     ]);
   }
 
-  if (role === "buyer") return new Set(hrefsIn(arrayBlock(buying, "BUYING_LINKS")));
+  if (role === "buyer") {
+    return new Set([
+      ...hrefsIn(arrayBlock(buying, "BUYING_LINKS")),
+      ...profileHrefIn(buying),
+    ]);
+  }
 
   if (role === "franchise") {
     return new Set([
       ...hrefsIn(arrayBlock(buying, "BUYING_LINKS")),
       ...hrefsIn(arrayBlock(buying, "FRANCHISE_LINKS")),
+      ...profileHrefIn(buying),
     ]);
   }
 
   const gates = agencyGates();
-  return new Set(
-    [...gates].filter(([, service]) => service === null || service === role).map(([href]) => href),
-  );
+  return new Set([
+    ...[...gates]
+      .filter(([, service]) => service === null || service === role)
+      .map(([href]) => href),
+    // Ungated: every agency has one, whatever service they supply.
+    ...profileHrefIn(railSource("agency/agency-nav.tsx")),
+  ]);
 }
 
 describe("console tours", () => {
@@ -107,9 +134,11 @@ describe("console tours", () => {
     // testing anything and this is the assertion that says so.
     expect(gates.get("/agency/pickups")).toBe("transport");
     expect(gates.get("/agency/workers")).toBe("manpower");
-    // Ungated: every agency has a profile, whatever service they supply.
-    // Verification used to be the example here and has moved underneath it.
-    expect(gates.get("/agency/profile")).toBeNull();
+    // Ungated: every agency is notified, whatever service they supply.
+    // Profile used to be the example here and is no longer a rail link at all —
+    // see `profileHrefIn`. Verification was the example before that, and has
+    // moved underneath Profile.
+    expect(gates.get("/agency/notifications")).toBeNull();
   });
 
   it("gives every role but operations a tour", () => {
