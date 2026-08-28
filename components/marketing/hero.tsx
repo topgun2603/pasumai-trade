@@ -81,7 +81,7 @@ export function Hero({ t, locale }: { t: Dictionary; locale: Locale }) {
           with the viewport. The photograph keeps its own `self-end`, so it
           still sits on the baseline; only the words stopped waiting for it. */}
       <div className="mx-auto grid w-full max-w-6xl items-start gap-8 px-5 pt-10 lg:grid-cols-[1.1fr_0.9fr] lg:pt-12">
-        <Stagger immediate className="flex flex-col items-start gap-6 pb-12 lg:pb-20">
+        <Stagger immediate className="flex flex-col items-start gap-6 pb-2 lg:pb-20">
           <StaggerItem>
             {/* Bigger than the default badge: this one is a standalone label
                 above a heading rather than a chip inside a dense row, and at
@@ -131,19 +131,37 @@ export function Hero({ t, locale }: { t: Dictionary; locale: Locale }) {
             The arch this replaced cropped the subject at the dome and read as
             a tombstone at this aspect ratio — the photograph has no alpha
             channel, so it cannot be cut out and needs a frame that flatters a
-            rectangle rather than fighting it. */}
-        <div className="relative hidden self-end justify-self-center pb-10 lg:block">
+            rectangle rather than fighting it.
+
+            Shown at every width now. It was `hidden lg:block`, which on a phone
+            hid the one photograph of the person the whole page is addressed to
+            — and hid it without saving anything, because `display: none` does
+            not stop a download and `priority` was preloading it regardless.
+            Most of this platform's readers are on a handset; the farmer is not
+            a decoration to drop first at that width.
+
+            It stacks under the words rather than above them: the heading and
+            the two buttons are what somebody landing here needs first, and a
+            portrait pushing them below the fold would cost more than it adds.
+
+            The frame is fluid so it cannot overflow. At `w-[24rem]` it was
+            wider than a small phone's content box and would have scrolled the
+            page sideways. The offset panel behind it is pulled in to match —
+            at 20px it sat past the container on a 320px screen. */}
+        <div className="relative self-end justify-self-center pb-10">
           <div
             aria-hidden
-            className="border-primary/25 absolute -top-5 -right-5 h-full w-full rounded-3xl border-2"
+            className="border-primary/25 absolute -top-3 -right-3 h-full w-full rounded-3xl border-2 lg:-top-5 lg:-right-5"
           />
-          <div className="ring-border relative aspect-[3/4] w-[24rem] overflow-hidden rounded-3xl shadow-2xl ring-1">
+          <div className="ring-border relative aspect-[3/4] w-[17rem] overflow-hidden rounded-3xl shadow-2xl ring-1 sm:w-[20rem] lg:w-[24rem]">
             <Image
               src={farmer.src}
               alt={t.hero.imageAlt}
               fill
               priority
-              sizes="24rem"
+              // Matches the widths above, so a phone is not sent the 24rem
+              // variant of a photograph it draws at 17.
+              sizes="(min-width: 1024px) 24rem, (min-width: 640px) 20rem, 17rem"
               className="object-cover object-center"
             />
             {/* Grounds the card against the photograph rather than letting it
