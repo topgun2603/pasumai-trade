@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
+import { Analytics } from "@vercel/analytics/next";
+
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -57,6 +59,20 @@ export default function ConsoleRootLayout({
           <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
           <Toaster position="bottom-right" />
         </ThemeProvider>
+
+        {/*
+          Page views and Web Vitals, from Vercel rather than a third-party tag.
+
+          Inside <body> and last: it renders no markup, so it cannot affect
+          layout, and the script it injects is deferred — nothing here competes
+          with the page for a farmer on a village connection.
+
+          Both root layouts carry it. This application has two — the public site
+          under [locale] and the consoles under (console) — and analytics on
+          only one of them would measure the front door while ignoring
+          everything people actually signed in to do.
+        */}
+        <Analytics />
       </body>
     </html>
   );

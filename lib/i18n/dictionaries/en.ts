@@ -24,6 +24,22 @@ export const en = {
     tagline: "Empowering Farmers",
   },
 
+  /*
+    What a search engine shows, which is not what the page shows.
+
+    The landing page used to hand its `<title>` the hero headline — "Empowering
+    Farmers. Building A Greener Future." That is the right line to *read* and the
+    wrong line to be *found* by: it names no crop, no price, no place and no
+    product, so it matches nothing anybody types. These say what the thing is.
+
+    `title` is the descriptive half only. The locale layout's title template
+    appends the brand name, so writing it here again would print it twice.
+  */
+  seo: {
+    title: "Live Mandi Prices & Direct Farm Trade",
+    description: "Check today's mandi rates, list what you grow, and bargain directly with buyers. Fair prices, paid in full, in six Indian languages.",
+  },
+
 
   doors: {
     label: "Sign in as",
@@ -360,7 +376,7 @@ export const en = {
     adminBlurb:
       "Platform administration. Approve accounts, manage the fleet and watch document expiry.",
     farmerBlurb:
-      "Sign in with the mobile number your franchise registered. You will receive a one-time code.",
+      "Sign in with your mobile number. You will receive a one-time code.",
     email: "Email address",
     mobile: "Mobile number",
     password: "Password",

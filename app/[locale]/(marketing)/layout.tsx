@@ -7,6 +7,8 @@ import { TickerSlot } from "@/components/market/ticker-slot";
 import { LoginStrip } from "@/components/marketing/login-strip";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { getDictionary, isLocale } from "@/lib/i18n";
+import { JsonLd } from "@/components/marketing/json-ld";
+import { organizationSchema, webSiteSchema } from "@/lib/marketing/seo";
 
 /**
  * The public surface.
@@ -29,6 +31,15 @@ export default async function MarketingLayout({
 
   return (
     <div className="flex min-h-svh flex-col">
+      {/*
+        On the layout rather than the landing page: these two describe the
+        business and the site, which are the same facts on the pricing page and
+        the sign-in doors. `@id` ties them together and de-duplicates them for
+        anything reading more than one page.
+      */}
+      <JsonLd data={organizationSchema(t)} />
+      <JsonLd data={webSiteSchema(locale, t)} />
+
       <SiteHeader locale={locale} t={t}>
         <LoginStrip locale={locale} t={t} />
       </SiteHeader>

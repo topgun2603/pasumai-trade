@@ -46,7 +46,23 @@ export function proxy(request: NextRequest) {
 
   const url = request.nextUrl.clone();
   url.pathname = `/${locale}`;
-  return NextResponse.redirect(url);
+
+  /*
+    This redirect is not one answer, it is six.
+
+    It is computed from a cookie and an `Accept-Language` header, so a CDN that
+    caches the first response and replays it would send every later visitor
+    wherever the first one happened to be going — a Tamil reader to `/hi`
+    because somebody in Delhi arrived first. `Vary` is what stops that.
+
+    It stays a 307 rather than a 308. A permanent redirect would let a browser
+    cache `/` → `/ta` forever, and the language a person wants is not a property
+    of the URL — they may change it on the next visit, and the cookie above is
+    what should decide.
+  */
+  const response = NextResponse.redirect(url);
+  response.headers.set("Vary", "Accept-Language, Cookie");
+  return response;
 }
 
 export const config = {

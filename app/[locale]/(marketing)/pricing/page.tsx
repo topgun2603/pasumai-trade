@@ -16,6 +16,7 @@ import {
   STANDARD_TERMS,
 } from "@/lib/domain/subscription";
 import { getDictionary, isLocale } from "@/lib/i18n";
+import { localeAlternates } from "@/lib/marketing/seo";
 
 export async function generateMetadata({
   params,
@@ -26,9 +27,14 @@ export async function generateMetadata({
   if (!isLocale(locale)) return {};
   const t = getDictionary(locale);
   return {
-    title: `${t.nav.pricing} · ${t.brand.name}`,
-    description:
-      "Looking is free — every listing, every settled price. From ₹199 a month to trade, or ₹4,999 once and never again.",
+    // Not `${t.nav.pricing} · ${t.brand.name}` any more: the layout's title
+    // template appends the brand name itself, and this was printing it twice.
+    title: t.nav.pricing,
+    // Was a hardcoded English sentence served on all six locales — the one
+    // string a search result shows under the link, in a language most of the
+    // audience does not read.
+    description: t.seo.description,
+    alternates: localeAlternates(locale, "/pricing"),
   };
 }
 

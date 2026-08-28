@@ -39,6 +39,8 @@ import { findDistrict } from "@/lib/domain/location";
 import { readPlacements } from "@/lib/firebase/ads-read";
 import { readCoverage } from "@/lib/firebase/places-read";
 import { getDictionary, isLocale } from "@/lib/i18n";
+import { JsonLd } from "@/components/marketing/json-ld";
+import { faqSchema, localeAlternates } from "@/lib/marketing/seo";
 import { resolveMedia } from "@/lib/marketing/media";
 import { GEOGRAPHY } from "@/lib/mock/locations";
 
@@ -64,9 +66,22 @@ export async function generateMetadata({
   const t = getDictionary(locale);
 
   return {
-    title: `${t.hero.titleLine1} ${t.hero.titleLine2}`,
-    description: t.hero.body,
-    openGraph: { title: t.brand.name, description: t.hero.body, type: "website" },
+    // The descriptive half only — the locale layout's template appends the
+    // brand name, so naming it here would print it twice.
+    title: t.seo.title,
+    description: t.seo.description,
+    alternates: localeAlternates(locale),
+    /*
+      No `openGraph` block here, deliberately.
+
+      Defining one at this depth *replaces* the object resolved further up
+      rather than merging into it — including the `og:image` that
+      `[locale]/opengraph-image.tsx` attaches at its own segment. This page had
+      an openGraph block naming only a title and a description, and the cost was
+      the card image silently vanishing from the one page most likely to be
+      shared. Omitting it lets Next fill `og:title` and `og:description` from
+      the title and description above, which is what they say anyway.
+    */
   };
 }
 
@@ -414,6 +429,14 @@ export default async function LandingPage({
       </section>
 
       {/* FAQ */}
+      {/*
+        Beside the questions rather than in the head, so the markup and the copy
+        it describes are one edit apart. Google requires every marked-up answer
+        to be visible on the page — these are the same six strings the accordion
+        below renders, not a second set written for crawlers.
+      */}
+      <JsonLd data={faqSchema(t)} />
+
       <section id="faq" className="border-b scroll-mt-20">
         <div className="mx-auto grid w-full max-w-6xl gap-10 px-5 py-16 lg:grid-cols-[0.8fr_1.2fr]">
           <Reveal className="flex flex-col gap-3">
