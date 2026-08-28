@@ -28,19 +28,16 @@ curl_args=(--silent --show-error --max-time 30)
 
 if [ -n "${BYPASS_SECRET:-}" ]; then
   curl_args+=(--header "x-vercel-protection-bypass: ${BYPASS_SECRET}")
-else
-  cat >&2 <<'EOF'
-::warning::VERCEL_AUTOMATION_BYPASS_SECRET is not set.
-
-If Deployment Protection is on for this project, every request below will be
-answered by Vercel's sign-in redirect rather than by the site, and every check
-will fail with a 302 to vercel.com/sso-api.
-
-To fix: Vercel > Project > Settings > Deployment Protection >
-Protection Bypass for Automation > generate the secret, then add it as the
-repository secret VERCEL_AUTOMATION_BYPASS_SECRET.
-EOF
 fi
+
+# Whether Deployment Protection, rather than the app, answered anything.
+#
+# This used to warn up front whenever the bypass secret was unset. Against the
+# production alias — which is public and is what this now tests — that warning
+# was on every green run, and a warning that fires when nothing is wrong is one
+# people stop reading. It is raised at the end instead, only when a redirect to
+# the SSO endpoint was actually seen.
+protected=0
 
 failed=0
 body="$(mktemp)"
@@ -59,6 +56,7 @@ fetch() {
   status="$(awk 'toupper($1) ~ /^HTTP/ { code = $2 } END { print code }' "$headers")"
   location="$(awk 'tolower($1) == "location:" { print $2 }' "$headers" |
     tr -d '\r' | tail -n 1)"
+  case "$location" in *vercel.com/sso-api*) protected=1 ;; esac
   location="${location#"$url"}"
 }
 
@@ -96,29 +94,35 @@ check_redirect() {
 
 # A console route, which must turn a stranger away.
 #
+# Takes the door it should be sent to, because there is more than one: the
+# consoles send a stranger to /en/signin, and /admin/* has its own gate at
+# /admin/login. Asserting the general one against the admin console failed a
+# guard that was working correctly.
+#
 # Deliberately not fussy about *how*. `redirect()` in a layout sends a 307 when
 # it is reached before anything streams, but Next falls back to a meta refresh
 # in a 200 when it is not — an implementation detail that is none of this
 # script's business. Either is a pass; serving the console is not.
 check_signin() {
+  local door="${2:-/en/signin}"
   fetch "$1"
   case "$status" in
     307 | 308)
-      if [ "$location" != "/en/signin" ]; then
-        fail "$1" "redirected to ${location:-nothing}, expected /en/signin"
+      if [ "$location" != "$door" ]; then
+        fail "$1" "redirected to ${location:-nothing}, expected $door"
       else
-        pass "$1" "$status -> /en/signin"
+        pass "$1" "$status -> $door"
       fi
       ;;
     200)
-      if grep -q '/en/signin' "$body"; then
+      if grep -q "$door" "$body"; then
         pass "$1" "200, sent to sign in"
       else
-        fail "$1" "answered 200 and did not send the visitor to sign in"
+        fail "$1" "answered 200 and did not send the visitor to $door"
       fi
       ;;
     *)
-      fail "$1" "returned $status, expected to be sent to sign in"
+      fail "$1" "returned $status, expected to be sent to $door"
       ;;
   esac
 }
@@ -141,7 +145,23 @@ check_redirect /market /listings
 # And the consoles are shut to someone who has not signed in. If either of these
 # ever serves its page, the deploy is showing farmer data to the internet.
 check_signin /listings
-check_signin /admin/controls
+check_signin /admin/controls /admin/login
+
+if [ "$protected" -ne 0 ]; then
+  cat >&2 <<'EOF'
+::error::Deployment Protection answered, not the site.
+
+Something above was redirected to vercel.com/sso-api, so those checks never
+reached the application and say nothing about whether it works.
+
+Either point URL at the production alias, which is public — the PRODUCTION_URL
+repository variable, read in ci.yml — or, to test a protected deployment URL,
+generate a secret at Vercel > Project > Settings > Deployment Protection >
+Protection Bypass for Automation and add it as the repository secret
+VERCEL_AUTOMATION_BYPASS_SECRET.
+EOF
+  failed=1
+fi
 
 if [ "$failed" -ne 0 ]; then
   echo "::error::Smoke test failed — see the lines marked FAIL above."

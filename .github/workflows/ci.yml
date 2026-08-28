@@ -198,8 +198,19 @@ jobs:
       # rather than trusting that a green build implies a working site.
       - name: Smoke test
         env:
-          URL: ${{ steps.deploy.outputs.url }}
-          # Deployment Protection answers a bare curl with its own sign-in
-          # redirect, so without this the smoke test never reaches the site.
+          # The production alias, not the deployment's own generated URL.
+          #
+          # `vercel deploy --prod` prints the generated URL, and every generated
+          # URL sits behind Deployment Protection: an unauthenticated request
+          # gets a 302 to vercel.com/sso-api, so every check failed against a
+          # page it had never loaded. The alias is what a visitor actually
+          # reaches, it answers without a bypass, and asserting against it also
+          # proves the promotion happened rather than assuming it did.
+          #
+          # Set the PRODUCTION_URL repository variable to point this somewhere
+          # else — a new domain, or a deployment URL while debugging one.
+          URL: ${{ vars.PRODUCTION_URL || 'https://www.pasumaitrade.com' }}
+          # Kept for the case above: if URL is ever a protected deployment URL,
+          # this is the supported way through without weakening protection.
           BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: bash .github/scripts/smoke-test.sh
