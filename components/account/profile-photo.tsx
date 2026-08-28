@@ -33,6 +33,46 @@ import { cn } from "@/lib/utils";
 
 /** Matches the endpoint. Checked here so a bad pick fails instantly, offline. */
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "image/heic"];
+
+/**
+ * The same four types, keyed by filename extension.
+ *
+ * Needed because a browser does not always know what it has handed over. A
+ * photograph straight from the camera always arrives with its MIME type set;
+ * one chosen out of the gallery or a file manager frequently does not — several
+ * Android file providers report an empty `type`, and a few report
+ * `application/octet-stream`.
+ *
+ * That did not matter while the picker was camera-only. It does now: without
+ * this the gallery option would open, let somebody choose their portrait, and
+ * refuse it as "not a photograph" — which is a worse failure than not offering
+ * the gallery at all.
+ */
+const TYPE_FOR_EXTENSION: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  heic: "image/heic",
+  heif: "image/heic",
+};
+
+/**
+ * What this file actually is, or null if it is not something we take.
+ *
+ * The answer is used twice and both have to agree: it is sent to the signing
+ * endpoint, and it is the `content-type` on the PUT. A signed URL is bound to
+ * the type it was signed for, so a mismatch fails as a signature error rather
+ * than as anything readable.
+ */
+function acceptedType(file: File): string | null {
+  const reported = file.type.toLowerCase();
+  if (ACCEPTED.includes(reported)) return reported;
+
+  const extension = file.name.toLowerCase().split(".").pop() ?? "";
+  return TYPE_FOR_EXTENSION[extension] ?? null;
+}
+
 const MAX_BYTES = 8 * 1024 * 1024;
 
 function initials(name: string): string {
@@ -55,7 +95,12 @@ export function ProfilePhoto({
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
 
-  const [chosen, setChosen] = useState<{ file: File; preview: string } | null>(null);
+  const [chosen, setChosen] = useState<{
+    file: File;
+    preview: string;
+    /** Resolved once here, so the signature and the upload cannot disagree. */
+    contentType: string;
+  } | null>(null);
   const [saving, setSaving] = useState(false);
 
   function drop() {
@@ -69,9 +114,10 @@ export function ProfilePhoto({
   function pick(file: File | undefined) {
     if (!file) return;
 
-    if (!ACCEPTED.includes(file.type.toLowerCase())) {
+    const contentType = acceptedType(file);
+    if (!contentType) {
       toast.error("That is not a photograph", {
-        description: "Choose a JPEG, PNG or WebP image.",
+        description: "Choose a JPEG, PNG, WebP or HEIC image.",
       });
       return;
     }
@@ -83,7 +129,7 @@ export function ProfilePhoto({
     }
 
     if (chosen) URL.revokeObjectURL(chosen.preview);
-    setChosen({ file, preview: URL.createObjectURL(file) });
+    setChosen({ file, preview: URL.createObjectURL(file), contentType });
   }
 
   async function save() {
@@ -95,7 +141,7 @@ export function ProfilePhoto({
       const signed = await fetch("/api/account/photo", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ contentType: chosen.file.type, bytes: chosen.file.size }),
+        body: JSON.stringify({ contentType: chosen.contentType, bytes: chosen.file.size }),
       });
       if (!signed.ok) {
         const detail = (await signed.json().catch(() => ({}))) as { error?: string };
@@ -106,7 +152,7 @@ export function ProfilePhoto({
       // Straight to storage, not through our server.
       const put = await fetch(url, {
         method: "PUT",
-        headers: { "content-type": chosen.file.type },
+        headers: { "content-type": chosen.contentType },
         body: chosen.file,
       });
       if (!put.ok) throw new Error("The photograph did not finish uploading.");
@@ -167,10 +213,21 @@ export function ProfilePhoto({
           ref={input}
           id="account-photo"
           type="file"
-          // `capture` opens the rear camera on a handset instead of a file
-          // browser, which is how most of these will be taken.
+          /*
+            `capture` is deliberately absent, as it is on the listing picker and
+            the KYC uploads.
+
+            It was `capture="environment"`, which does not mean "prefer the
+            camera" — it replaces the file picker outright, so on a handset the
+            only way to set a photograph was to take one there and then. Anybody
+            who already had a portrait, or had been sent one, had nowhere to put
+            it. It also opened the *rear* camera, which is the wrong one for a
+            picture of yourself.
+
+            Without the attribute the phone's own picker offers the camera and
+            the gallery side by side, which is both options rather than one.
+          */
           accept={ACCEPTED.join(",")}
-          capture="environment"
           className="hidden"
           onChange={(event) => pick(event.target.files?.[0])}
         />
