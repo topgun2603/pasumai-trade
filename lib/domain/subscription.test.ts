@@ -12,6 +12,7 @@ import {
   STANDARD_TERMS,
   TERMS,
   activate,
+  applyGatewayPayment,
   badgeFor,
   checkCapability,
   daysRemaining,
@@ -398,5 +399,71 @@ describe("what the subscription page opens with", () => {
     */
     expect(catalogueOpensBy("expired", false)).toBe(true);
     expect(catalogueOpensBy("pastDue", false)).toBe(true);
+  });
+});
+
+describe("applying a card payment that arrives twice", () => {
+  /*
+    A ₹199 month that granted sixty days.
+
+    Razorpay reports one payment down two paths — the browser returning to
+    `/api/subscription/verify`, and a webhook — and either can win. Both asked
+    `isSubscribed` before deciding whether to activate or renew, so whichever
+    ran second saw the first one's work as a subscription already running and
+    extended it by another full term.
+  */
+  const ONE_MONTH = STANDARD_TERMS.find((t) => t.term === "m1")!;
+  const BOUGHT = new Date("2026-04-01T09:00:00Z");
+  const PAID = new Date("2026-04-01T09:02:00Z");
+
+  function requested() {
+    return requestSubscription(ONE_MONTH, "PT-ABC234", BOUGHT);
+  }
+
+  function days(from: Date, subscription: Subscription): number {
+    return Math.round(
+      (subscription.renewsAt.getTime() - from.getTime()) / 86_400_000,
+    );
+  }
+
+  it("gives one term for one payment, whichever path lands first", () => {
+    const first = applyGatewayPayment(requested(), "pay_1", null, PAID);
+    expect(first.alreadyApplied).toBe(false);
+    if (first.alreadyApplied) return;
+
+    expect(first.next.status).toBe("active");
+    expect(days(PAID, first.next)).toBe(30);
+
+    // The other path, moments later, reporting the same payment.
+    const second = applyGatewayPayment(first.next, "pay_1", "pay_1", PAID);
+    expect(second.alreadyApplied).toBe(true);
+  });
+
+  /*
+    The half that must not be lost. Somebody buying a second term before the
+    first runs out keeps the days they have already paid for.
+  */
+  it("still extends for a genuinely different payment", () => {
+    const first = applyGatewayPayment(requested(), "pay_1", null, PAID);
+    if (first.alreadyApplied) throw new Error("unreachable");
+
+    const second = applyGatewayPayment(first.next, "pay_2", "pay_1", PAID);
+    expect(second.alreadyApplied).toBe(false);
+    if (second.alreadyApplied) return;
+
+    expect(days(PAID, second.next)).toBe(60);
+    expect(second.next.renewal).toBe(true);
+  });
+
+  /*
+    Both halves of the guard are load-bearing. A payment id sitting on a record
+    that never went active is a payment that was seen and not applied — usually
+    one that failed — and refusing to activate it would leave somebody who has
+    paid with nothing.
+  */
+  it("applies a payment whose id was recorded but never activated anything", () => {
+    const seen = { ...requested(), status: "requested" as const };
+    const result = applyGatewayPayment(seen, "pay_1", "pay_1", PAID);
+    expect(result.alreadyApplied).toBe(false);
   });
 });

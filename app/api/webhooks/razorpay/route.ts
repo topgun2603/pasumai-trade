@@ -1,5 +1,5 @@
 import { COLLECTION_FOR_SIGNUP, canSelfSignup } from "@/lib/domain/signup";
-import { activate, isSubscribed, renew } from "@/lib/domain/subscription";
+import { applyGatewayPayment } from "@/lib/domain/subscription";
 import { adminDb } from "@/lib/firebase/admin";
 import { shapeSubscription } from "@/lib/firebase/subscription-read";
 import { razorpayConfig, verifyWebhookSignature } from "@/lib/payments/razorpay";
@@ -99,14 +99,28 @@ export async function POST(request: Request) {
     return Response.json({ ignored: "amount mismatch" });
   }
 
-  // Already active because verify got there first. Nothing to do, and saying so
-  // is not a failure.
-  if (stored?.razorpayPaymentId === payment?.id && existing.status === "active") {
+  const now = new Date();
+
+  /*
+    Already active because verify got there first. Nothing to do, and saying so
+    is not a failure.
+
+    The check moved into `applyGatewayPayment` so that this endpoint and the
+    verify endpoint cannot disagree about it — they did, and the one without it
+    was renewing a subscription the other had just activated.
+  */
+  const applied = applyGatewayPayment(
+    existing,
+    payment?.id,
+    typeof stored?.razorpayPaymentId === "string" ? stored.razorpayPaymentId : null,
+    now,
+  );
+
+  if (applied.alreadyApplied) {
     return Response.json({ ok: true, alreadyActivated: true });
   }
 
-  const now = new Date();
-  const next = isSubscribed(existing, now) ? renew(existing, now) : activate(existing, now);
+  const next = applied.next;
 
   await ref.set(
     {

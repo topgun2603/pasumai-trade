@@ -571,6 +571,56 @@ function termMs(term: Term): number {
   return months * MONTH_MS;
 }
 
+/**
+ * One payment, applied once, whichever path reaches the account first.
+ *
+ * A card payment is reported to the platform twice on purpose: the browser
+ * comes back to `/api/subscription/verify`, and Razorpay posts the same event
+ * to the webhook. Either can arrive first, and the webhook frequently wins.
+ *
+ * Both then asked the same question — "is something already running?" — and
+ * both answered it with `isSubscribed`, which is true the instant the *other*
+ * one has finished. So the second path read the first path's work as an
+ * existing subscription and renewed it: one ₹199 payment for one month, and an
+ * account with sixty days on it.
+ *
+ * The webhook already carried a guard against this and the verify endpoint did
+ * not, which is why it only happened in one order. The guard belongs here
+ * rather than in either handler, so a third caller cannot be written without
+ * it.
+ *
+ * `renew` is still right when it is genuinely a *different* payment: somebody
+ * buying a second term before the first has run out should keep the days they
+ * have paid for, which is what extending from `renewsAt` does.
+ */
+export type PaymentApplication =
+  /** This exact payment is already on the record. Nothing to do. */
+  | { readonly alreadyApplied: true }
+  | { readonly alreadyApplied: false; readonly next: Subscription };
+
+export function applyGatewayPayment(
+  existing: Subscription,
+  /** The payment the gateway is reporting now. */
+  paymentId: string | null | undefined,
+  /** The payment already recorded against this subscription, if any. */
+  appliedPaymentId: string | null | undefined,
+  now: Date,
+): PaymentApplication {
+  /*
+    Both halves matter. The id alone is not enough — a record can hold the id of
+    a payment that was seen but never activated anything — and `active` alone is
+    not enough either, or a genuine second purchase would be refused.
+  */
+  if (paymentId && paymentId === appliedPaymentId && existing.status === "active") {
+    return { alreadyApplied: true };
+  }
+
+  return {
+    alreadyApplied: false,
+    next: isSubscribed(existing, now) ? renew(existing, now) : activate(existing, now),
+  };
+}
+
 /** Renewal extends from the existing end date, so nobody loses days by paying early. */
 export function renew(subscription: Subscription, paidAt: Date): Subscription {
   const from = Math.max(subscription.renewsAt.getTime(), paidAt.getTime());

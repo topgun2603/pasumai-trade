@@ -1,6 +1,6 @@
 import { requireSession } from "@/lib/api/write-guard";
 import { COLLECTION_FOR_SIGNUP, canSelfSignup } from "@/lib/domain/signup";
-import { activate, isSubscribed, renew } from "@/lib/domain/subscription";
+import { applyGatewayPayment } from "@/lib/domain/subscription";
 import { adminDb } from "@/lib/firebase/admin";
 import { shapeSubscription } from "@/lib/firebase/subscription-read";
 import { fetchPayment, razorpayConfig, verifyCheckoutSignature } from "@/lib/payments/razorpay";
@@ -98,9 +98,33 @@ export async function POST(request: Request) {
   }
 
   const now = new Date();
-  // Extending rather than replacing when something is already running, so a
-  // retried verification cannot cost days.
-  const next = isSubscribed(existing, now) ? renew(existing, now) : activate(existing, now);
+
+  /*
+    (5) The webhook may have applied this exact payment already — it frequently
+    lands before the browser finds its way back here. Writing again would read
+    the webhook's own work as a subscription already running and extend it, so
+    one month's payment bought two.
+
+    Reporting success without writing is the honest answer: the subscription
+    this request is asking about is already the one it wanted.
+  */
+  const applied = applyGatewayPayment(
+    existing,
+    paymentId,
+    typeof stored?.razorpayPaymentId === "string" ? stored.razorpayPaymentId : null,
+    now,
+  );
+
+  if (applied.alreadyApplied) {
+    return Response.json({
+      status: existing.status,
+      renewsAt: existing.renewsAt.toISOString(),
+      paymentId,
+      alreadyApplied: true,
+    });
+  }
+
+  const next = applied.next;
 
   await ref.set(
     {
