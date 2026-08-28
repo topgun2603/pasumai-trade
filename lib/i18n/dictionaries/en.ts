@@ -95,6 +95,57 @@ export const en = {
     title: "The price is not ours to set",
     body: "There is no published rate to check an offer against, because there is no offer we made. A farmer names a price, a buyer counters, and the two of them settle it — grade by grade, and only the grades they both want.",
     caption: "Grade A · ₹24/kg · 800 kg",
+    badge: "No published rate. No platform price.",
+    rule1: "Bid on one grade or all three. A buyer who wants only the top grade says so, and the rest of the lot stays yours to sell.",
+    rule2: "Neither side can walk an offer backwards once it is made.",
+    rule3: "Nobody can accept their own price — an agreement needs both.",
+    rule4: "The thread is the record. What was agreed, and how, stays readable.",
+    demo: {
+      farmer: "Farmer",
+      buyer: "Buyer",
+      grade: "Grade",
+      settledLabel: "Settled",
+      illustrative: "Illustrative",
+      play: "Play the example",
+      pause: "Pause the example",
+      threadLabel: "An example price negotiation",
+      rounds: [
+        {
+          crop: "Tomato",
+          lot: "800 kg",
+          settled: "Grade A · ₹24/kg",
+          steps: [
+            "800 kg tomato, picked this morning.",
+            "I only need the top grade this week.",
+            "Yesterday grade A went at 24.",
+            "Meeting you most of the way.",
+            "Agreed.",
+          ],
+        },
+        {
+          crop: "Banana",
+          lot: "1,200 kg",
+          settled: "A ₹33 · B ₹27.50 · C ₹20",
+          steps: [
+            "1,200 kg ready. All three grades.",
+            "Rate is soft this week. This is what I can do today.",
+            "I cannot go below this.",
+            "Splitting the difference. Loading tomorrow at six.",
+            "Done.",
+          ],
+        },
+        {
+          crop: "Green chilli",
+          lot: "260 kg",
+          settled: "Grade A · ₹78/kg",
+          steps: [
+            "260 kg, graded this morning.",
+            "I need it today. Taking grade A at your price.",
+            "Take it.",
+          ],
+        },
+      ],
+    },
   },
 
   how: {

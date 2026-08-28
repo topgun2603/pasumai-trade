@@ -187,11 +187,7 @@ export default async function LandingPage({
           asked, rather than three sections later. */}
       <section id="bargaining" className="bg-secondary/40 border-b scroll-mt-20">
         <div className="mx-auto w-full max-w-6xl px-5 py-16">
-          <BargainDemo
-            title={t.bargain.title}
-            body={t.bargain.body}
-            caption={t.bargain.caption}
-          />
+          <BargainDemo t={t} />
         </div>
       </section>
 
