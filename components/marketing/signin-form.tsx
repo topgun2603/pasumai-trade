@@ -355,6 +355,44 @@ export function SignInForm({
       </div>
 
       {/*
+        The other doors, above the form rather than below it.
+
+        Which door you are at decides which console you land in, so it belongs
+        with the card that names it and ahead of the first field. At the bottom
+        it sat under the number, the code, the Google button and the sign-up
+        line — so somebody who arrived at the wrong door had to fill in a form,
+        or scroll past all of it, before finding the way to the right one. Same
+        move as the sign-up form, for the same reason.
+
+        This is not a responsive change: the block is one column at every width
+        and always was. It was simply last in the document.
+      */}
+      <div className="flex flex-col gap-2">
+        <span className="text-muted-foreground text-xs">
+          {t.signin.otherDoors}
+        </span>
+        <div className="flex flex-wrap gap-1.5">
+          {audiences
+            .filter((option) => option.value !== audience)
+            .map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  setAudience(option.value);
+                  setErrors({});
+                  setMismatch(null);
+                }}
+                className="border-border hover:bg-secondary focus-visible:ring-ring flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none"
+              >
+                <option.icon className="size-3" />
+                {option.label}
+              </button>
+            ))}
+        </div>
+      </div>
+
+      {/*
         Right credentials, wrong door.
 
         Directly under the card naming the door, because that card is the thing
@@ -641,31 +679,6 @@ export function SignInForm({
             {t.signin.takesAMinute}
           </span>
         </p>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <span className="text-muted-foreground text-xs">
-          {t.signin.otherDoors}
-        </span>
-        <div className="flex flex-wrap gap-1.5">
-          {audiences
-            .filter((option) => option.value !== audience)
-            .map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => {
-                  setAudience(option.value);
-                  setErrors({});
-                  setMismatch(null);
-                }}
-                className="border-border hover:bg-secondary focus-visible:ring-ring flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none"
-              >
-                <option.icon className="size-3" />
-                {option.label}
-              </button>
-            ))}
-        </div>
       </div>
     </div>
   );
