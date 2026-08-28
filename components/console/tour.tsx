@@ -42,10 +42,17 @@ interface Rect {
 /**
  * The visible element for a target, not merely the first one.
  *
- * Every rail here renders twice on a phone — once as the side rail and once as
- * the bottom bar — with only one of the pair displayed. `querySelector` would
- * hand back whichever came first in the document, which is the hidden one about
- * half the time, and a zero-sized rect reads as "this step does not apply".
+ * Written when the farm console rendered its rail twice on a phone — once as
+ * the side rail and once as a bottom bar — with only one of the pair displayed.
+ * `querySelector` would hand back whichever came first in the document, which
+ * was the hidden one about half the time, and a zero-sized rect reads as "this
+ * step does not apply".
+ *
+ * That bottom bar is gone and no console duplicates its links any more, so
+ * today this usually finds one element or none. It stays as it is: the cost is
+ * a loop over a single-item list, and the failure it prevents — a step
+ * silently dropped because the hidden copy was measured — is invisible when it
+ * happens.
  */
 function visibleTarget(href: string): Element | null {
   const found = document.querySelectorAll(`[data-tour="${CSS.escape(href)}"]`);

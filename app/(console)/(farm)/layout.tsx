@@ -22,8 +22,10 @@ import { negotiations } from "@/lib/mock/negotiations";
  * signed-in farmer the moment it exists rather than the moment somebody
  * remembers to add a check.
  *
- * `pb-20` on the content column leaves room for the fixed bottom bar on a
- * phone; without it the last row of every page sits underneath it.
+ * No `pb-20` on the content column any more. It was reserving room for this
+ * console's own bottom bar, which is gone — a farmer navigates from the app
+ * bar's drawer like every other console. Left in place it would have held
+ * eighty pixels of nothing under the last row of every page.
  */
 export default async function FarmLayout({
   children,
@@ -82,7 +84,7 @@ export default async function FarmLayout({
       {/* `pt-12` for the fixed app bar, which is out of flow — see
         components/console/app-bar.tsx. Dropped at `md`, where the bar is
         hidden and the rail takes over. */}
-      <div className="flex min-w-0 flex-1 flex-col pt-12 pb-20 md:pt-0 md:pb-0">
+      <div className="flex min-w-0 flex-1 flex-col pt-12 md:pt-0">
         {/*
           Scoped to wherever this farmer is, and read in their language. The
           district is the only geography on the account, so the state comes

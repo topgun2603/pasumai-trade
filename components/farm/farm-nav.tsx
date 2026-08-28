@@ -26,13 +26,18 @@ import type { Locale } from "@/lib/i18n/config";
 import { cn } from "@/lib/utils";
 
 /**
- * The farmer's console, as a bottom bar on a phone and a rail on a desktop.
+ * The farmer's console: a rail on a desktop, the app bar's drawer on a phone.
  *
- * The other consoles are rails only, because they are operated at a desk all
- * day. This one is used standing in a field on a mid-range Android phone, one
- * thumb, in sunlight — so the primary navigation sits where a thumb reaches and
- * the targets are large. Four destinations, not six: anything that does not
- * earn its place on a phone does not belong here at all.
+ * It used to carry a bottom bar of its own below `md`, on the argument that
+ * this console is used standing in a field on a mid-range Android, one thumb,
+ * in sunlight — so the primary navigation should sit where a thumb reaches.
+ *
+ * That argument was made when the drawer did not exist. It does now, in every
+ * console including this one, and a farmer had both: a bar across the bottom
+ * and a drawer behind the app bar holding the same destinations and two more.
+ * Two navigations for one console is one to remove, and the bottom one is the
+ * one that was only ever a shortlist — it could not reach Home or Logistics,
+ * which is why the drawer had to list everything anyway.
  */
 /*
   Keys, not words. The rail is the one part of a console a farmer reads on every
@@ -44,8 +49,11 @@ import { cn } from "@/lib/utils";
 
   It was two arrays with a visual gap that never rendered, which made "last"
   ambiguous — last in the second array is not last to a reader. Merged, so the
-  order in this file is the order on the rail, and `bar` alone decides what a
-  thumb can reach.
+  order in this file is the order on the rail and in the phone's drawer.
+
+  Every entry carried a `bar` flag while the farm console had a bottom bar of
+  its own. It has the same drawer as every other console now, and the drawer
+  takes the whole list, so there is nothing left for the flag to decide.
 */
 const LINKS = [
   /*
@@ -56,14 +64,14 @@ const LINKS = [
     a farmer lands on: putting a tap between somebody and their own listings
     every single morning is a cost paid daily for a page read once.
   */
-  { href: "/farm/home", key: "home", icon: HouseIcon, bar: false },
+  { href: "/farm/home", key: "home", icon: HouseIcon },
   // Was "Today". Bug 15: it is the role's summary, and Overview is what the
   // rest of the platform calls that.
-  { href: "/farm", key: "overview", icon: GaugeIcon, exact: true, bar: true },
-  { href: "/farm/listings", key: "produce", icon: SproutIcon, bar: true },
-  { href: "/farm/bargains", key: "bargains", icon: HandshakeIcon, bar: true },
+  { href: "/farm", key: "overview", icon: GaugeIcon, exact: true },
+  { href: "/farm/listings", key: "produce", icon: SproutIcon },
+  { href: "/farm/bargains", key: "bargains", icon: HandshakeIcon },
   // Bug 16: the same business function is called Logistics everywhere else.
-  { href: "/farm/sales", key: "logistics", icon: ReceiptIcon, bar: false },
+  { href: "/farm/sales", key: "logistics", icon: ReceiptIcon },
   /*
     No Prices item. The chart moved inside History, under My Profile — it is
     something you consult, not a place you work, and a rail item promises a
@@ -73,9 +81,9 @@ const LINKS = [
     No Profile item. It sits behind the person icon in the app bar and in the
     rail's account block, beside the address it describes.
 
-    On a phone that matters twice over: the bottom bar has five thumb-sized
-    slots and Profile was spending one of them on a page somebody opens rarely,
-    while the account menu it belongs in was two centimetres above it.
+    On a phone the account menu it belongs in is right there in the app bar,
+    which is a shorter reach than a rail item and the place somebody looks for
+    it anyway.
 
     A badge is something you glance at rather than navigate by, so notifications
     stay at the end rather than sitting mid-list and dragging the eye past the
@@ -85,20 +93,12 @@ const LINKS = [
     href: "/farm/notifications",
     key: "notifications",
     icon: BellIcon,
-    bar: true,
   },
 ] satisfies ReadonlyArray<{
   href: string;
   key: keyof Dictionary["farm"]["nav"];
   icon: typeof GaugeIcon;
   exact?: boolean;
-  /**
-   * Whether it earns a place on the bottom bar.
-   *
-   * The bar has five thumb-sized targets and no more — anything that does not
-   * earn one does not belong on a phone's primary navigation at all.
-   */
-  bar: boolean;
 }>;
 
 function isActive(pathname: string, href: string, exact?: boolean) {
@@ -129,10 +129,8 @@ export function FarmNav({
   const pathname = usePathname();
 
   /*
-    The rail's links, as the drawer wants them. Every one of them, not the
-    `bar` subset: the bottom bar is a shortlist chosen for thumb reach, and a
-    drawer that repeated only the shortlist would leave Home and Logistics
-    unreachable on a phone — which is what they were.
+    The rail's links, as the drawer wants them, and all of them — this is the
+    whole of a farmer's navigation on a phone now that the bottom bar is gone.
   */
   const drawerLinks = LINKS.map(({ href, key, exact }) => ({
     href,
@@ -146,7 +144,7 @@ export function FarmNav({
         The phone's top bar, and the drawer behind it.
 
         This console had neither. Its rail is `hidden md:flex` and the only
-        thing replacing it below that width was the bottom link bar — so on a
+        thing replacing it below that width was a bottom link bar — so on a
         handset a farmer lost the mark, the name, the language control and the
         theme control at the moment they signed in, having had all four on the
         public site a second earlier. The language control is the one that
@@ -154,11 +152,9 @@ export function FarmNav({
         never sees, so somebody who picked the wrong language on the way in had
         no way back out of it.
 
-        The drawer is here so this console matches the other three rather than
-        being the one that is nearly the same. The bottom bar stays: it holds
-        the four places a farmer works, at thumb height, and the drawer holds
-        everything including the two that never earned a slot — Home and
-        Logistics — which were reachable on a phone from nowhere at all.
+        The drawer is the whole of it now. This console matches the other three
+        rather than being the one that is nearly the same, and the drawer lists
+        every destination rather than the five a bar had room for.
 
         The subtitle is the farmer's own name rather than "Farm console". Same
         position and same shape as the others; a farmer recognises their name,
@@ -274,41 +270,6 @@ export function FarmNav({
         </div>
       </nav>
 
-      {/*
-        The phone bar. `pb-[env(safe-area-inset-bottom)]` keeps it clear of the
-        home indicator on an iPhone, where a bar flush to the bottom edge puts
-        its tap targets under the system gesture area.
-      */}
-      <nav className="bg-sidebar border-sidebar-border fixed inset-x-0 bottom-0 z-40 flex border-t pb-[env(safe-area-inset-bottom)] md:hidden">
-        {/* Five targets, not six. Home is in the rail and not here — see `bar`. */}
-        {LINKS.filter((link) => link.bar).map(
-          ({ href, key, icon: Icon, exact }) => {
-            const active = isActive(pathname, href, exact);
-            const waiting = pending[href] ?? 0;
-
-            return (
-              <Link
-                key={href}
-                href={href}
-                data-tour={href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] transition-colors",
-                  active ? "text-primary font-medium" : "text-muted-foreground",
-                )}
-              >
-                <Icon className="size-5" />
-                {t.farm.nav[key]}
-                {waiting > 0 ? (
-                  <span className="bg-warning text-warning-foreground absolute top-1.5 right-1/2 mr-2 flex size-4 items-center justify-center rounded-full text-[10px]">
-                    {waiting}
-                  </span>
-                ) : null}
-              </Link>
-            );
-          },
-        )}
-      </nav>
     </>
   );
 }
