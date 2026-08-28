@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="Illustration standing in for a photograph of the buyer checking quality and quantity on arrival">
+  <rect width="400" height="300" fill="#eef4ea"/>
+
+  <!-- The load, opened at the buyer's gate. -->
+  <path d="M44 168h132v84H44z" fill="#d9c7a8"/>
+  <path d="M44 168h132v10H44zM44 196h132v8H44z" fill="#c2ab88"/>
+  <g fill="#3f8b45">
+    <circle cx="74" cy="154" r="17"/><circle cx="110" cy="148" r="21"/><circle cx="146" cy="156" r="15"/>
+  </g>
+
+  <!-- The checklist against it: four lines, all ticked. -->
+  <rect x="212" y="52" width="146" height="200" rx="12" fill="#ffffff" stroke="#2f6b34" stroke-width="3"/>
+  <rect x="264" y="40" width="42" height="22" rx="7" fill="#2f6b34"/>
+  <g>
+    <path d="M232 100l10 10 18-20" fill="none" stroke="#3f8b45" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="272" y="96" width="66" height="9" rx="4.5" fill="#d9c7a8"/>
+    <path d="M232 142l10 10 18-20" fill="none" stroke="#3f8b45" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="272" y="138" width="52" height="9" rx="4.5" fill="#d9c7a8"/>
+    <path d="M232 184l10 10 18-20" fill="none" stroke="#3f8b45" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="272" y="180" width="66" height="9" rx="4.5" fill="#d9c7a8"/>
+    <path d="M232 226l10 10 18-20" fill="none" stroke="#3f8b45" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="272" y="222" width="44" height="9" rx="4.5" fill="#d9c7a8"/>
+  </g>
+</svg>

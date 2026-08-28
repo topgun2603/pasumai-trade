@@ -17,6 +17,10 @@ that is not.
 | `hero.jpg` | 8:5.6 | 1600 | Field, collection shed and a loaded vehicle. Used elsewhere on the page. |
 | `harvest.jpg` | 7:5 | 1200 | Graded produce in crates at the farm gate, grade labels legible. |
 | `console.jpg` | 7:5 | 1200 | A real screenshot of the buyer console at `/market`. |
+| `dm-payout.jpg` | 4:3 | 900 | A farmer holding the settled-payment screen, or a passbook. Closes the seven-step section. |
+| `dm-check.jpg` | 4:3 | 900 | The buyer's own gate, not the farm's: a crate opened on the dock, the check being written down. The whole payment turns on this step. |
+| `dm-secure.jpg` | 4:3 | 900 | The confirmation code on a real handset beside the order confirmation. Blur or substitute the characters — a live code is a bearer token for one order. |
+| `dm-approve.jpg` | 4:3 | 900 | The buyer tapping approve at their own dock after the quality and quantity check, not at a desk. |
 
 ## Three rules
 

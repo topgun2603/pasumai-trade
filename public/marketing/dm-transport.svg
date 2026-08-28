@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="Illustration standing in for a photograph of the vegetables being transported to the buyer's location">
+  <rect width="400" height="300" fill="#eef4ea"/>
+
+  <!-- The road first, so the wheels sit on it. -->
+  <rect x="0" y="228" width="400" height="6" fill="#2f6b34" opacity=".25"/>
+
+  <!-- Body and cab. -->
+  <path d="M40 128h176v100H40z" fill="#3f8b45"/>
+  <path d="M216 158h60l32 40v30h-92z" fill="#2f6b34"/>
+  <rect x="230" y="168" width="42" height="26" rx="5" fill="#eef4ea" opacity=".85"/>
+
+  <!-- Crates showing over the side, so the load is produce rather than cargo. -->
+  <g fill="#d9c7a8">
+    <rect x="62" y="102" width="46" height="28" rx="4"/>
+    <rect x="118" y="96" width="46" height="34" rx="4"/>
+  </g>
+  <g fill="#2f6b34" opacity=".55">
+    <circle cx="85" cy="102" r="9"/><circle cx="141" cy="96" r="11"/>
+  </g>
+
+  <circle cx="96" cy="232" r="24" fill="#2f6b34"/>
+  <circle cx="96" cy="232" r="9" fill="#eef4ea"/>
+  <circle cx="272" cy="232" r="24" fill="#2f6b34"/>
+  <circle cx="272" cy="232" r="9" fill="#eef4ea"/>
+</svg>

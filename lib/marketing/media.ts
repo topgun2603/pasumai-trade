@@ -81,36 +81,90 @@ export const MEDIA = {
     brief:
       "Wide cultivated field receding to hills, rows leading away from camera. Used behind the hero at low contrast, so avoid a busy horizon.",
   },
-  stepList: {
+  /*
+    The seven steps of the Farmer Direct Market brief.
+
+    They had their own slots because a four-step section above them drew the
+    same photographs, and the page would otherwise have shown each twice. That
+    section is gone; these are now the only slots that name them.
+  */
+  dmList: {
+    // The file keeps the deleted section's name. Renaming it would mean
+    // renaming the photograph on disk and its row in the photo brief, to
+    // gain nothing a reader of this file cannot already see.
     photo: "/marketing/photos/step-list.jpg",
-    fallback: "/marketing/harvest.svg",
+    fallback: "/marketing/dm-list.svg",
     aspect: "4 / 3",
     minWidth: 900,
-    brief: "A farmer holding a phone at the field edge, listing a crop.",
+    brief:
+      "A farmer at the field edge listing a crop on the phone, with the crate of vegetables it refers to in the same frame.",
   },
-  stepBargain: {
+  dmNegotiate: {
     photo: "/marketing/photos/step-bargain.jpg",
-    fallback: "/marketing/console.svg",
+    fallback: "/marketing/dm-negotiate.svg",
     aspect: "4 / 3",
     minWidth: 900,
     brief:
-      "Hands holding a phone showing the bargaining screen with grade prices. Screen must be a real capture, not a mock-up — a fake interface in a photograph is the one thing people always spot.",
+      "The bargaining screen mid-exchange — an offer and a counter, both visible. A real capture, not a mock-up.",
   },
-  stepDelivery: {
+  /*
+    No photograph yet — this slot and `dmApprove` are the two steps in the
+    section that nothing in the photo directory covers, so they draw their
+    illustration until a file appears. Both are screen moments rather than
+    field moments, which is probably why they were never shot.
+  */
+  dmSecure: {
+    photo: "/marketing/photos/dm-secure.jpg",
+    fallback: "/marketing/step-secure.svg",
+    aspect: "4 / 3",
+    minWidth: 900,
+    brief:
+      "The confirmation code on a real handset, held over a crate or a ledger. Blur or substitute the characters — a live code is a bearer token for one order.",
+  },
+  dmTransport: {
     photo: "/marketing/photos/step-delivery.jpg",
-    fallback: "/marketing/step-delivery.svg",
+    fallback: "/marketing/dm-transport.svg",
     aspect: "4 / 3",
     minWidth: 900,
     brief:
-      "A loaded goods vehicle on a rural road. Only livery it actually carries — a painted-on logo that does not exist is a claim, not a photograph.",
+      "A loaded vehicle on the road with crates visible over the side, so the load reads as produce rather than freight. Only livery it actually carries.",
   },
-  stepSettle: {
-    photo: "/marketing/photos/step-settle.jpg",
-    fallback: "/marketing/step-settle.svg",
+  /*
+    Its own photograph, not `harvest`.
+
+    It borrowed that one for a while — graded crates with the labels legible,
+    which looks close enough. It is the wrong moment: `harvest` is grading at
+    the *farm gate*, and this step is the buyer opening the load at their own
+    gate and deciding whether to accept it. Sharing it also put the same
+    picture twice on one page, a section apart.
+
+    Draws its illustration until `dm-check.*` exists.
+  */
+  dmCheck: {
+    photo: "/marketing/photos/dm-check.jpg",
+    fallback: "/marketing/dm-check.svg",
     aspect: "4 / 3",
     minWidth: 900,
     brief:
-      "Close on hands and a seedling in soil, or a farmer with a passbook. Warm, shallow depth of field.",
+      "The buyer's own gate: a crate opened, a weighing scale, and the check being written down. This is the step the whole payment turns on, so it wants a real photograph more than any other here.",
+  },
+  dmApprove: {
+    photo: "/marketing/photos/dm-approve.jpg",
+    fallback: "/marketing/dm-approve.svg",
+    aspect: "4 / 3",
+    minWidth: 900,
+    brief:
+      "The approval screen at the moment it is tapped, held at the buyer's dock rather than at a desk.",
+  },
+  dmPayout: {
+    // Its own file: a settled-payment screen that was sitting unused in the
+    // photo directory under an "-old" name, which is exactly this step.
+    photo: "/marketing/photos/dm-payout.jpg",
+    fallback: "/marketing/dm-payout.svg",
+    aspect: "4 / 3",
+    minWidth: 900,
+    brief:
+      "A farmer with a passbook or a credit message on the handset. The face matters here — this is the end of the sequence and the reason for all of it.",
   },
 } as const satisfies Record<string, MediaSlot>;
 

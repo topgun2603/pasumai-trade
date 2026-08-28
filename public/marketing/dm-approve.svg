@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="Illustration standing in for a photograph of the buyer approving the delivery in the application">
+  <rect width="400" height="300" fill="#eef4ea"/>
+
+  <!-- The handset, and the one tap that closes the order. -->
+  <rect x="132" y="36" width="136" height="228" rx="20" fill="#ffffff" stroke="#2f6b34" stroke-width="3"/>
+  <rect x="182" y="50" width="36" height="6" rx="3" fill="#d9c7a8"/>
+
+  <circle cx="200" cy="132" r="46" fill="#3f8b45"/>
+  <path d="M178 132l16 17 30-34" fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="152" y="196" width="96" height="10" rx="5" fill="#d9c7a8"/>
+  <rect x="166" y="216" width="68" height="10" rx="5" fill="#d9c7a8" opacity=".6"/>
+  <rect x="152" y="238" width="96" height="14" rx="7" fill="#2f6b34"/>
+</svg>

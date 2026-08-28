@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="Illustration standing in for a photograph of the agreed amount reaching the farmer's bank account">
+  <rect width="400" height="300" fill="#eef4ea"/>
+
+  <!-- The account it lands in, drawn as a passbook rather than a building:
+    a farmer recognises the book. -->
+  <rect x="196" y="118" width="164" height="118" rx="12" fill="#ffffff" stroke="#2f6b34" stroke-width="3"/>
+  <rect x="196" y="118" width="164" height="26" rx="12" fill="#2f6b34"/>
+  <rect x="196" y="132" width="164" height="12" fill="#2f6b34"/>
+  <g fill="#d9c7a8">
+    <rect x="216" y="164" width="94" height="10" rx="5"/>
+    <rect x="216" y="186" width="66" height="10" rx="5"/>
+  </g>
+  <rect x="216" y="208" width="120" height="12" rx="6" fill="#3f8b45"/>
+
+  <!-- Released, not paid out by hand: the arrow is the whole point. -->
+  <path d="M44 178h96" fill="none" stroke="#3f8b45" stroke-width="10" stroke-linecap="round"/>
+  <path d="M136 158l34 20-34 20z" fill="#3f8b45"/>
+
+  <!-- The held amount, leaving. -->
+  <circle cx="66" cy="118" r="30" fill="#3f8b45"/>
+  <rect x="54" y="104" width="24" height="6" rx="3" fill="#eef4ea"/>
+  <rect x="54" y="116" width="24" height="6" rx="3" fill="#eef4ea"/>
+  <path d="M74 128l-16 12" fill="none" stroke="#eef4ea" stroke-width="6" stroke-linecap="round"/>
+</svg>

@@ -16,7 +16,7 @@ import { notFound } from "next/navigation";
 import { BargainDemo } from "@/components/marketing/bargain-demo";
 import { AdSlot } from "@/components/ads/ad-slot";
 import { Hero } from "@/components/marketing/hero";
-import { Journey } from "@/components/marketing/journey";
+import { DirectMarket } from "@/components/marketing/direct-market";
 import { LanguageBand } from "@/components/marketing/language-band";
 import { BackToTop } from "@/components/marketing/back-to-top";
 import { CoverageSection } from "@/components/marketing/coverage-section";
@@ -216,9 +216,15 @@ export default async function LandingPage({
       </section>
 
       {/* How it works, as photographs rather than a diagram. */}
-      <section id="how-it-works" className="border-b scroll-mt-20">
+      {/*
+        The terms, between the four photographs of a load moving and the two
+        sections addressed to each side of it. Somebody who has just seen *how*
+        produce moves asks *on what terms* next, and both audiences below assume
+        the answer.
+      */}
+      <section id="how-it-works" className="bg-secondary/40 border-b scroll-mt-20">
         <div className="mx-auto w-full max-w-6xl px-5 py-16">
-          <Journey t={t} />
+          <DirectMarket t={t} />
         </div>
       </section>
 

@@ -164,37 +164,150 @@ export const en = {
     },
   },
 
-  how: {
-    eyebrow: "How a load moves",
-    step1Title: "List what you have",
-    step1Body: "Crop, quantity, photos — from the field, and it syncs when signal returns.",
-    step1Alt: "A farmer standing at the edge of a field, entering a crop listing on a phone",
-    step2Title: "Settle the price",
-    step2Body: "A buyer offers, you counter. Bid on one grade or all three — whatever is agreed is what moves.",
-    step2Alt: "Hands holding a phone showing grade prices being agreed",
-    step3Title: "Collected and graded",
-    step3Body: "A vehicle comes to the farm. Grading happens in front of you; a code confirms handover.",
-    step3Alt: "A loaded goods vehicle on a rural road",
-    step4Title: "Money reaches you",
-    step4Body: "Held from the moment the buyer ordered, released once delivery is confirmed.",
-    step4Alt: "Hands holding a seedling in soil",
-    title: "How a load moves",
-    body: "Produce is graded once, in front of the farmer, at the point it is collected. Everything downstream — the price, the payout, the buyer's invoice — resolves from that single grading.",
-    caption: "One grading, in front of the farmer, settles the price for everyone.",
-    farm: "Farm",
-    farmSub: "listing created",
-    collection: "Pickup",
-    collectionSub: "graded at the farm",
-    transit: "In transit",
-    transitSub: "checked vehicle",
-    buyer: "Buyer",
-    buyerSub: "confirms receipt",
-    held: "Buyer's payment is held from the moment the order is placed",
-    released: "released",
-    moneyNote:
-      "Money only reaches the farmer after the buyer confirms the load arrived.",
-    diagramAlt:
-      "A load moves from the farm, through grading at the farm, to the buyer. The buyer's payment is held from order until delivery is confirmed, then released to the farmer.",
+
+  /*
+    The Farmer Direct Market brief, as written.
+
+    Every line here is the source document's own wording rather than a
+    rewrite of it, translated into the six languages the platform speaks —
+    which is why it reads more formally than the rest of this file. It is the
+    statement of terms: who fixes the price, at what moment the money is taken,
+    and what has to be true before it is let go.
+
+    `steps` is an array rather than `s1Title`, `s1Body`, … because the shape
+    repeats seven times and the numbering belongs to the layout, not to the
+    copy. Every step carries the same keys — `lead2`, `bullets` and `note` are
+    empty strings or empty arrays where the document has nothing for them, so
+    the type stays one shape and the component decides what to draw.
+  */
+  direct: {
+    eyebrow: "Farmer Direct Market",
+    title: "Connecting Farmers Directly with Buyers",
+    intro1: "Farmer Direct Market is a digital marketplace designed to connect farmers directly with buyers, creating a transparent and fair trading system without unnecessary middlemen.",
+    intro2: "The application gives farmers the freedom to list their vegetables, fix their own prices, negotiate directly with buyers, and earn a better profit. At the same time, buyers can purchase fresh vegetables directly from farmers at a fair and potentially lower price.",
+    worksTitle: "How the Application Works",
+    steps: [
+      {
+        title: "Farmer Lists the Vegetables",
+        lead: "Farmers can upload and list their available vegetables on the application with details such as:",
+        lead2: "",
+        bullets: [
+          "Type of vegetable",
+          "Available quantity",
+          "Expected price",
+          "Quality details",
+          "Harvest or availability date",
+          "Delivery location or service area",
+        ],
+        note: "The farmer has the freedom to set the initial price based on their production cost, market value, and expected profit.",
+        alt: "A farmer listing available vegetables on the application, with the crate beside the phone",
+      },
+      {
+        title: "Direct Negotiation Between Farmer and Buyer",
+        lead: "Interested buyers can directly connect with the farmer and negotiate the price and quantity.",
+        lead2: "Both parties can mutually agree on:",
+        bullets: [
+          "Final price",
+          "Quantity",
+          "Quality requirements",
+          "Delivery location",
+          "Delivery date and time",
+        ],
+        note: "Once both the farmer and buyer agree, the order is marked as Finalised.",
+        alt: "A farmer's offer and a buyer's offer meeting, with no broker in between",
+      },
+      {
+        title: "Buyer Secures the Agreed Amount",
+        lead: "After the order is finalised, the buyer deposits or securely holds the agreed amount through the authorised banking/payment process.",
+        lead2: "Once the payment is confirmed, a unique Confirmation Code is generated for that particular transaction. This confirmation code serves as proof that:",
+        bullets: [
+          "The order has been finalised.",
+          "The buyer has confirmed the purchase.",
+          "The agreed payment amount has been secured.",
+          "The farmer can proceed with the delivery process.",
+        ],
+        note: "",
+        alt: "A phone showing the confirmation code beside a closed padlock, the amount held",
+      },
+      {
+        title: "Transportation to the Buyer's Location",
+        lead: "Based on the confirmed order and confirmation code, the vegetables are transported to the buyer's specified location.",
+        lead2: "",
+        bullets: [],
+        note: "The farmer takes responsibility for dispatching and transporting the vegetables as per the agreed quantity and quality. The transportation is carried out at the farmer's responsibility and risk until the vegetables reach the agreed delivery location, subject to the terms and conditions of the platform.",
+        alt: "A loaded goods vehicle carrying crates of vegetables on the road",
+      },
+      {
+        title: "Quality & Quantity (Q&Q) Check",
+        lead: "Once the vegetables reach the buyer's location, the buyer conducts a Quality and Quantity (Q&Q) Check.",
+        lead2: "The buyer verifies whether:",
+        bullets: [
+          "The correct vegetables have been delivered.",
+          "The agreed quantity has been received.",
+          "The quality meets the agreed standards.",
+          "The vegetables are fresh and in acceptable condition.",
+        ],
+        note: "",
+        alt: "An opened crate of vegetables beside a checklist with every line ticked",
+      },
+      {
+        title: "Buyer Approval",
+        lead: "After successfully completing the Quality & Quantity Check, the buyer approves the delivery through the application.",
+        lead2: "",
+        bullets: [],
+        note: "The order is then marked as Successfully Completed.",
+        alt: "A phone showing the delivery approved with a single confirming tick",
+      },
+      {
+        title: "Direct Payment Release to the Farmer",
+        lead: "Once the buyer approves the Quality & Quantity Check, the agreed amount held for the transaction is released directly to the farmer's registered bank account.",
+        lead2: "",
+        bullets: [],
+        note: "This ensures a transparent and secure payment process for both the farmer and the buyer.",
+        alt: "The held amount moving to a bank passbook, released to the farmer",
+      },
+    ],
+    flowTitle: "Simple Transaction Flow",
+    flow: [
+      "Farmer Lists Vegetables",
+      "Buyer Selects and Contacts Farmer",
+      "Direct Price & Quantity Negotiation",
+      "Both Parties Agree on Final Price",
+      "Buyer Secures the Agreed Amount",
+      "Unique Confirmation Code Generated",
+      "Farmer Dispatches & Transports Vegetables",
+      "Vegetables Reach Buyer's Location",
+      "Quality & Quantity (Q&Q) Check",
+      "Buyer Approves the Delivery",
+      "Agreed Amount Released Directly to Farmer's Bank Account",
+    ],
+    farmersTitle: "Benefits for Farmers",
+    farmerBenefits: [
+      "Freedom to fix their own price.",
+      "Direct negotiation with buyers.",
+      "Better control over profit margins.",
+      "Reduced dependency on middlemen.",
+      "Transparent order confirmation.",
+      "Payment assurance after successful delivery and approval.",
+      "Direct transfer of the agreed amount to the farmer's bank account.",
+      "Opportunity to reach more buyers and expand their market.",
+    ],
+    buyersTitle: "Benefits for Buyers",
+    buyerBenefits: [
+      "Direct access to farmers and fresh vegetables.",
+      "Opportunity to negotiate prices.",
+      "Potential to purchase produce at competitive prices.",
+      "Transparent agreement on price and quantity.",
+      "Quality and Quantity verification before final payment release.",
+      "Greater confidence in the transaction process.",
+    ],
+    missionTitle: "Our Mission",
+    mission: "To create a fair, transparent, and direct marketplace where farmers receive the value they deserve for their hard work, while buyers get access to fresh vegetables at competitive prices.",
+    promiseTitle: "Our Promise",
+    promise: "Farmer Fixes the Price → Buyer Negotiates Fairly → Payment is Secured → Produce is Delivered → Quality & Quantity are Verified → Payment is Released Directly to the Farmer.",
+    taglineTitle: "Tagline",
+    tagline1: "Farmer Decides the Price. Buyer Gets Fresh Produce. Fair Trade for Everyone.",
+    tagline2: "A farmer-controlled marketplace where the farmer decides the starting price, the buyer negotiates directly, the payment is secured before dispatch, and the farmer gets paid directly after successful Quality & Quantity verification.",
   },
 
   farmers: {
@@ -261,7 +374,7 @@ export const en = {
   drivers: {
     badge: "For drivers",
     title: "Steady runs, paid per trip",
-    body: "Own a mini truck, tempo or reefer? Register it with your licence, RC, insurance, fitness certificate and permit, and take collection runs in your district. We tell you before a certificate is close to lapsing rather than after.",
+    body: "Own a mini truck, tempo or lorry? Register it with your licence, RC, insurance, fitness certificate and permit, and take collection runs in your district. We tell you before a certificate is close to lapsing rather than after.",
     cta: "Register a vehicle",
   },
 
