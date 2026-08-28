@@ -42,9 +42,10 @@ export function LivePrices({ t, locale }: { t: Dictionary; locale: Locale }) {
 
     async function load() {
       try {
-        const response = await fetch("/api/market/prices", {
-          signal: controller.signal,
-        });
+        const response = await fetch(
+          `/api/market/prices?locale=${encodeURIComponent(locale)}`,
+          { signal: controller.signal },
+        );
         if (!response.ok) throw new Error(String(response.status));
         const data = (await response.json()) as {
           asOf: string;
@@ -72,7 +73,9 @@ export function LivePrices({ t, locale }: { t: Dictionary; locale: Locale }) {
       cancelled = true;
       controller.abort();
     };
-  }, [reloadKey]);
+    // `locale` is a dependency, not just an argument: switching language has to
+    // re-ask for the names, or the cards keep the ones fetched on first render.
+  }, [reloadKey, locale]);
 
   function reload() {
     setState({ status: "loading" });
@@ -176,7 +179,7 @@ export function LivePrices({ t, locale }: { t: Dictionary; locale: Locale }) {
                     className="focus-visible:ring-ring absolute inset-0 rounded-xl focus-visible:ring-2 focus-visible:outline-none"
                   >
                     <span className="sr-only">
-                      {fill(t.prices.bidOn, { crop: line.nameEn })}
+                      {fill(t.prices.bidOn, { crop: line.name })}
                     </span>
                   </Link>
                 )}
@@ -188,10 +191,16 @@ export function LivePrices({ t, locale }: { t: Dictionary; locale: Locale }) {
                 </span>
 
                 <span className="flex min-w-0 flex-1 flex-col leading-tight">
-                  <span className="truncate font-medium">{line.nameEn}</span>
-                  <span lang="ta" className="text-faint truncate text-xs">
-                    {line.nameTa}
-                  </span>
+                  {/*
+                    One name, in the language the reader chose.
+
+                    This was the English name with the Tamil beneath it, on
+                    every card in all six languages — so a Telugu reader got a
+                    Telugu heading over cards naming the crop twice, in neither
+                    of the languages they were reading. The server now resolves
+                    the name for the locale and sends one string.
+                  */}
+                  <span className="truncate font-medium">{line.name}</span>
                   {/*
                     The sub-line says what the figure is, and swaps on hover to
                     say what you can do about it. Stacked in one grid cell so

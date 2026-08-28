@@ -8,6 +8,7 @@ import {
   type PriceQuote,
 } from "@/lib/domain/todays-price";
 import { readSettledSales } from "@/lib/firebase/settled-price-read";
+import { DEFAULT_LOCALE, isLocale, type Locale } from "@/lib/i18n/config";
 import { CATALOGUE } from "@/lib/mock/catalogue";
 import { stockOffers } from "@/lib/mock/market";
 
@@ -36,8 +37,15 @@ import { stockOffers } from "@/lib/mock/market";
 
 export interface PriceLine {
   readonly id: string;
-  readonly nameEn: string;
-  readonly nameTa: string;
+  /**
+   * The crop, in the language that was asked for.
+   *
+   * Was `nameEn` and `nameTa` — every card printed English above Tamil,
+   * whichever of the six languages the reader had chosen. A Telugu page showed
+   * a Telugu heading over cards naming the crop in two languages, neither of
+   * them the one being read.
+   */
+  readonly name: string;
   readonly emoji: string;
   readonly unit: string;
   readonly price: string;
@@ -128,7 +136,22 @@ function freshnessFromSale(crop: Produce | undefined, agreedAt: Date, now: numbe
   return "fresh" as const;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  /*
+    Which language to name the crops in.
+
+    Taken from the query rather than a cookie or a header: the section is
+    rendered inside `/[locale]`, so the page already knows, and reading it from
+    the request means a reader switching language re-fetches and gets the new
+    names rather than the ones the first render happened to cache.
+
+    An unknown or absent value falls back to English rather than failing — a
+    price section that renders in the wrong language is a defect, one that does
+    not render at all is a worse one.
+  */
+  const asked = new URL(request.url).searchParams.get("locale") ?? undefined;
+  const locale: Locale = isLocale(asked) ? asked : DEFAULT_LOCALE;
+
   const now = new Date();
   const t = now.getTime();
 
@@ -152,8 +175,7 @@ export async function GET() {
     return [
       {
         id: quote.produceId,
-        nameEn: crop.names.en,
-        nameTa: produceName(crop, "ta"),
+        name: produceName(crop, locale),
         emoji: crop.emoji,
         unit: labelFor(quote.unit),
         price: formatMoney(money(quote.ratePerUnit)),
@@ -176,7 +198,7 @@ export async function GET() {
   lines.sort(
     (a, b) =>
       Number(a.illustrative) - Number(b.illustrative) ||
-      a.nameEn.localeCompare(b.nameEn, "en-IN"),
+      a.name.localeCompare(b.name, locale),
   );
 
   return Response.json({
