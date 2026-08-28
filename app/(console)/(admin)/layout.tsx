@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { AdminNav } from "@/components/admin/admin-nav";
+import { consoleDictionary } from "@/lib/i18n/console";
 import { TickerSlot } from "@/components/market/ticker-slot";
 import { ConsoleTopBar } from "@/components/console/top-bar";
 import { CONSOLES, CONSOLE_KINDS } from "@/lib/domain/console-kinds";
@@ -46,6 +47,14 @@ export default async function AdminLayout({
   // so an expired session here returns to it rather than to the public sign-in
   // page on the marketing site.
   const session = await requireConsole(["admin"], "/admin/login");
+
+  /*
+    The console's pages are English and stay that way. This is for the phone's
+    app bar alone — the brand name in the reader's script, and labels on the
+    language and theme controls, which had no home on a handset because the
+    rail that carried them is `hidden md:flex`.
+  */
+  const { locale, t } = await consoleDictionary();
   const now = new Date();
 
   // Decides what the rail offers and whether any row carries an action. The
@@ -115,6 +124,8 @@ export default async function AdminLayout({
         pending={pending}
         role={session.claims.role}
         email={session.email}
+        locale={locale}
+        t={t}
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <ConsoleTopBar

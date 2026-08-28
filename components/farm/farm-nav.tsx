@@ -6,28 +6,21 @@ import {
   HandshakeIcon,
   HouseIcon,
   ReceiptIcon,
-  MoonIcon,
   SproutIcon,
-  SunIcon,
   UserRoundIcon,
 } from "lucide-react";
-import { useTheme } from "next-themes";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { SessionFooter } from "@/components/auth/session-footer";
+import { HOME_FOR_ROLE } from "@/lib/auth/claims";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Separator } from "@/components/ui/separator";
 import type { Notification } from "@/lib/domain/notification";
 import { BrandLogo } from "@/components/marketing/brand-mark";
+import { ConsoleAppBar } from "@/components/console/app-bar";
+import { ThemeToggle } from "@/components/console/theme-toggle";
 import { LanguageSwitcher } from "@/components/marketing/language-switcher";
 import type { Dictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n/config";
@@ -103,33 +96,6 @@ const LINKS = [
   bar: boolean;
 }>;
 
-function ThemeToggle({ label }: { label: string }) {
-  const { setTheme } = useTheme();
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="w-full justify-start">
-          <SunIcon className="size-4 scale-100 rotate-0 transition-transform dark:scale-0 dark:-rotate-90" />
-          <MoonIcon className="absolute size-4 scale-0 rotate-90 transition-transform dark:scale-100 dark:rotate-0" />
-          <span className="ml-6">{label}</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
-        <DropdownMenuItem onClick={() => setTheme("light")}>
-          Light
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
-          Dark
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
-          System
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
 function isActive(pathname: string, href: string, exact?: boolean) {
   return exact
     ? pathname === href
@@ -159,6 +125,31 @@ export function FarmNav({
 
   return (
     <>
+      {/*
+        The phone's top bar.
+
+        This console had none. Its rail is `hidden md:flex` and the only thing
+        replacing it below that width was the bottom link bar — so on a handset
+        a farmer lost the mark, the name, the language control and the theme
+        control at the moment they signed in, having had all four on the public
+        site a second earlier.
+
+        The language control is the one that mattered. It sits at the foot of
+        the rail, which a farmer on a phone never sees, so somebody who picked
+        the wrong language on the way in had no way back out of it.
+
+        No bell here: notifications already have a place on the bottom bar, and
+        the same badge twice on one screen is not twice as informative.
+      */}
+      <ConsoleAppBar
+        locale={locale}
+        brandName={t.brand.name}
+        homeHref={HOME_FOR_ROLE.farmer}
+        subtitle={farmer.name}
+        languageLabel={t.farm.nav.language}
+        themeLabel={t.farm.nav.theme}
+      />
+
       <nav className="bg-sidebar border-sidebar-border sticky top-0 hidden h-svh w-60 shrink-0 flex-col border-r md:flex">
         <div className="flex items-center gap-2.5 px-4 py-4">
           <span className="bg-white flex size-8 items-center justify-center rounded-full">

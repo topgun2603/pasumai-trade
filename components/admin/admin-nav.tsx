@@ -23,10 +23,12 @@ import { usePathname } from "next/navigation";
 
 import { SessionFooter } from "@/components/auth/session-footer";
 import { Badge } from "@/components/ui/badge";
-import type { Role } from "@/lib/auth/claims";
+import { HOME_FOR_ROLE, type Role } from "@/lib/auth/claims";
 import { Separator } from "@/components/ui/separator";
 import { BrandLogo } from "@/components/marketing/brand-mark";
 import { MobileNav } from "@/components/console/mobile-nav";
+import type { Dictionary } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/config";
 import { cn } from "@/lib/utils";
 
 /** Counts of what is waiting, keyed by href. */
@@ -126,8 +128,20 @@ export function AdminNav({
   pending,
   role,
   email,
+  locale,
+  t,
 }: {
   pending: PendingCounts;
+  /** Chosen by the cookie, resolved on the server. See lib/i18n/console.ts. */
+  locale: Locale;
+  /*
+    The operations console is written in English and stays that way — the pages
+    are not translated and pretending otherwise would be worse than not
+    offering it. The dictionary is here for the app bar alone: the brand name,
+    and the labels on the two controls, which an operator switching a shared
+    machine's language still needs to be able to find.
+  */
+  t: Dictionary;
   /** Which login is in use. Operations often share a machine. */
   email?: string;
   /**
@@ -165,6 +179,11 @@ export function AdminNav({
         console="Platform admin"
         groups={drawerGroups}
         pending={pending}
+        locale={locale}
+        brandName={t.brand.name}
+        homeHref={HOME_FOR_ROLE.admin}
+        languageLabel={t.console.language}
+        themeLabel={t.console.theme}
       />
       {/*
         Pinned to the viewport rather than stretched to the page. Without this

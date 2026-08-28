@@ -21,7 +21,7 @@ import { MobileNav } from "@/components/console/mobile-nav";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Separator } from "@/components/ui/separator";
 import type { Notification } from "@/lib/domain/notification";
-import type { Role } from "@/lib/auth/claims";
+import { HOME_FOR_ROLE, type Role } from "@/lib/auth/claims";
 import { getDictionary, type Dictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n/config";
 import { BrandLogo } from "@/components/marketing/brand-mark";
@@ -166,6 +166,11 @@ export function ConsoleNav({
         }
         groups={drawerGroups}
         pending={pending}
+        locale={locale}
+        brandName={t.brand.name}
+        homeHref={HOME_FOR_ROLE[session.role]}
+        languageLabel={t.console.language}
+        themeLabel={t.console.theme}
       >
         <NotificationBell
           notifications={notifications.rows}

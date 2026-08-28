@@ -18,7 +18,7 @@ import { NotificationBell } from "@/components/notifications/notification-bell";
 import type { Notification } from "@/lib/domain/notification";
 import { ThemeToggle } from "@/components/console/theme-toggle";
 import { LanguageSwitcher } from "@/components/marketing/language-switcher";
-import type { Role } from "@/lib/auth/claims";
+import { HOME_FOR_ROLE, type Role } from "@/lib/auth/claims";
 import { getDictionary, type Dictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n/config";
 import { Badge } from "@/components/ui/badge";
@@ -135,6 +135,11 @@ export function AgencyNav({
         }
         groups={drawerGroups}
         pending={pending}
+        locale={locale}
+        brandName={t.brand.name}
+        homeHref={HOME_FOR_ROLE[service === "manpower" ? "manpower" : "transport"]}
+        languageLabel={t.console.language}
+        themeLabel={t.console.theme}
       />
 
       <nav className="bg-sidebar border-sidebar-border sticky top-0 hidden h-svh w-60 shrink-0 flex-col border-r md:flex">

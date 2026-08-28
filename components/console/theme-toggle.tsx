@@ -22,19 +22,39 @@ import {
  * uses for the same setting, and a farmer who has set their phone to dark
  * recognises them.
  */
-export function ThemeToggle({ label }: { label: string }) {
+export function ThemeToggle({
+  label,
+  compact = false,
+}: {
+  label: string;
+  /**
+   * Icon only, for the mobile app bar.
+   *
+   * Same shape and same prop name as the language switcher's, so the two sit
+   * beside each other without one of them being a head taller. The label
+   * becomes the accessible name rather than disappearing — a bare icon button
+   * with no name is unusable by a screen reader, and this control is a
+   * dropdown whose trigger says nothing about itself.
+   */
+  compact?: boolean;
+}) {
   const { setTheme } = useTheme();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="w-full justify-start">
+        <Button
+          variant={compact ? "ghost" : "outline"}
+          size={compact ? "icon" : "sm"}
+          aria-label={compact ? label : undefined}
+          className={compact ? undefined : "w-full justify-start"}
+        >
           <SunIcon className="size-4 scale-100 rotate-0 transition-transform dark:scale-0 dark:-rotate-90" />
           <MoonIcon className="absolute size-4 scale-0 rotate-90 transition-transform dark:scale-100 dark:rotate-0" />
-          <span className="ml-6">{label}</span>
+          {compact ? null : <span className="ml-6">{label}</span>}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
+      <DropdownMenuContent align={compact ? "end" : "start"}>
         <DropdownMenuItem onClick={() => setTheme("light")}>Light</DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("dark")}>Dark</DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("system")}>System</DropdownMenuItem>
