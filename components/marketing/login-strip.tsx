@@ -34,12 +34,22 @@ export function LoginStrip({ t, locale }: { t: Dictionary; locale: Locale }) {
     in at the same page; they do not need to be advertised on it, and a door
     that refuses everybody who reads it is not a door.
   */
+  /*
+    Farmer first, franchise last.
+
+    The order is the size of the audience each door serves, not the order the
+    roles happen to be declared in: growers are who this platform is for and
+    who most often arrives not knowing where to click, and a franchise is a
+    contracted partner who signs in from a bookmark and does not need the
+    prominence. Buyer, transport and crew sit between them in that order
+    because that is the sequence a load actually moves through.
+  */
   const doors = [
     { as: "farmer", label: t.doors.farmer, icon: TractorIcon },
     { as: "buyer", label: t.doors.buyer, icon: ShoppingBagIcon },
     { as: "transport", label: t.doors.transport, icon: TruckIcon },
-    { as: "franchise", label: t.doors.franchise, icon: StoreIcon },
     { as: "manpower", label: t.doors.manpower, icon: HardHatIcon },
+    { as: "franchise", label: t.doors.franchise, icon: StoreIcon },
   ];
 
   return (
