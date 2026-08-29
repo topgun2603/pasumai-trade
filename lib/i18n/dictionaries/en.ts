@@ -36,7 +36,7 @@ export const en = {
     appends the brand name, so writing it here again would print it twice.
   */
   seo: {
-    title: "Live Mandi Prices & Direct Farm Trade",
+    title: "Farmer Direct Market",
     description: "Check today's mandi rates, list what you grow, and bargain directly with buyers. Fair prices, paid in full, in six Indian languages.",
   },
 
