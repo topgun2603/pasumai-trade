@@ -1,4 +1,4 @@
-import { ArrowRightIcon, CheckIcon, MailIcon, MapPinIcon } from "lucide-react";
+import { ArrowRightIcon, MailIcon, MapPinIcon } from "lucide-react";
 import Link from "next/link";
 
 import { BrandLockup } from "@/components/marketing/brand-mark";
@@ -7,29 +7,19 @@ import type { Dictionary } from "@/lib/i18n";
 import { LOCALES, LOCALE_META, type Locale } from "@/lib/i18n/config";
 
 /**
- * The last thing on the page, and the only place the terms are stated plainly.
+ * The last thing on the page: who we are, where to go, and in what language.
  *
- * Every line under "How this works" is a rule the code actually enforces, not
- * marketing copy that happens to sound reassuring:
- *
- *  - Browsing is free and trading is not — `FREE_CAPABILITIES` in
- *    `lib/domain/subscription.ts`, and the 402 that `requireCapability` returns.
- *  - Accounts are verified first — `lib/domain/readiness.ts`.
- *  - The platform never sets a price — there is no code path that proposes one;
- *    `Party` in `lib/domain/negotiation.ts` has exactly two values.
- *  - Nothing binds until somebody accepts — `canAccept`, and the guard that
- *    stops a party accepting their own proposal.
- *  - A lot can be sold in parts — `lib/domain/partial-bargain.ts`.
- *  - Messages come from a fixed list — `lib/domain/bargain-vocabulary.ts`.
- *
- * Stating them here rather than on a terms page nobody opens is deliberate. A
- * farmer deciding whether this is worth a subscription is asking exactly these
- * questions, and the honest answers are short enough to fit at the bottom of
- * the page they are already on.
+ * It used to carry a "How this works" column as well — eight ticked lines
+ * restating the platform's terms, each one a rule the code actually enforces.
+ * They were true and they were checkable, and they were still eight sentences
+ * of small print in the corner of every page on the site. What they explain is
+ * explained better where somebody is actually asking: browsing being free on
+ * the subscription page, the platform never setting a price in the bargaining
+ * section, grading at the farm gate under How it works.
  *
  * Six languages, because the footer is where somebody checks whether the
- * platform is really for them. A page whose terms are only in English is a page
- * that means them only for the people who read English.
+ * platform is really for them. A page whose footer is only in English is a
+ * page that means them only for the people who read English.
  */
 export function SiteFooter({ locale, t }: { locale: Locale; t: Dictionary }) {
   const columns = [
@@ -62,17 +52,6 @@ export function SiteFooter({ locale, t }: { locale: Locale; t: Dictionary }) {
     },
   ];
 
-  const terms = [
-    t.footer.termFree,
-    t.footer.termPlan,
-    t.footer.termVerify,
-    t.footer.termPrice,
-    t.footer.termGrade,
-    t.footer.termBinding,
-    t.footer.termPartial,
-    t.footer.termLanguage,
-  ];
-
   return (
     <footer className="border-t">
       {/*
@@ -103,7 +82,9 @@ export function SiteFooter({ locale, t }: { locale: Locale; t: Dictionary }) {
       </div>
 
       <div className="mx-auto grid w-full max-w-6xl gap-x-8 gap-y-10 px-5 py-12 sm:grid-cols-2 lg:grid-cols-12">
-        <div className="flex flex-col gap-4 lg:col-span-4">
+        {/* Six and three and three. The terms column held the other four; a
+          brand block left at four would leave a third of the row empty. */}
+        <div className="flex flex-col gap-4 lg:col-span-6">
           <BrandLockup
             name={t.brand.name}
             tagline={t.brand.tagline}
@@ -129,7 +110,7 @@ export function SiteFooter({ locale, t }: { locale: Locale; t: Dictionary }) {
         </div>
 
         {columns.map((column) => (
-          <div key={column.title} className="flex flex-col gap-3 lg:col-span-2">
+          <div key={column.title} className="flex flex-col gap-3 lg:col-span-3">
             <h2 className="text-sm font-medium">{column.title}</h2>
             <ul className="flex flex-col gap-2">
               {column.links.map((link) => (
@@ -145,23 +126,6 @@ export function SiteFooter({ locale, t }: { locale: Locale; t: Dictionary }) {
             </ul>
           </div>
         ))}
-
-        {/*
-          The terms, as a list rather than a paragraph. Somebody scanning for
-          "does this cost me anything" should find that line without reading the
-          other seven.
-        */}
-        <div className="flex flex-col gap-3 sm:col-span-2 lg:col-span-4">
-          <h2 className="text-sm font-medium">{t.footer.termsHeading}</h2>
-          <ul className="flex flex-col gap-2">
-            {terms.map((term) => (
-              <li key={term} className="text-muted-foreground flex items-start gap-2 text-sm">
-                <CheckIcon className="text-success mt-0.5 size-3.5 shrink-0" />
-                <span>{term}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
       </div>
 
       {/*
