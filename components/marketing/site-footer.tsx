@@ -9,49 +9,21 @@ import { LOCALES, LOCALE_META, type Locale } from "@/lib/i18n/config";
 /**
  * The last thing on the page: who we are, where to go, and in what language.
  *
- * It used to carry a "How this works" column as well — eight ticked lines
- * restating the platform's terms, each one a rule the code actually enforces.
- * They were true and they were checkable, and they were still eight sentences
- * of small print in the corner of every page on the site. What they explain is
- * explained better where somebody is actually asking: browsing being free on
- * the subscription page, the platform never setting a price in the bargaining
- * section, grading at the farm gate under How it works.
+ * It has been emptied out in two passes. First a "How this works" column —
+ * eight ticked lines restating the platform's terms, true and checkable and
+ * still eight sentences of small print following a reader around. Then the
+ * Platform and Sign in link lists, which repeated the site header directly
+ * above them on every page and the call to action directly above them here.
+ *
+ * What is left is the part a footer is actually for: who this is, where they
+ * are, how to reach them, and in what languages. Every destination those lists
+ * named is still one click away in the header.
  *
  * Six languages, because the footer is where somebody checks whether the
  * platform is really for them. A page whose footer is only in English is a
  * page that means them only for the people who read English.
  */
 export function SiteFooter({ locale, t }: { locale: Locale; t: Dictionary }) {
-  const columns = [
-    {
-      title: t.footer.platform,
-      links: [
-        /*
-          Named with the page, not as a bare hash. The footer appears on the
-          pricing page too, where `#farmers` points at a section that is not
-          there — the link would simply do nothing. This is a server component
-          with no idea which page it is on, so it always says home; Next treats
-          that as a scroll when it already is home.
-        */
-        { href: `/${locale}#how-it-works`, label: t.nav.howItWorks },
-        { href: `/${locale}#farmers`, label: t.nav.forFarmers },
-        { href: `/${locale}#buyers`, label: t.nav.forBuyers },
-        { href: `/${locale}#coverage`, label: t.nav.coverage },
-        { href: `/${locale}/pricing`, label: t.nav.pricing },
-      ],
-    },
-    {
-      title: t.footer.signIn,
-      links: [
-        { href: `/${locale}/signin?as=buyer`, label: t.footer.buyerOrFranchise },
-        // Off the locale tree and out of the marketing chrome: the console
-        // has its own door, and it is English-only like the console itself.
-        { href: "/admin/login", label: t.footer.operations },
-        { href: `/${locale}/signin`, label: t.footer.allOptions },
-      ],
-    },
-  ];
-
   return (
     <footer className="border-t">
       {/*
@@ -64,8 +36,12 @@ export function SiteFooter({ locale, t }: { locale: Locale; t: Dictionary }) {
       <div className="bg-muted/40 border-b">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-5 py-8 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-1">
-            <p className="text-lg font-medium tracking-tight">{t.footer.joinTitle}</p>
-            <p className="text-muted-foreground max-w-lg text-sm">{t.footer.joinBody}</p>
+            <p className="text-lg font-medium tracking-tight">
+              {t.footer.joinTitle}
+            </p>
+            <p className="text-muted-foreground max-w-lg text-sm">
+              {t.footer.joinBody}
+            </p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
             <Button asChild>
@@ -81,51 +57,34 @@ export function SiteFooter({ locale, t }: { locale: Locale; t: Dictionary }) {
         </div>
       </div>
 
-      <div className="mx-auto grid w-full max-w-6xl gap-x-8 gap-y-10 px-5 py-12 sm:grid-cols-2 lg:grid-cols-12">
-        {/* Six and three and three. The terms column held the other four; a
-          brand block left at four would leave a third of the row empty. */}
-        <div className="flex flex-col gap-4 lg:col-span-6">
-          <BrandLockup
-            name={t.brand.name}
-            tagline={t.brand.tagline}
-            markClassName="size-10"
-            nameClassName="text-base"
-          />
+      {/* One block, so no grid. This was twelve columns when it held terms and
+        two lists of links; a grid laid out for four things and given one is a
+        column of text with two thirds of a row beside it. */}
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-5 py-12">
+        <BrandLockup
+          name={t.brand.name}
+          tagline={t.brand.tagline}
+          markClassName="size-10"
+          nameClassName="text-base"
+        />
 
-          <p className="text-muted-foreground max-w-xs text-sm">{t.footer.tagline}</p>
+        <p className="text-muted-foreground max-w-xs text-sm">
+          {t.footer.tagline}
+        </p>
 
-          <address className="flex flex-col gap-2.5 not-italic">
-            <span className="text-muted-foreground flex items-start gap-2 text-sm">
-              <MapPinIcon className="mt-0.5 size-4 shrink-0" />
-              {t.footer.address}
-            </span>
-            <a
-              href={`mailto:${t.footer.email}`}
-              className="text-primary hover:text-primary/80 flex items-center gap-2 text-sm transition-colors"
-            >
-              <MailIcon className="size-4 shrink-0" />
-              {t.footer.email}
-            </a>
-          </address>
-        </div>
-
-        {columns.map((column) => (
-          <div key={column.title} className="flex flex-col gap-3 lg:col-span-3">
-            <h2 className="text-sm font-medium">{column.title}</h2>
-            <ul className="flex flex-col gap-2">
-              {column.links.map((link) => (
-                <li key={link.label}>
-                  <Link
-                    href={link.href}
-                    className="text-muted-foreground hover:text-foreground text-sm transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        <address className="flex flex-col gap-2.5 not-italic">
+          <span className="text-muted-foreground flex items-start gap-2 text-sm">
+            <MapPinIcon className="mt-0.5 size-4 shrink-0" />
+            {t.footer.address}
+          </span>
+          <a
+            href={`mailto:${t.footer.email}`}
+            className="text-primary hover:text-primary/80 flex items-center gap-2 text-sm transition-colors"
+          >
+            <MailIcon className="size-4 shrink-0" />
+            {t.footer.email}
+          </a>
+        </address>
       </div>
 
       {/*
